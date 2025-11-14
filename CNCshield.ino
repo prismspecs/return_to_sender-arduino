@@ -80,6 +80,7 @@ const char* AXIS_NAMES[] = {"X", "Y", "Z", "A"};
   Serial.println();
   Serial.println("Commands:");
   Serial.println(" M <s1> <s2> <s3> <s4> : Move to absolute positions");
+  Serial.println(" R <s1> <s2> <s3> <s4> : Move relative to current positions");
   Serial.println(" S <speed>             : Set max speed for all motors");
   Serial.println(" A <accel>             : Set acceleration for all motors");
   Serial.println(" H                     : Home (set current positions to 0)");
@@ -136,11 +137,34 @@ const char* AXIS_NAMES[] = {"X", "Y", "Z", "A"};
          
          waitForMotors();
          Serial.println("Move complete.");
-       } else {
-         Serial.println("Error: Invalid move command.");
-       }
-     } 
-     else if (command.startsWith("S")) {
+      } else {
+        Serial.println("Error: Invalid move command.");
+      }
+    }
+    else if (command.startsWith("R")) {
+      // Relative move command
+      long s1, s2, s3, s4;
+      int parsed = sscanf(command.c_str(), "R %ld %ld %ld %ld", &s1, &s2, &s3, &s4);
+
+      if (parsed == 4) {
+        Serial.print("Moving relative: ");
+        Serial.print(s1); Serial.print(", ");
+        Serial.print(s2); Serial.print(", ");
+        Serial.print(s3); Serial.print(", ");
+        Serial.println(s4);
+        
+        steppers[0].move(s1);
+        steppers[1].move(s2);
+        steppers[2].move(s3);
+        steppers[3].move(s4);
+        
+        waitForMotors();
+        Serial.println("Move complete.");
+      } else {
+        Serial.println("Error: Invalid relative move command.");
+      }
+    } 
+    else if (command.startsWith("S")) {
        float speed = command.substring(1).toFloat();
        if (speed > 0) {
            Serial.print("Setting max speed for all motors to: ");

@@ -1,0 +1,23 @@
+{
+  "name": "cncshield-controller",
+  "version": "1.0.0",
+  "description": "Web interface for CNC Shield stepper motor control",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node check-serial.js"
+  },
+  "keywords": [
+    "cnc",
+    "stepper",
+    "arduino",
+    "motor-control"
+  ],
+  "dependencies": {
+    "express": "^4.18.2",
+    "serialport": "^12.0.0",
+    "ws": "^8.14.2"
+  }
+}
+

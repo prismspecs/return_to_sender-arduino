@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CNC Shield Controller</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>CNC Shield Controller</h1>
+      <div class="header-controls">
+        <div class="connection-status" id="status">
+          <span class="status-indicator" id="statusIndicator"></span>
+          <span id="statusText">Connecting...</span>
+        </div>
+        <button onclick="homeAll()" class="btn-home">Home All</button>
+      </div>
+    </header>
+
+    <div class="controls-section">
+      <div class="motor-controls">
+        <div class="motor-strip" id="motorX">
+          <div class="motor-header">
+            <span class="axis-label">X</span>
+            <label class="reverse-toggle">
+              <input type="checkbox" id="reverseX" onchange="toggleReverse(0, this.checked)">
+              Rev
+            </label>
+          </div>
+          <div class="slider-wrapper">
+            <span class="slider-label-top">+2000</span>
+            <input type="range" id="sliderX" class="vertical-slider" 
+                   min="-2000" max="2000" value="0" step="1"
+                   orient="vertical"
+                   oninput="updateSliderDisplay('X', 0, this.value)"
+                   onchange="moveToSlider('X', 0, this.value)">
+            <span class="slider-label-bottom">-2000</span>
+          </div>
+          <div class="position-value" id="posX">0</div>
+          <div class="motor-buttons">
+            <button onclick="quickMove('X', 0, 100)">+100</button>
+            <button onclick="quickMove('X', 0, 10)">+10</button>
+            <button onclick="quickMove('X', 0, -10)">-10</button>
+            <button onclick="quickMove('X', 0, -100)">-100</button>
+          </div>
+        </div>
+
+        <div class="motor-strip" id="motorY">
+          <div class="motor-header">
+            <span class="axis-label">Y</span>
+            <label class="reverse-toggle">
+              <input type="checkbox" id="reverseY" onchange="toggleReverse(1, this.checked)">
+              Rev
+            </label>
+          </div>
+          <div class="slider-wrapper">
+            <span class="slider-label-top">+2000</span>
+            <input type="range" id="sliderY" class="vertical-slider" 
+                   min="-2000" max="2000" value="0" step="1"
+                   orient="vertical"
+                   oninput="updateSliderDisplay('Y', 1, this.value)"
+                   onchange="moveToSlider('Y', 1, this.value)">
+            <span class="slider-label-bottom">-2000</span>
+          </div>
+          <div class="position-value" id="posY">0</div>
+          <div class="motor-buttons">
+            <button onclick="quickMove('Y', 1, 100)">+100</button>
+            <button onclick="quickMove('Y', 1, 10)">+10</button>
+            <button onclick="quickMove('Y', 1, -10)">-10</button>
+            <button onclick="quickMove('Y', 1, -100)">-100</button>
+          </div>
+        </div>
+
+        <div class="motor-strip" id="motorZ">
+          <div class="motor-header">
+            <span class="axis-label">Z</span>
+            <label class="reverse-toggle">
+              <input type="checkbox" id="reverseZ" onchange="toggleReverse(2, this.checked)">
+              Rev
+            </label>
+          </div>
+          <div class="slider-wrapper">
+            <span class="slider-label-top">+2000</span>
+            <input type="range" id="sliderZ" class="vertical-slider" 
+                   min="-2000" max="2000" value="0" step="1"
+                   orient="vertical"
+                   oninput="updateSliderDisplay('Z', 2, this.value)"
+                   onchange="moveToSlider('Z', 2, this.value)">
+            <span class="slider-label-bottom">-2000</span>
+          </div>
+          <div class="position-value" id="posZ">0</div>
+          <div class="motor-buttons">
+            <button onclick="quickMove('Z', 2, 100)">+100</button>
+            <button onclick="quickMove('Z', 2, 10)">+10</button>
+            <button onclick="quickMove('Z', 2, -10)">-10</button>
+            <button onclick="quickMove('Z', 2, -100)">-100</button>
+          </div>
+        </div>
+
+        <div class="motor-strip" id="motorA">
+          <div class="motor-header">
+            <span class="axis-label">A</span>
+            <label class="reverse-toggle">
+              <input type="checkbox" id="reverseA" onchange="toggleReverse(3, this.checked)">
+              Rev
+            </label>
+          </div>
+          <div class="slider-wrapper">
+            <span class="slider-label-top">+2000</span>
+            <input type="range" id="sliderA" class="vertical-slider" 
+                   min="-2000" max="2000" value="0" step="1"
+                   orient="vertical"
+                   oninput="updateSliderDisplay('A', 3, this.value)"
+                   onchange="moveToSlider('A', 3, this.value)">
+            <span class="slider-label-bottom">-2000</span>
+          </div>
+          <div class="position-value" id="posA">0</div>
+          <div class="motor-buttons">
+            <button onclick="quickMove('A', 3, 100)">+100</button>
+            <button onclick="quickMove('A', 3, 10)">+10</button>
+            <button onclick="quickMove('A', 3, -10)">-10</button>
+            <button onclick="quickMove('A', 3, -100)">-100</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="global-controls">
+        <h3>All Motors</h3>
+        <div class="global-buttons">
+          <button onclick="moveAllMotors(1000)">+1000</button>
+          <button onclick="moveAllMotors(100)">+100</button>
+          <button onclick="moveAllMotors(10)">+10</button>
+          <button onclick="moveAllMotors(-10)">-10</button>
+          <button onclick="moveAllMotors(-100)">-100</button>
+          <button onclick="moveAllMotors(-1000)">-1000</button>
+        </div>
+      </div>
+
+      <div class="settings-panel">
+        <label>Speed: <input type="number" id="speed" value="2000" min="100" max="10000" onchange="setSpeed()"></label>
+        <label>Accel: <input type="number" id="accel" value="1000" min="100" max="10000" onchange="setAcceleration()"></label>
+      </div>
+    </div>
+
+    <div class="choreography-section">
+      <h3>Choreography</h3>
+      <div class="choreo-controls">
+        <button onclick="recordKeyframe()" class="btn-record">Record Keyframe</button>
+        <button onclick="playChoreography()" id="btnPlay">Play</button>
+        <button onclick="stopChoreography()" id="btnStop">Stop</button>
+        <button onclick="clearChoreography()">Clear</button>
+        <button onclick="saveChoreography()">Save</button>
+        <button onclick="loadChoreography()">Load</button>
+        <label>Speed: <input type="range" id="choreoSpeed" min="0.1" max="3" step="0.1" value="1" oninput="updatePlaybackSpeed(this.value)"> <span id="speedDisplay">1.0x</span></label>
+      </div>
+      <div class="timeline" id="timeline">
+        <div class="timeline-track"></div>
+      </div>
+      <div class="keyframes-list" id="keyframesList"></div>
+    </div>
+
+    <div class="console-section">
+      <div class="console-header">
+        <h3>Console</h3>
+        <button class="btn-clear" onclick="clearConsole()">Clear</button>
+      </div>
+      <div class="console" id="console"></div>
+    </div>
+
+    <input type="file" id="fileInput" accept=".json" style="display: none;" onchange="handleFileLoad(event)">
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+

@@ -17,9 +17,30 @@ Arduino stepper motor controller for CNC shield with 4-axis support.
 
 ## Setup
 
+### Arduino Setup
+
 1. Install AccelStepper library
 2. Upload `CNCshield.ino` to Arduino
-3. Connect via serial at 115200 baud
+3. Verify serial connection at 115200 baud
+
+### Web Interface Setup
+
+1. Install Node.js dependencies:
+   ```
+   npm install
+   ```
+
+2. Update serial port in `server.js` (line 13):
+   ```javascript
+   const SERIAL_PORT = '/dev/ttyACM0';  // Change to your port
+   ```
+
+3. Start the server:
+   ```
+   npm start
+   ```
+
+4. Open browser to `http://localhost:3000`
 
 ### Important: A-Axis Configuration
 
@@ -31,14 +52,16 @@ The 4th motor (A-axis) on CNC Shield v3 requires special attention:
 4. **Set microstepping** - Use the same jumper configuration (M0, M1, M2) as your other axes
 5. **Test individually** - Use the `T 3` command to test just the A-axis motor
 
-## Commands
+## Serial Commands
 
 ```
 M <s1> <s2> <s3> <s4>  Move to absolute positions
+R <s1> <s2> <s3> <s4>  Move relative to current positions
 S <speed>              Set max speed (steps/sec)
 A <accel>              Set acceleration (steps/sec²)
 H                      Home (zero all positions)
 T <axis>               Test individual axis (0=X, 1=Y, 2=Z, 3=A)
+I                      Show system info and positions
 ```
 
 Examples:
@@ -46,14 +69,34 @@ Examples:
 H              # Home all axes
 T 3            # Test A-axis motor (200 steps forward and back)
 M 100 0 0 0    # Move X-axis to position 100
+R 0 50 0 0     # Move Y-axis 50 steps relative to current position
 M 0 0 0 500    # Move A-axis to position 500
 ```
+
+## Web Interface
+
+The web interface provides:
+
+- Real-time position tracking for all 4 axes
+- Absolute and relative positioning controls
+- Quick-move buttons for precise adjustments
+- Speed and acceleration settings
+- Live console output from Arduino
+- Manual command input
+
+All controls update motor positions immediately without typing commands.
 
 
 
 ## Testing
 
-Run `stepper_test.py` to execute a movement sequence on Y-axis.
+### Python Test Script
+
+Run `stepper_test.py` to execute a movement sequence on Y-axis:
+
+```bash
+python3 stepper_test.py
+```
 
 Update `SERIAL_PORT` in the script to match your device.
 
