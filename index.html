@@ -16,6 +16,13 @@
           <span id="statusText">Connecting...</span>
         </div>
         <button onclick="homeAll()" class="btn-home">Home All</button>
+        <div class="toggle-switch-container">
+          <label for="motorToggle" class="toggle-switch-label">Motors:</label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="motorToggle" onchange="toggleMotors(this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
       </div>
     </header>
 

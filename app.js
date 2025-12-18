@@ -20,6 +20,8 @@ function connectWebSocket() {
   ws.onopen = () => {
     updateStatus(true);
     logConsole('Connected to server');
+    // Request status update on connection
+    setTimeout(() => sendCommand('I'), 1000);
   };
 
   ws.onclose = () => {
@@ -43,6 +45,8 @@ function connectWebSocket() {
         updateStatus(data.connected);
         if (data.connected) {
           logConsole('Arduino connected');
+          // Query status immediately when Arduino connects
+          setTimeout(() => sendCommand('I'), 500);
         } else {
           logConsole('Arduino disconnected');
         }
@@ -74,6 +78,15 @@ function parseArduinoMessage(message) {
       currentPositions[axis] = parseInt(posMatch[2]);
       updatePositionDisplay(axis);
     }
+  }
+
+  // Check for motor status
+  if (message.includes("Motors: ENABLED")) {
+    document.getElementById('motorToggle').checked = true;
+    areMotorsEnabled = true;
+  } else if (message.includes("Motors: DISABLED")) {
+    document.getElementById('motorToggle').checked = false;
+    areMotorsEnabled = false;
   }
 }
 
@@ -206,10 +219,30 @@ function setAcceleration() {
   sendCommand(`A${accel}`);
 }
 
+let areMotorsEnabled = false;
+
 function homeAll() {
   sendCommand('H');
   currentPositions = [0, 0, 0, 0];
   axisNames.forEach((_, index) => updatePositionDisplay(index));
+
+  // Ensure motors are engaged for homing
+  if (!areMotorsEnabled) {
+    document.getElementById('motorToggle').checked = true;
+    toggleMotors(true);
+    logConsole('Motors automatically engaged for homing.');
+  }
+}
+
+function toggleMotors(isChecked) {
+  areMotorsEnabled = isChecked;
+  if (areMotorsEnabled) {
+    sendCommand('E 1');
+    logConsole('Motors ENGAGED');
+  } else {
+    sendCommand('E 0');
+    logConsole('Motors DISENGAGED (resting)');
+  }
 }
 
 function toggleReverse(axisIndex, checked) {
@@ -445,6 +478,7 @@ window.moveToSlider = moveToSlider;
 window.updateSliderDisplay = updateSliderDisplay;
 window.toggleReverse = toggleReverse;
 window.homeAll = homeAll;
+window.toggleMotors = toggleMotors;
 window.setSpeed = setSpeed;
 window.setAcceleration = setAcceleration;
 window.clearConsole = clearConsole;

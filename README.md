@@ -1,6 +1,6 @@
 # CNCshield
 
-Arduino stepper motor controller for CNC shield with 4-axis support.
+Arduino stepper motor controller for CNC shield with 4-axis support. The idea is to suspend a box from 4 motors, each attached to a corner of the box. The motors will raise and lower the box, allowing it to also rotate a bit.
 
 ## Hardware
 
