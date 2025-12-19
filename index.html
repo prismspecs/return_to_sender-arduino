@@ -16,6 +16,7 @@
           <span id="statusText">Connecting...</span>
         </div>
         <button onclick="homeAll()" class="btn-home">Home All</button>
+        <button onclick="setFloor()" class="btn-home" style="background-color: #4CAF50;">Set Floor</button>
         <div class="toggle-switch-container">
           <label for="motorToggle" class="toggle-switch-label">Motors:</label>
           <label class="toggle-switch">
@@ -78,17 +79,23 @@
         <div class="box-sliders">
           <div class="control-group">
             <label>Height (Z)</label>
-            <input type="range" id="boxZ" min="-200" max="200" value="0" step="1" oninput="updateBox()">
+            <input type="range" id="boxZ" min="0" max="900" value="0" step="1" oninput="updateBoxDisplay()" onchange="updateBox()">
             <span id="valBoxZ">0</span>
           </div>
           <div class="control-group">
-            <label>Roll (X-Tilt)</label>
-            <input type="range" id="boxRoll" min="-45" max="45" value="0" step="1" oninput="updateBox()">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <label>Roll (X-Tilt)</label>
+              <button onclick="resetRoll()" style="padding: 2px 6px; font-size: 12px;">0</button>
+            </div>
+            <input type="range" id="boxRoll" min="-45" max="45" value="0" step="1" oninput="updateBoxDisplay()" onchange="updateBox()">
             <span id="valBoxRoll">0°</span>
           </div>
           <div class="control-group">
-            <label>Pitch (Y-Tilt)</label>
-            <input type="range" id="boxPitch" min="-45" max="45" value="0" step="1" oninput="updateBox()">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <label>Pitch (Y-Tilt)</label>
+              <button onclick="resetPitch()" style="padding: 2px 6px; font-size: 12px;">0</button>
+            </div>
+            <input type="range" id="boxPitch" min="-45" max="45" value="0" step="1" oninput="updateBoxDisplay()" onchange="updateBox()">
             <span id="valBoxPitch">0°</span>
           </div>
         </div>
@@ -128,13 +135,13 @@
             </label>
           </div>
           <div class="slider-wrapper">
-            <span class="slider-label-top">+2000</span>
+            <span class="slider-label-top">900</span>
             <input type="range" id="sliderX" class="vertical-slider" 
-                   min="-2000" max="2000" value="0" step="1"
+                   min="0" max="900" value="0" step="1"
                    orient="vertical"
                    oninput="updateSliderDisplay('X', 0, this.value)"
                    onchange="moveToSlider('X', 0, this.value)">
-            <span class="slider-label-bottom">-2000</span>
+            <span class="slider-label-bottom">0</span>
           </div>
           <div class="position-value" id="posX">0</div>
           <div class="motor-buttons">
@@ -155,13 +162,13 @@
             </label>
           </div>
           <div class="slider-wrapper">
-            <span class="slider-label-top">+2000</span>
+            <span class="slider-label-top">900</span>
             <input type="range" id="sliderY" class="vertical-slider" 
-                   min="-2000" max="2000" value="0" step="1"
+                   min="0" max="900" value="0" step="1"
                    orient="vertical"
                    oninput="updateSliderDisplay('Y', 1, this.value)"
                    onchange="moveToSlider('Y', 1, this.value)">
-            <span class="slider-label-bottom">-2000</span>
+            <span class="slider-label-bottom">0</span>
           </div>
           <div class="position-value" id="posY">0</div>
           <div class="motor-buttons">
@@ -182,13 +189,13 @@
             </label>
           </div>
           <div class="slider-wrapper">
-            <span class="slider-label-top">+2000</span>
+            <span class="slider-label-top">900</span>
             <input type="range" id="sliderZ" class="vertical-slider" 
-                   min="-2000" max="2000" value="0" step="1"
+                   min="0" max="900" value="0" step="1"
                    orient="vertical"
                    oninput="updateSliderDisplay('Z', 2, this.value)"
                    onchange="moveToSlider('Z', 2, this.value)">
-            <span class="slider-label-bottom">-2000</span>
+            <span class="slider-label-bottom">0</span>
           </div>
           <div class="position-value" id="posZ">0</div>
           <div class="motor-buttons">
@@ -209,13 +216,13 @@
             </label>
           </div>
           <div class="slider-wrapper">
-            <span class="slider-label-top">+2000</span>
+            <span class="slider-label-top">900</span>
             <input type="range" id="sliderA" class="vertical-slider" 
-                   min="-2000" max="2000" value="0" step="1"
+                   min="0" max="900" value="0" step="1"
                    orient="vertical"
                    oninput="updateSliderDisplay('A', 3, this.value)"
                    onchange="moveToSlider('A', 3, this.value)">
-            <span class="slider-label-bottom">-2000</span>
+            <span class="slider-label-bottom">0</span>
           </div>
           <div class="position-value" id="posA">0</div>
           <div class="motor-buttons">

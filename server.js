@@ -199,6 +199,17 @@ wss.on('connection', (ws) => {
 // Initialize serial connection
 initSerial();
 
+// Heartbeat to keep Arduino alive
+setInterval(() => {
+  if (isSerialConnected && serialPort && serialPort.isOpen) {
+    serialPort.write('P\n', (err) => {
+      if (err) {
+        // console.error('Heartbeat error:', err.message);
+      }
+    });
+  }
+}, 1000);
+
 // Graceful shutdown
 process.on('SIGINT', () => {
   console.log('Shutting down...');

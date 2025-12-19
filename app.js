@@ -92,7 +92,10 @@ function connectWebSocket() {
     updateStatus(true);
     logConsole('Connected to server');
     // Request status update on connection
-    setTimeout(() => sendCommand('I'), 1000);
+    setTimeout(() => {
+        sendCommand('I');
+        syncHardwareConfig();
+    }, 1000);
   };
 
   ws.onclose = () => {
@@ -194,16 +197,16 @@ function parseArduinoMessage(message) {
         const logicalAxisIndex = reverseMappingIndex(physicalAxisIndex);
         if (logicalAxisIndex !== -1) {
           // Update UI Checkbox
-          const checkbox = document.getElementById(`reverse${axisNames[logicalAxisIndex]}`);
-          if (checkbox) {
-            // Prevent triggering onchange event loop
-            checkbox.checked = isInverted;
-            reverseFlags[logicalAxisIndex] = isInverted;
-          }
+          // const checkbox = document.getElementById(`reverse${axisNames[logicalAxisIndex]}`);
+          // if (checkbox) {
+          //   // Prevent triggering onchange event loop
+          //   checkbox.checked = isInverted;
+          //   reverseFlags[logicalAxisIndex] = isInverted;
+          // }
         }
       }
     });
-    logConsole("Synced inversion status from Arduino");
+    logConsole("Synced inversion status from Arduino (UI update disabled to preserve local config)");
   }
 }
 
@@ -224,6 +227,8 @@ function updatePositionDisplay(axis) {
 
 function updateSliderDisplay(axisName, axisIndex, value) {
   // Live update while dragging - just visual feedback
+  const displayId = `pos${axisName}`;
+  document.getElementById(displayId).textContent = value;
 }
 
 function moveToSlider(axisName, axisIndex, value) {
@@ -390,6 +395,21 @@ function homeAll() {
   }
 }
 
+function setFloor() {
+  // Send Home command to set current position as 0,0,0,0
+  sendCommand('H');
+  
+  // Reset local position tracking
+  currentPositions = [0, 0, 0, 0];
+  axisNames.forEach((_, index) => updatePositionDisplay(index));
+  
+  // Update sliders to 0
+  document.getElementById('boxZ').value = 0;
+  document.getElementById('valBoxZ').textContent = '0';
+  
+  logConsole('Floor set (Current position set to 0).');
+}
+
 function toggleMotors(isChecked) {
   areMotorsEnabled = isChecked;
   if (areMotorsEnabled) {
@@ -404,6 +424,7 @@ function toggleMotors(isChecked) {
 function toggleReverse(logicalAxisIndex, checked) {
   // Update local flag immediately for UI responsiveness
   reverseFlags[logicalAxisIndex] = checked;
+  saveReverseFlags();
   
   // Find physical driver
   const physicalDriverIndex = motorMapping[logicalAxisIndex];
@@ -413,6 +434,44 @@ function toggleReverse(logicalAxisIndex, checked) {
   sendCommand(`V ${physicalDriverIndex} ${checked ? 1 : 0}`);
   
   logConsole(`${axisNames[logicalAxisIndex]}-axis (Driver ${axisNames[physicalDriverIndex]}) reverse: ${checked ? 'ON' : 'OFF'}`);
+}
+
+function saveReverseFlags() {
+  localStorage.setItem('reverseFlags', JSON.stringify(reverseFlags));
+}
+
+function loadReverseFlags() {
+  const saved = localStorage.getItem('reverseFlags');
+  if (saved) {
+    try {
+      const loadedFlags = JSON.parse(saved);
+      if (Array.isArray(loadedFlags) && loadedFlags.length === 4) {
+        reverseFlags = loadedFlags;
+        logConsole(`Reverse flags loaded: ${reverseFlags.join(', ')}`);
+        
+        // Update UI
+        axisNames.forEach((name, i) => {
+           const checkbox = document.getElementById(`reverse${name}`);
+           if (checkbox) checkbox.checked = reverseFlags[i];
+        });
+      }
+    } catch (e) {
+      console.error("Error loading reverse flags", e);
+    }
+  }
+}
+
+function syncHardwareConfig() {
+    // Sync Reverse Flags
+    for(let i=0; i<4; i++) {
+        const physicalDriverIndex = motorMapping[i];
+        // Send explicit state for all axes to ensure sync
+        sendCommand(`V ${physicalDriverIndex} ${reverseFlags[i] ? 1 : 0}`);
+    }
+    
+    // Sync Speed/Accel
+    setSpeed();
+    setAcceleration();
 }
 
 // Choreography Functions
@@ -679,7 +738,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // PHYSICAL OFFSET: The distance from the motor plane (Z=0) to the default box position.
 // This is required because differential steering (Pitch/Roll) requires the box to be 
 // suspended at a distance to work correctly. At Z=0, geometry is degenerate.
-const PHYSICAL_Z_OFFSET = -300; 
+const PHYSICAL_Z_OFFSET = -900; 
 
 const VBOX_CONFIG = {
   frameWidth: 560,  // Distance between motors Left/Right
@@ -797,6 +856,16 @@ function calculateDistance(p1, p2) {
   );
 }
 
+function updateBoxDisplay() {
+  const zInput = parseInt(document.getElementById('boxZ').value);
+  const roll = parseInt(document.getElementById('boxRoll').value);
+  const pitch = parseInt(document.getElementById('boxPitch').value);
+  
+  document.getElementById('valBoxZ').textContent = zInput;
+  document.getElementById('valBoxRoll').textContent = roll + '°';
+  document.getElementById('valBoxPitch').textContent = pitch + '°';
+}
+
 function updateBox() {
   const zInput = parseInt(document.getElementById('boxZ').value);
   const roll = parseInt(document.getElementById('boxRoll').value);
@@ -805,9 +874,8 @@ function updateBox() {
   // Apply the physical offset to the Z input
   const z = zInput + PHYSICAL_Z_OFFSET;
   
-  document.getElementById('valBoxZ').textContent = zInput; // Show UI value (0)
-  document.getElementById('valBoxRoll').textContent = roll + '°';
-  document.getElementById('valBoxPitch').textContent = pitch + '°';
+  // Update display just in case
+  updateBoxDisplay();
   
   boxState = { z, roll, pitch };
   
@@ -849,6 +917,16 @@ function resetBox() {
   updateBox();
 }
 
+function resetRoll() {
+  document.getElementById('boxRoll').value = 0;
+  updateBox();
+}
+
+function resetPitch() {
+  document.getElementById('boxPitch').value = 0;
+  updateBox();
+}
+
 function setHomeAsReference() {
   // Recalculate homeLengths based on current boxState being the "0 steps" state.
   // Actually, usually "Set Home" means "Current Physical Position is 0,0,0,0".
@@ -880,7 +958,7 @@ function setHomeAsReference() {
   // Recalculate Home Lengths
   initVirtualBox();
   
-  logConsole("Home Reference Set. Box at Z=0 (Phys -300), Level.");
+  logConsole("Home Reference Set. Box at Z=0 (Phys -900), Level.");
 }
 
 function syncUI() {
@@ -906,15 +984,17 @@ function syncUI() {
   }
 
   // Send default Speed/Accel to Arduino
-  setTimeout(() => {
-    setSpeed();
-    setAcceleration();
-  }, 1000); // Wait a sec for connection
+  // Moved to syncHardwareConfig called on connection
+  // setTimeout(() => {
+  //   setSpeed();
+  //   setAcceleration();
+  // }, 1000); // Wait a sec for connection
 }
 
 // Initialize on load
 window.addEventListener('load', () => {
   loadMapping();
+  loadReverseFlags();
   initVirtualBox();
   syncUI();
 });

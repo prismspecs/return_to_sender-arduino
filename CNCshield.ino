@@ -44,7 +44,7 @@ const int NUM_STEPPERS = 4;
 const char* AXIS_NAMES[] = { "X", "Y", "Z", "A" };
 
 unsigned long lastCommandTime = 0;
-const unsigned long TIMEOUT_MS = 600000; 
+const unsigned long TIMEOUT_MS = 2000; 
 bool motorsEnabled = false; 
 bool inverted[4] = {false, false, false, false}; 
 
@@ -114,17 +114,7 @@ void loop() {
 // ============================================================================
 
 void waitForMotors() {
-  bool moving = true;
-  while (moving) {
-    moving = false;
-    for (int i = 0; i < NUM_STEPPERS; i++) {
-      // Optimization: Only call run() if distance remains
-      if (steppers[i].distanceToGo() != 0) {
-        steppers[i].run();
-        moving = true;
-      }
-    }
-  }
+  // Deprecated: Non-blocking loop handles movement now
 }
 
 void processCommand(char* command) {
@@ -149,26 +139,26 @@ void processCommand(char* command) {
     else if (command[0] == 'M') {
       long s1, s2, s3, s4;
       if (sscanf(command, "M %ld %ld %ld %ld", &s1, &s2, &s3, &s4) == 4) {
-        Serial.println("Moving...");
+        // Serial.println("Moving..."); // Reduce chatter
         steppers[0].moveTo(s1);
         steppers[1].moveTo(s2);
         steppers[2].moveTo(s3);
         steppers[3].moveTo(s4);
-        waitForMotors();
-        Serial.println("Done.");
+        // waitForMotors(); // REMOVED: Non-blocking
+        // Serial.println("Done."); // REMOVED: Don't spam done
       }
     }
     // R: Move Relative
     else if (command[0] == 'R') {
       long s1, s2, s3, s4;
       if (sscanf(command, "R %ld %ld %ld %ld", &s1, &s2, &s3, &s4) == 4) {
-        Serial.println("Moving Relative...");
+        // Serial.println("Moving Relative...");
         steppers[0].move(s1);
         steppers[1].move(s2);
         steppers[2].move(s3);
         steppers[3].move(s4);
-        waitForMotors();
-        Serial.println("Done.");
+        // waitForMotors(); // REMOVED: Non-blocking
+        // Serial.println("Done.");
       }
     }
     // I: Info
@@ -217,6 +207,10 @@ void processCommand(char* command) {
     else if (command[0] == 'H') {
       for (int i = 0; i < NUM_STEPPERS; i++) steppers[i].setCurrentPosition(0);
       Serial.println("Homed.");
+    }
+    // P: Ping (Heartbeat)
+    else if (command[0] == 'P') {
+      // Do nothing, just resets lastCommandTime via processCommand entry
     }
 }
 
