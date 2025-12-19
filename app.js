@@ -64,12 +64,31 @@ let choreographyStartTime = 0;
 let playbackInterval = null;
 
 function connectWebSocket() {
+  // Clean up existing connection if any
+  if (ws) {
+    ws.onclose = null; // Prevent recursive reconnection loop
+    ws.close();
+  }
+
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const wsUrl = `${protocol}//${window.location.host}`;
   
+  updateStatus(false, 'Connecting...');
   ws = new WebSocket(wsUrl);
 
+  // Connection timeout watchdog
+  const connectionTimeout = setTimeout(() => {
+    if (ws.readyState !== WebSocket.OPEN) {
+      logConsole('Connection timed out. Retrying...');
+      ws.close(); // This will trigger onclose (if we didn't null it, but we want it to trigger now)
+      // Actually, if we close it here, onclose will fire.
+      // But if onclose fires, it calls connectWebSocket again.
+      // So we don't need to call it manually.
+    }
+  }, 5000);
+
   ws.onopen = () => {
+    clearTimeout(connectionTimeout);
     updateStatus(true);
     logConsole('Connected to server');
     // Request status update on connection
@@ -77,6 +96,7 @@ function connectWebSocket() {
   };
 
   ws.onclose = () => {
+    clearTimeout(connectionTimeout);
     updateStatus(false);
     logConsole('Disconnected from server. Reconnecting...');
     setTimeout(connectWebSocket, 2000);
@@ -84,6 +104,7 @@ function connectWebSocket() {
 
   ws.onerror = (error) => {
     logConsole('WebSocket error');
+    // onerror usually precedes onclose
   };
 
   ws.onmessage = (event) => {
@@ -94,13 +115,17 @@ function connectWebSocket() {
         logConsole(data.message);
         parseArduinoMessage(data.message);
       } else if (data.type === 'status') {
-        updateStatus(data.connected);
+        // If connected=true, show "Connected"
+        // If connected=false, show "Server OK, Arduino Disconnected" or just "Disconnected"
+        // For simplicity, we'll stick to the boolean, but maybe add text.
         if (data.connected) {
-          logConsole('Arduino connected');
-          // Query status immediately when Arduino connects
-          setTimeout(() => sendCommand('I'), 500);
+           updateStatus(true, 'Connected');
+           logConsole('Arduino connected');
+           // Query status immediately when Arduino connects
+           setTimeout(() => sendCommand('I'), 500);
         } else {
-          logConsole('Arduino disconnected');
+           updateStatus(false, 'Arduino Disconnected');
+           logConsole('Arduino disconnected');
         }
       }
     } catch (error) {
@@ -109,16 +134,23 @@ function connectWebSocket() {
   };
 }
 
-function updateStatus(connected) {
+function updateStatus(connected, message = null) {
   const indicator = document.getElementById('statusIndicator');
   const text = document.getElementById('statusText');
   
   if (connected) {
     indicator.classList.add('connected');
-    text.textContent = 'Connected';
+    indicator.classList.remove('connecting');
+    text.textContent = message || 'Connected';
   } else {
     indicator.classList.remove('connected');
-    text.textContent = 'Disconnected';
+    if (message === 'Connecting...') {
+       indicator.classList.add('connecting');
+       text.textContent = message;
+    } else {
+       indicator.classList.remove('connecting');
+       text.textContent = message || 'Disconnected';
+    }
   }
 }
 
@@ -268,7 +300,9 @@ function moveRelative(axisName, axisIndex) {
   updatePositionDisplay(axisIndex);
 }
 
-function quickMove(axisName, axisIndex, steps) {
+function quickMove(axisName, axisIndex, distanceMm) {
+  // Convert mm to steps
+  const steps = Math.round(distanceMm * VBOX_CONFIG.stepsPerMm);
   let moveSteps = steps;
   
   // If Arduino handles inversion, we do NOT negate steps here.
@@ -290,8 +324,10 @@ function quickMove(axisName, axisIndex, steps) {
   updatePositionDisplay(axisIndex);
 }
 
-function moveAllMotors(steps) {
-  console.log(`moveAllMotors called with steps: ${steps}`);
+function moveAllMotors(distanceMm) {
+  // Convert mm to steps
+  const steps = Math.round(distanceMm * VBOX_CONFIG.stepsPerMm);
+  console.log(`moveAllMotors called with distance: ${distanceMm}mm (${steps} steps)`);
   
   const relative = [0, 0, 0, 0];
   
@@ -310,7 +346,7 @@ function moveAllMotors(steps) {
   sendCommand(`R ${physicalRelative.join(' ')}`);
   
   axisNames.forEach((_, index) => updatePositionDisplay(index));
-  logConsole(`All motors: moved ${steps} steps`);
+  logConsole(`All motors: moved ${distanceMm}mm (${steps} steps)`);
 }
 
 function moveAllToZero() {
@@ -640,6 +676,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // --- Virtual Box Logic ---
 
+// PHYSICAL OFFSET: The distance from the motor plane (Z=0) to the default box position.
+// This is required because differential steering (Pitch/Roll) requires the box to be 
+// suspended at a distance to work correctly. At Z=0, geometry is degenerate.
+const PHYSICAL_Z_OFFSET = -300; 
+
 const VBOX_CONFIG = {
   frameWidth: 560,  // Distance between motors Left/Right
   frameLength: 400, // Distance between motors Front/Rear
@@ -649,7 +690,17 @@ const VBOX_CONFIG = {
   // Motor & Spool Physics
   spoolDiameter: 35,      // Diameter of the spool in mm
   motorStepsPerRev: 200,  // Steps per full revolution (usually 200 for NEMA 17)
-  microsteps: 16,          // Microstepping setting (1, 2, 4, 8, 16, 32)
+  
+  // --- MICROSTEPPING CONFIGURATION ---
+  // Update this value when you change the jumpers on the CNC Shield
+  // 1 = Full Step (No jumpers)
+  // 2 = Half Step
+  // 4 = Quarter Step
+  // 8 = 1/8 Step
+  // 16 = 1/16 Step
+  // 32 = 1/32 Step (DRV8825 only)
+  microsteps: 1,          
+  // -----------------------------------
   
   // Dynamic calculation: Steps required to move 1mm
   get stepsPerMm() {
@@ -669,9 +720,9 @@ let homeLengths = [0, 0, 0, 0];
 
 // Initialize home lengths based on default state
 function initVirtualBox() {
-  // Calculate lengths at default position (Z=0, Roll=0, Pitch=0)
-  // This assumes that when the system starts (0 steps), the box is at this position.
-  const corners = calculateCorners({ z: 0, roll: 0, pitch: 0 });
+  // Calculate lengths at default position (Z=PHYSICAL_Z_OFFSET, Roll=0, Pitch=0)
+  // We use the offset so the math works, but the UI will show "0".
+  const corners = calculateCorners({ z: PHYSICAL_Z_OFFSET, roll: 0, pitch: 0 });
   const motors = getMotorPositions();
   
   for (let i = 0; i < 4; i++) {
@@ -720,6 +771,11 @@ function calculateCorners(state) {
     let x1 = p.x;
     
     // Apply Pitch (Y-axis rotation)
+    // Standard Rotation Matrix for Y-axis:
+    // x' = x*cos(theta) + z*sin(theta)
+    // z' = -x*sin(theta) + z*cos(theta)
+    // y' = y
+    
     let x2 = x1 * Math.cos(radPitch) + z1 * Math.sin(radPitch);
     let z2 = -x1 * Math.sin(radPitch) + z1 * Math.cos(radPitch);
     let y2 = y1;
@@ -742,11 +798,14 @@ function calculateDistance(p1, p2) {
 }
 
 function updateBox() {
-  const z = parseInt(document.getElementById('boxZ').value);
+  const zInput = parseInt(document.getElementById('boxZ').value);
   const roll = parseInt(document.getElementById('boxRoll').value);
   const pitch = parseInt(document.getElementById('boxPitch').value);
   
-  document.getElementById('valBoxZ').textContent = z;
+  // Apply the physical offset to the Z input
+  const z = zInput + PHYSICAL_Z_OFFSET;
+  
+  document.getElementById('valBoxZ').textContent = zInput; // Show UI value (0)
   document.getElementById('valBoxRoll').textContent = roll + '°';
   document.getElementById('valBoxPitch').textContent = pitch + '°';
   
@@ -756,47 +815,21 @@ function updateBox() {
   const motors = getMotorPositions();
   const targetSteps = [];
   
+  // Debug Logging
+  // console.log(`UpdateBox: UI_Z=${zInput}, Phys_Z=${z}, Roll=${roll}, Pitch=${pitch}`);
+  
   for (let i = 0; i < 4; i++) {
     const len = calculateDistance(motors[i], corners[i]);
-    // Calculate steps relative to home length
-    // If length increases, we need to unspool (positive steps? or negative?)
-    // Usually "Raise" means pull up -> shorter cable.
-    // If cable is shorter, we need to retract.
-    // Let's assume Positive Steps = Retract (Pull Up).
-    // So Steps = (HomeLength - CurrentLength) * StepsPerMm
-    // Wait, if Length < HomeLength, we pulled up. Steps should be positive?
-    // Let's assume standard: Positive Steps = Move Motor Forward.
-    // We need to know if Forward = Retract or Extend.
-    // Usually Forward = Retract (Pull).
-    // So: Steps = (HomeLength - TargetLength) * StepsPerMm
-    // But wait, if we start at Home (0 steps), and we want to go to a position with Shorter Cable,
-    // we need Positive Steps.
-    // So: Steps = (homeLengths[i] - len) * VBOX_CONFIG.stepsPerMm;
-    
-    // However, the prompt says "Raise Corner 1... Move Motor 1 up 100".
-    // Let's assume Positive Steps = Retract.
-    
     let steps = (homeLengths[i] - len) * VBOX_CONFIG.stepsPerMm;
     let finalSteps = Math.round(steps);
-    
-    // Apply reverse flag if set
-    // REMOVED: Hardware inversion handles this now.
-    // if (reverseFlags[i]) {
-    //   finalSteps = -finalSteps;
-    // }
-    
     targetSteps.push(finalSteps);
   }
+  
+  // console.log('Target Steps:', targetSteps);
   
   // Send command
   // Note: We are sending absolute steps relative to Home.
   // The Arduino 'M' command takes absolute steps.
-  // So this matches perfectly.
-  
-  // Update global currentPositions to match (so UI stays in sync)
-  // But wait, the sliders in UI are for individual motors.
-  // We should update them too?
-  // Yes, let's update the sliders to reflect the new positions.
   
   for(let i=0; i<4; i++) {
      // Update internal state
@@ -847,7 +880,7 @@ function setHomeAsReference() {
   // Recalculate Home Lengths
   initVirtualBox();
   
-  logConsole("Home Reference Set. Box at Z=0, Level.");
+  logConsole("Home Reference Set. Box at Z=0 (Phys -300), Level.");
 }
 
 function syncUI() {
@@ -871,6 +904,12 @@ function syncUI() {
   for(let i=0; i<4; i++) {
     updatePositionDisplay(i);
   }
+
+  // Send default Speed/Accel to Arduino
+  setTimeout(() => {
+    setSpeed();
+    setAcceleration();
+  }, 1000); // Wait a sec for connection
 }
 
 // Initialize on load

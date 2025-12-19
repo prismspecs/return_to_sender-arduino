@@ -77,6 +77,10 @@ h3 {
   background: var(--success);
 }
 
+.status-indicator.connecting {
+  background: #f1c40f; /* Yellow */
+}
+
 .btn-home {
   padding: 4px 12px;
   background: var(--success);
