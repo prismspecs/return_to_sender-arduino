@@ -496,8 +496,15 @@ function playChoreography() {
     }
     
     if (keyframeIndex >= choreography.length) {
-      stopChoreography();
-      logConsole('Choreography complete');
+      const shouldLoop = document.getElementById('loopChoreography').checked;
+      if (shouldLoop) {
+        logConsole('Looping choreography...');
+        playbackStartTime = Date.now();
+        keyframeIndex = 0;
+      } else {
+        stopChoreography();
+        logConsole('Choreography complete');
+      }
     }
   }, 50);
 }
@@ -642,7 +649,7 @@ const VBOX_CONFIG = {
   // Motor & Spool Physics
   spoolDiameter: 35,      // Diameter of the spool in mm
   motorStepsPerRev: 200,  // Steps per full revolution (usually 200 for NEMA 17)
-  microsteps: 1,          // Microstepping setting (1, 2, 4, 8, 16, 32)
+  microsteps: 16,          // Microstepping setting (1, 2, 4, 8, 16, 32)
   
   // Dynamic calculation: Steps required to move 1mm
   get stepsPerMm() {
@@ -662,9 +669,9 @@ let homeLengths = [0, 0, 0, 0];
 
 // Initialize home lengths based on default state
 function initVirtualBox() {
-  // Calculate lengths at default position (Z=-300, Roll=0, Pitch=0)
+  // Calculate lengths at default position (Z=0, Roll=0, Pitch=0)
   // This assumes that when the system starts (0 steps), the box is at this position.
-  const corners = calculateCorners({ z: -300, roll: 0, pitch: 0 });
+  const corners = calculateCorners({ z: 0, roll: 0, pitch: 0 });
   const motors = getMotorPositions();
   
   for (let i = 0; i < 4; i++) {
@@ -803,7 +810,7 @@ function updateBox() {
 }
 
 function resetBox() {
-  document.getElementById('boxZ').value = -300;
+  document.getElementById('boxZ').value = 0;
   document.getElementById('boxRoll').value = 0;
   document.getElementById('boxPitch').value = 0;
   updateBox();
@@ -819,7 +826,7 @@ function setHomeAsReference() {
   
   // Let's assume the user manually leveled the box.
   // We set the current physical motor positions to 0 (sendCommand('H')).
-  // And we set the virtual box state to default (-300, 0, 0).
+  // And we set the virtual box state to default (0, 0, 0).
   // And we recalculate homeLengths.
   
   sendCommand('H'); // Tell Arduino this is 0
@@ -833,19 +840,43 @@ function setHomeAsReference() {
   });
   
   // Reset Box UI
-  document.getElementById('boxZ').value = -300;
+  document.getElementById('boxZ').value = 0;
   document.getElementById('boxRoll').value = 0;
   document.getElementById('boxPitch').value = 0;
   
   // Recalculate Home Lengths
   initVirtualBox();
   
-  logConsole("Home Reference Set. Box at Z=-300, Level.");
+  logConsole("Home Reference Set. Box at Z=0, Level.");
+}
+
+function syncUI() {
+  // Sync Speed Slider
+  const speedSlider = document.getElementById('choreoSpeed');
+  if (speedSlider) {
+    speedSlider.value = playbackSpeed;
+    document.getElementById('speedDisplay').textContent = playbackSpeed + 'x';
+  }
+  
+  // Sync Box Inputs
+  document.getElementById('boxZ').value = 0;
+  document.getElementById('boxRoll').value = 0;
+  document.getElementById('boxPitch').value = 0;
+  document.getElementById('valBoxZ').textContent = 0;
+  document.getElementById('valBoxRoll').textContent = '0°';
+  document.getElementById('valBoxPitch').textContent = '0°';
+  
+  // Sync Motor Sliders
+  // currentPositions is initialized to [0,0,0,0]
+  for(let i=0; i<4; i++) {
+    updatePositionDisplay(i);
+  }
 }
 
 // Initialize on load
 window.addEventListener('load', () => {
   loadMapping();
   initVirtualBox();
+  syncUI();
 });
 

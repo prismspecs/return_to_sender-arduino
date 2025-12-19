@@ -39,8 +39,8 @@
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
-#define SPEED_DEFAULT 2000   // Max speed in steps/second
-#define ACCEL_DEFAULT 1000   // Acceleration in steps/second^2
+#define SPEED_DEFAULT 4000   // Max speed in steps/second
+#define ACCEL_DEFAULT 2000   // Acceleration in steps/second^2
 
 const int NUM_STEPPERS = 4;
 const char* AXIS_NAMES[] = { "X", "Y", "Z", "A" };

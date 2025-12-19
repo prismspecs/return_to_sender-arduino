@@ -78,8 +78,8 @@
         <div class="box-sliders">
           <div class="control-group">
             <label>Height (Z)</label>
-            <input type="range" id="boxZ" min="-500" max="-100" value="-300" step="1" oninput="updateBox()">
-            <span id="valBoxZ">-300</span>
+            <input type="range" id="boxZ" min="-500" max="0" value="0" step="1" oninput="updateBox()">
+            <span id="valBoxZ">0</span>
           </div>
           <div class="control-group">
             <label>Roll (X-Tilt)</label>
@@ -107,7 +107,10 @@
           <button onclick="clearChoreography()">Clear</button>
           <button onclick="saveChoreography()">Save</button>
           <button onclick="loadChoreography()">Load</button>
-          <label>Speed: <input type="range" id="choreoSpeed" min="0.1" max="3" step="0.1" value="1" oninput="updatePlaybackSpeed(this.value)"> <span id="speedDisplay">1.0x</span></label>
+          <label>Speed: <input type="range" id="choreoSpeed" min="0.1" max="10" step="0.1" value="1" oninput="updatePlaybackSpeed(this.value)"> <span id="speedDisplay">1.0x</span></label>
+          <label class="loop-toggle">
+            <input type="checkbox" id="loopChoreography"> Loop
+          </label>
         </div>
         <div class="timeline" id="timeline">
           <div class="timeline-track"></div>
@@ -125,13 +128,13 @@
             </label>
           </div>
           <div class="slider-wrapper">
-            <span class="slider-label-top">+2000</span>
+            <span class="slider-label-top">+20000</span>
             <input type="range" id="sliderX" class="vertical-slider" 
-                   min="-2000" max="2000" value="0" step="1"
+                   min="-20000" max="20000" value="0" step="1"
                    orient="vertical"
                    oninput="updateSliderDisplay('X', 0, this.value)"
                    onchange="moveToSlider('X', 0, this.value)">
-            <span class="slider-label-bottom">-2000</span>
+            <span class="slider-label-bottom">-20000</span>
           </div>
           <div class="position-value" id="posX">0</div>
           <div class="motor-buttons">
@@ -152,13 +155,13 @@
             </label>
           </div>
           <div class="slider-wrapper">
-            <span class="slider-label-top">+2000</span>
+            <span class="slider-label-top">+20000</span>
             <input type="range" id="sliderY" class="vertical-slider" 
-                   min="-2000" max="2000" value="0" step="1"
+                   min="-20000" max="20000" value="0" step="1"
                    orient="vertical"
                    oninput="updateSliderDisplay('Y', 1, this.value)"
                    onchange="moveToSlider('Y', 1, this.value)">
-            <span class="slider-label-bottom">-2000</span>
+            <span class="slider-label-bottom">-20000</span>
           </div>
           <div class="position-value" id="posY">0</div>
           <div class="motor-buttons">
@@ -179,13 +182,13 @@
             </label>
           </div>
           <div class="slider-wrapper">
-            <span class="slider-label-top">+2000</span>
+            <span class="slider-label-top">+20000</span>
             <input type="range" id="sliderZ" class="vertical-slider" 
-                   min="-2000" max="2000" value="0" step="1"
+                   min="-20000" max="20000" value="0" step="1"
                    orient="vertical"
                    oninput="updateSliderDisplay('Z', 2, this.value)"
                    onchange="moveToSlider('Z', 2, this.value)">
-            <span class="slider-label-bottom">-2000</span>
+            <span class="slider-label-bottom">-20000</span>
           </div>
           <div class="position-value" id="posZ">0</div>
           <div class="motor-buttons">
@@ -206,13 +209,13 @@
             </label>
           </div>
           <div class="slider-wrapper">
-            <span class="slider-label-top">+2000</span>
+            <span class="slider-label-top">+20000</span>
             <input type="range" id="sliderA" class="vertical-slider" 
-                   min="-2000" max="2000" value="0" step="1"
+                   min="-20000" max="20000" value="0" step="1"
                    orient="vertical"
                    oninput="updateSliderDisplay('A', 3, this.value)"
                    onchange="moveToSlider('A', 3, this.value)">
-            <span class="slider-label-bottom">-2000</span>
+            <span class="slider-label-bottom">-20000</span>
           </div>
           <div class="position-value" id="posA">0</div>
           <div class="motor-buttons">
@@ -239,8 +242,8 @@
       </div>
 
       <div class="settings-panel">
-        <label>Speed: <input type="number" id="speed" value="2000" min="100" max="10000" onchange="setSpeed()"></label>
-        <label>Accel: <input type="number" id="accel" value="1000" min="100" max="10000" onchange="setAcceleration()"></label>
+        <label>Speed: <input type="number" id="speed" value="4000" min="100" max="10000" onchange="setSpeed()"></label>
+        <label>Accel: <input type="number" id="accel" value="2000" min="100" max="10000" onchange="setAcceleration()"></label>
       </div>
     </div>
 
