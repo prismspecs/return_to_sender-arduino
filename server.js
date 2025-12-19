@@ -22,6 +22,16 @@ let isSerialConnected = false;
 
 // Initialize serial connection
 function initSerial() {
+  if (isSerialConnected) return;
+
+  // Cleanup previous instance
+  if (serialPort) {
+    serialPort.removeAllListeners();
+    if (parser) parser.removeAllListeners();
+    serialPort = null;
+    parser = null;
+  }
+
   try {
     serialPort = new SerialPort({
       path: SERIAL_PORT,
@@ -33,16 +43,14 @@ function initSerial() {
 
     serialPort.open((err) => {
       if (err) {
-        console.error('\n❌ Error opening serial port:', err.message);
-        console.error('\nCommon fixes:');
-        console.error('1. Check if Arduino is connected: ls -l /dev/ttyACM* /dev/ttyUSB*');
-        console.error('2. Close Arduino IDE serial monitor');
-        console.error('3. Check permissions: sudo usermod -a -G dialout $USER (then logout/login)');
-        console.error('4. Run: node check-serial.js to see available ports\n');
+        // Silent retry or minimal log
+        // console.log('Waiting for Arduino...');
         isSerialConnected = false;
+        setTimeout(initSerial, 2000);
         return;
       }
-      console.log(`✓ Connected to Arduino on ${SERIAL_PORT}`);
+      
+      console.log(`\n✓ Connected to Arduino on ${SERIAL_PORT}`);
       isSerialConnected = true;
       
       // Notify all connected clients
@@ -76,7 +84,7 @@ function initSerial() {
     });
 
     serialPort.on('close', () => {
-      console.log('Serial port closed');
+      console.log('\nSerial port closed. Reconnecting...');
       isSerialConnected = false;
       
       // Notify all connected clients
@@ -88,10 +96,13 @@ function initSerial() {
           }));
         }
       });
+      
+      setTimeout(initSerial, 2000);
     });
 
   } catch (error) {
     console.error('Failed to initialize serial:', error.message);
+    setTimeout(initSerial, 2000);
   }
 }
 
