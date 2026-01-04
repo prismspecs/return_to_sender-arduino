@@ -372,12 +372,12 @@ function moveAllToZero() {
 
 function setSpeed() {
   const speed = document.getElementById('speed').value;
-  sendCommand(`S${speed}`);
+  sendCommand(`S ${speed}`);
 }
 
 function setAcceleration() {
   const accel = document.getElementById('accel').value;
-  sendCommand(`A${accel}`);
+  sendCommand(`A ${accel}`);
 }
 
 let areMotorsEnabled = false;
@@ -747,7 +747,7 @@ const VBOX_CONFIG = {
   boxLength: 350,   // Distance between corners Y
   
   // Motor & Spool Physics
-  spoolDiameter: 35,      // Diameter of the spool in mm
+  spoolDiameter: 48,      // Diameter of the spool in mm
   motorStepsPerRev: 200,  // Steps per full revolution (usually 200 for NEMA 17)
   
   // --- MICROSTEPPING CONFIGURATION ---
@@ -758,7 +758,7 @@ const VBOX_CONFIG = {
   // 8 = 1/8 Step
   // 16 = 1/16 Step
   // 32 = 1/32 Step (DRV8825 only)
-  microsteps: 1,          
+  microsteps: 16,          
   // -----------------------------------
   
   // Dynamic calculation: Steps required to move 1mm

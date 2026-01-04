@@ -30,15 +30,14 @@
 
 // FOR 1/1 STEPPING (Full Step):
 // 200 steps = 1 revolution. 
-// 2000 steps/sec = 10 revs/sec = 600 RPM (Fast)
-#define SPEED_DEFAULT 2000   
-#define ACCEL_DEFAULT 1000    
+// #define SPEED_DEFAULT 2000
+// #define ACCEL_DEFAULT 1000
 
 // FOR 1/16 STEPPING:
 // 3200 steps = 1 revolution.
-// 4000 steps/sec = 1.25 revs/sec = 75 RPM (Slow)
-// #define SPEED_DEFAULT 4000
-// #define ACCEL_DEFAULT 2000
+// On the Uno R4, we can handle much higher step rates
+#define SPEED_DEFAULT 18000   // This is ~5.6 revolutions per second
+#define ACCEL_DEFAULT 8000    // Snappier starts/stops
 
 const int NUM_STEPPERS = 4;
 const char* AXIS_NAMES[] = { "X", "Y", "Z", "A" };
@@ -122,7 +121,7 @@ void processCommand(char* command) {
     
     // E: Enable
     if (command[0] == 'E') {
-      int state = atoi(command + 2);
+      int state = atoi(command + 1);
       if (state == 1) {
         digitalWrite(ENABLE_PIN, LOW);
         if (A_ENABLE_PIN != ENABLE_PIN) digitalWrite(A_ENABLE_PIN, LOW);
@@ -189,7 +188,7 @@ void processCommand(char* command) {
     }
     // S: Speed
     else if (command[0] == 'S') {
-      float speed = atof(command + 2);
+      float speed = atof(command + 1);
       if (speed > 0) {
         for (int i = 0; i < NUM_STEPPERS; i++) steppers[i].setMaxSpeed(speed);
         Serial.print("Speed set to: "); Serial.println(speed);
@@ -197,7 +196,7 @@ void processCommand(char* command) {
     }
     // A: Accel
     else if (command[0] == 'A') {
-      float accel = atof(command + 2);
+      float accel = atof(command + 1);
       if (accel > 0) {
         for (int i = 0; i < NUM_STEPPERS; i++) steppers[i].setAcceleration(accel);
         Serial.print("Accel set to: "); Serial.println(accel);

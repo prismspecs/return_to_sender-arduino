@@ -180,33 +180,6 @@
           </div>
         </div>
 
-        <div class="motor-strip" id="motorZ">
-          <div class="motor-header">
-            <span class="axis-label">3 (FR)</span>
-            <label class="reverse-toggle">
-              <input type="checkbox" id="reverseZ" onchange="toggleReverse(2, this.checked)">
-              Rev
-            </label>
-          </div>
-          <div class="slider-wrapper">
-            <span class="slider-label-top">900</span>
-            <input type="range" id="sliderZ" class="vertical-slider" 
-                   min="0" max="900" value="0" step="1"
-                   orient="vertical"
-                   oninput="updateSliderDisplay('Z', 2, this.value)"
-                   onchange="moveToSlider('Z', 2, this.value)">
-            <span class="slider-label-bottom">0</span>
-          </div>
-          <div class="position-value" id="posZ">0</div>
-          <div class="motor-buttons">
-            <button onclick="quickMove('Z', 2, -100)">-100</button>
-            <button onclick="quickMove('Z', 2, -10)">-10</button>
-            <button onclick="moveToSlider('Z', 2, 0)">0</button>
-            <button onclick="quickMove('Z', 2, 10)">+10</button>
-            <button onclick="quickMove('Z', 2, 100)">+100</button>
-          </div>
-        </div>
-
         <div class="motor-strip" id="motorA">
           <div class="motor-header">
             <span class="axis-label">4 (FL)</span>
@@ -231,6 +204,33 @@
             <button onclick="moveToSlider('A', 3, 0)">0</button>
             <button onclick="quickMove('A', 3, 10)">+10</button>
             <button onclick="quickMove('A', 3, 100)">+100</button>
+          </div>
+        </div>
+
+        <div class="motor-strip" id="motorZ">
+          <div class="motor-header">
+            <span class="axis-label">3 (FR)</span>
+            <label class="reverse-toggle">
+              <input type="checkbox" id="reverseZ" onchange="toggleReverse(2, this.checked)">
+              Rev
+            </label>
+          </div>
+          <div class="slider-wrapper">
+            <span class="slider-label-top">900</span>
+            <input type="range" id="sliderZ" class="vertical-slider" 
+                   min="0" max="900" value="0" step="1"
+                   orient="vertical"
+                   oninput="updateSliderDisplay('Z', 2, this.value)"
+                   onchange="moveToSlider('Z', 2, this.value)">
+            <span class="slider-label-bottom">0</span>
+          </div>
+          <div class="position-value" id="posZ">0</div>
+          <div class="motor-buttons">
+            <button onclick="quickMove('Z', 2, -100)">-100</button>
+            <button onclick="quickMove('Z', 2, -10)">-10</button>
+            <button onclick="moveToSlider('Z', 2, 0)">0</button>
+            <button onclick="quickMove('Z', 2, 10)">+10</button>
+            <button onclick="quickMove('Z', 2, 100)">+100</button>
           </div>
         </div>
       </div>
