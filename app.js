@@ -158,20 +158,24 @@ function updateStatus(connected, message = null) {
 }
 
 function parseArduinoMessage(message) {
-  const posMatch = message.match(/([XYZA]):\s*pos=(-?\d+)/);
-  if (posMatch) {
-    const physicalAxisChar = posMatch[1];
-    const physicalAxisIndex = axisNames.indexOf(physicalAxisChar);
-    
-    if (physicalAxisIndex !== -1) {
-      // Map back to Logical Motor
-      const logicalAxisIndex = reverseMappingIndex(physicalAxisIndex);
+  // Use matchAll to find all occurrences of position data in the message
+  const posMatches = [...message.matchAll(/([XYZA]):\s*pos=(-?\d+)/g)];
+  
+  if (posMatches.length > 0) {
+    posMatches.forEach(match => {
+      const physicalAxisChar = match[1];
+      const physicalAxisIndex = axisNames.indexOf(physicalAxisChar);
       
-      if (logicalAxisIndex !== -1) {
-        currentPositions[logicalAxisIndex] = parseInt(posMatch[2]);
-        updatePositionDisplay(logicalAxisIndex);
+      if (physicalAxisIndex !== -1) {
+        // Map back to Logical Motor
+        const logicalAxisIndex = reverseMappingIndex(physicalAxisIndex);
+        
+        if (logicalAxisIndex !== -1) {
+          currentPositions[logicalAxisIndex] = parseInt(match[2]);
+          updatePositionDisplay(logicalAxisIndex);
+        }
       }
-    }
+    });
   }
 
   // Check for motor status
@@ -584,7 +588,8 @@ function playChoreography() {
       
       const kf = choreography[keyframeIndex];
       currentPositions = [...kf.positions];
-      sendCommand(`M ${currentPositions.join(' ')}`);
+      const physicalSteps = applyMapping(currentPositions);
+      sendCommand(`M ${physicalSteps.join(' ')}`);
       axisNames.forEach((_, i) => updatePositionDisplay(i));
       
       keyframeIndex++;
@@ -747,7 +752,7 @@ const VBOX_CONFIG = {
   boxLength: 350,   // Distance between corners Y
   
   // Motor & Spool Physics
-  spoolDiameter: 48,      // Diameter of the spool in mm
+  spoolDiameter: 35,      // Diameter of the spool in mm
   motorStepsPerRev: 200,  // Steps per full revolution (usually 200 for NEMA 17)
   
   // --- MICROSTEPPING CONFIGURATION ---
