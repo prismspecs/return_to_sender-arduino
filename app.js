@@ -1,10 +1,26 @@
+import { 
+    VBOX_CONFIG, 
+    PHYSICAL_Z_OFFSET, 
+    AXIS_NAMES, 
+    DEFAULT_MOTOR_MAPPING, 
+    UI_CONFIG 
+} from './config.js';
+
+import { 
+    getMotorPositions, 
+    calculateCorners, 
+    calculateDistance,
+    calculateTargetSteps 
+} from './kinematics.js';
+
 let ws = null;
 let currentPositions = [0, 0, 0, 0];
 let reverseFlags = [false, false, false, false];
-let motorMapping = [0, 1, 3, 2]; // Default: M1->X, M2->Y, M3->A, M4->Z
-const axisNames = ['X', 'Y', 'Z', 'A'];
+let motorMapping = [...DEFAULT_MOTOR_MAPPING]; 
+const axisNames = AXIS_NAMES;
 
-// Mapping Functions
+// --- Mapping Functions ---
+
 function toggleMappingPanel() {
   const panel = document.getElementById('mappingPanel');
   panel.style.display = panel.style.display === 'none' ? 'grid' : 'none';
@@ -39,10 +55,6 @@ function loadMapping() {
 
 function applyMapping(logicalSteps) {
   const physicalSteps = [0, 0, 0, 0];
-  // logicalSteps is [M1, M2, M3, M4]
-  // motorMapping is [DriverForM1, DriverForM2, DriverForM3, DriverForM4]
-  // We want physicalSteps[DriverIndex] = logicalSteps[LogicalIndex]
-  
   for (let i = 0; i < 4; i++) {
     const driverIndex = motorMapping[i];
     physicalSteps[driverIndex] = logicalSteps[i];
@@ -51,11 +63,11 @@ function applyMapping(logicalSteps) {
 }
 
 function reverseMappingIndex(physicalDriverIndex) {
-  // Find which Logical Motor maps to this Physical Driver
   return motorMapping.indexOf(physicalDriverIndex);
 }
 
-// Choreography state
+// --- Choreography State ---
+
 let choreography = [];
 let isPlaying = false;
 let playbackSpeed = 1.0;
@@ -63,10 +75,11 @@ let playbackStartTime = 0;
 let choreographyStartTime = 0;
 let playbackInterval = null;
 
+// --- WebSocket & Connection ---
+
 function connectWebSocket() {
-  // Clean up existing connection if any
   if (ws) {
-    ws.onclose = null; // Prevent recursive reconnection loop
+    ws.onclose = null;
     ws.close();
   }
 
@@ -76,38 +89,32 @@ function connectWebSocket() {
   updateStatus(false, 'Connecting...');
   ws = new WebSocket(wsUrl);
 
-  // Connection timeout watchdog
   const connectionTimeout = setTimeout(() => {
     if (ws.readyState !== WebSocket.OPEN) {
       logConsole('Connection timed out. Retrying...');
-      ws.close(); // This will trigger onclose (if we didn't null it, but we want it to trigger now)
-      // Actually, if we close it here, onclose will fire.
-      // But if onclose fires, it calls connectWebSocket again.
-      // So we don't need to call it manually.
+      ws.close();
     }
-  }, 5000);
+  }, UI_CONFIG.checkConnectionInterval);
 
   ws.onopen = () => {
     clearTimeout(connectionTimeout);
     updateStatus(true);
     logConsole('Connected to server');
-    // Request status update on connection
     setTimeout(() => {
         sendCommand('I');
         syncHardwareConfig();
-    }, 1000);
+    }, UI_CONFIG.statusCheckDelay);
   };
 
   ws.onclose = () => {
     clearTimeout(connectionTimeout);
     updateStatus(false);
     logConsole('Disconnected from server. Reconnecting...');
-    setTimeout(connectWebSocket, 2000);
+    setTimeout(connectWebSocket, UI_CONFIG.reconnectInterval);
   };
 
   ws.onerror = (error) => {
     logConsole('WebSocket error');
-    // onerror usually precedes onclose
   };
 
   ws.onmessage = (event) => {
@@ -118,13 +125,9 @@ function connectWebSocket() {
         logConsole(data.message);
         parseArduinoMessage(data.message);
       } else if (data.type === 'status') {
-        // If connected=true, show "Connected"
-        // If connected=false, show "Server OK, Arduino Disconnected" or just "Disconnected"
-        // For simplicity, we'll stick to the boolean, but maybe add text.
         if (data.connected) {
            updateStatus(true, 'Connected');
            logConsole('Arduino connected');
-           // Query status immediately when Arduino connects
            setTimeout(() => sendCommand('I'), 500);
         } else {
            updateStatus(false, 'Arduino Disconnected');
@@ -158,7 +161,6 @@ function updateStatus(connected, message = null) {
 }
 
 function parseArduinoMessage(message) {
-  // Use matchAll to find all occurrences of position data in the message
   const posMatches = [...message.matchAll(/([XYZA]):\s*pos=(-?\d+)/g)];
   
   if (posMatches.length > 0) {
@@ -167,9 +169,7 @@ function parseArduinoMessage(message) {
       const physicalAxisIndex = axisNames.indexOf(physicalAxisChar);
       
       if (physicalAxisIndex !== -1) {
-        // Map back to Logical Motor
         const logicalAxisIndex = reverseMappingIndex(physicalAxisIndex);
-        
         if (logicalAxisIndex !== -1) {
           currentPositions[logicalAxisIndex] = parseInt(match[2]);
           updatePositionDisplay(logicalAxisIndex);
@@ -178,7 +178,6 @@ function parseArduinoMessage(message) {
     });
   }
 
-  // Check for motor status
   if (message.includes("Motors: ENABLED")) {
     document.getElementById('motorToggle').checked = true;
     areMotorsEnabled = true;
@@ -187,30 +186,17 @@ function parseArduinoMessage(message) {
     areMotorsEnabled = false;
   }
 
-  // Check for inversion status
-  // Format: Inverted: X=1 Y=0 Z=1 A=0
   if (message.includes("Inverted:")) {
     const parts = message.split('Inverted: ')[1].trim().split(' ');
     parts.forEach(part => {
       const [axisName, state] = part.split('=');
       const physicalAxisIndex = axisNames.indexOf(axisName);
       if (physicalAxisIndex !== -1) {
-        const isInverted = (state === '1');
-        
-        // Map physical axis to logical motor to update UI
-        const logicalAxisIndex = reverseMappingIndex(physicalAxisIndex);
-        if (logicalAxisIndex !== -1) {
-          // Update UI Checkbox
-          // const checkbox = document.getElementById(`reverse${axisNames[logicalAxisIndex]}`);
-          // if (checkbox) {
-          //   // Prevent triggering onchange event loop
-          //   checkbox.checked = isInverted;
-          //   reverseFlags[logicalAxisIndex] = isInverted;
-          // }
-        }
+         // UI update disabled to preserve local config as per original code
+         // const isInverted = (state === '1');
       }
     });
-    logConsole("Synced inversion status from Arduino (UI update disabled to preserve local config)");
+    logConsole("Synced inversion status from Arduino");
   }
 }
 
@@ -220,32 +206,25 @@ function updatePositionDisplay(axis) {
   
   let displayValue = currentPositions[axis];
   
-  // Display the reversed value on the slider if reverse is enabled
   if (reverseFlags[axis]) {
     displayValue = -currentPositions[axis];
   }
   
-  document.getElementById(displayId).textContent = currentPositions[axis];
-  document.getElementById(sliderId).value = displayValue;
+  const displayEl = document.getElementById(displayId);
+  if(displayEl) displayEl.textContent = currentPositions[axis];
+  
+  const sliderEl = document.getElementById(sliderId);
+  if(sliderEl) sliderEl.value = displayValue;
 }
 
 function updateSliderDisplay(axisName, axisIndex, value) {
-  // Live update while dragging - just visual feedback
   const displayId = `pos${axisName}`;
-  document.getElementById(displayId).textContent = value;
+  const el = document.getElementById(displayId);
+  if(el) el.textContent = value;
 }
 
 function moveToSlider(axisName, axisIndex, value) {
   let targetPosition = parseInt(value);
-  
-  // Note: We do NOT negate targetPosition based on reverseFlags here anymore.
-  // The Arduino handles the inversion physically via 'V' command.
-  // However, if the slider is showing a "Reversed" value (negative), 
-  // and we want to send the absolute position to Arduino...
-  
-  // If reverse is ON, the slider shows -100. The user drags to -200.
-  // We want the motor to go to position 200 (physically).
-  // So if reverse is ON, we negate the slider value to get the physical target.
   
   if (reverseFlags[axisIndex]) {
     targetPosition = -targetPosition;
@@ -272,6 +251,7 @@ function sendCommand(command) {
 
 function logConsole(message) {
   const consoleDiv = document.getElementById('console');
+  if(!consoleDiv) return;
   const line = document.createElement('div');
   line.className = 'console-line';
   line.textContent = message;
@@ -280,48 +260,13 @@ function logConsole(message) {
 }
 
 function clearConsole() {
-  document.getElementById('console').innerHTML = '';
-}
-
-function moveAbsolute(axisName, axisIndex) {
-  const inputId = `${axisName.toLowerCase()}Absolute`;
-  const value = parseInt(document.getElementById(inputId).value);
-  
-  const positions = [...currentPositions];
-  positions[axisIndex] = value;
-  
-  const physicalSteps = applyMapping(positions);
-  sendCommand(`M ${physicalSteps.join(' ')}`);
-  currentPositions[axisIndex] = value;
-  updatePositionDisplay(axisIndex);
-}
-
-function moveRelative(axisName, axisIndex) {
-  const inputId = `${axisName.toLowerCase()}Relative`;
-  const value = parseInt(document.getElementById(inputId).value);
-  
-  const relative = [0, 0, 0, 0];
-  relative[axisIndex] = value;
-  
-  const physicalRelative = applyMapping(relative);
-  sendCommand(`R ${physicalRelative.join(' ')}`);
-  currentPositions[axisIndex] += value;
-  updatePositionDisplay(axisIndex);
+  const el = document.getElementById('console');
+  if(el) el.innerHTML = '';
 }
 
 function quickMove(axisName, axisIndex, distanceMm) {
-  // Convert mm to steps
   const steps = Math.round(distanceMm * VBOX_CONFIG.stepsPerMm);
   let moveSteps = steps;
-  
-  // If Arduino handles inversion, we do NOT negate steps here.
-  // Sending "+100" to an inverted motor (via setPinsInverted) moves it "Forward".
-  // If we negate it to "-100", it would move "Backward".
-  // So we remove the software negation.
-  
-  // if (reverseFlags[axisIndex]) {
-  //   moveSteps = -steps;
-  // }
   
   const relative = [0, 0, 0, 0];
   relative[axisIndex] = moveSteps;
@@ -334,23 +279,14 @@ function quickMove(axisName, axisIndex, distanceMm) {
 }
 
 function moveAllMotors(distanceMm) {
-  // Convert mm to steps
   const steps = Math.round(distanceMm * VBOX_CONFIG.stepsPerMm);
-  console.log(`moveAllMotors called with distance: ${distanceMm}mm (${steps} steps)`);
-  
   const relative = [0, 0, 0, 0];
   
   for (let i = 0; i < 4; i++) {
-    let moveSteps = steps;
-    // Remove software inversion
-    // if (reverseFlags[i]) {
-    //   moveSteps = -steps;
-    // }
-    relative[i] = moveSteps;
-    currentPositions[i] += moveSteps;
+    relative[i] = steps;
+    currentPositions[i] += steps;
   }
   
-  console.log(`Sending command: R ${relative.join(' ')}`);
   const physicalRelative = applyMapping(relative);
   sendCommand(`R ${physicalRelative.join(' ')}`);
   
@@ -359,17 +295,9 @@ function moveAllMotors(distanceMm) {
 }
 
 function moveAllToZero() {
-  console.log('moveAllToZero called');
-  
-  // Set all internal positions to 0
   currentPositions = [0, 0, 0, 0];
-  
-  // Send absolute move to 0,0,0,0
-  // Note: applyMapping([0,0,0,0]) is just [0,0,0,0] regardless of mapping,
-  // but good to be consistent.
   const physicalSteps = applyMapping([0, 0, 0, 0]);
   sendCommand(`M ${physicalSteps.join(' ')}`);
-  
   axisNames.forEach((_, index) => updatePositionDisplay(index));
   logConsole('All motors: moving to 0');
 }
@@ -391,23 +319,19 @@ function homeAll() {
   currentPositions = [0, 0, 0, 0];
   axisNames.forEach((_, index) => updatePositionDisplay(index));
 
-  // Ensure motors are engaged for homing
   if (!areMotorsEnabled) {
-    document.getElementById('motorToggle').checked = true;
+    const toggle = document.getElementById('motorToggle');
+    if(toggle) toggle.checked = true;
     toggleMotors(true);
     logConsole('Motors automatically engaged for homing.');
   }
 }
 
 function setFloor() {
-  // Send Home command to set current position as 0,0,0,0
   sendCommand('H');
-  
-  // Reset local position tracking
   currentPositions = [0, 0, 0, 0];
   axisNames.forEach((_, index) => updatePositionDisplay(index));
   
-  // Update sliders to 0
   document.getElementById('boxZ').value = 0;
   document.getElementById('valBoxZ').textContent = '0';
   
@@ -426,15 +350,10 @@ function toggleMotors(isChecked) {
 }
 
 function toggleReverse(logicalAxisIndex, checked) {
-  // Update local flag immediately for UI responsiveness
   reverseFlags[logicalAxisIndex] = checked;
   saveReverseFlags();
   
-  // Find physical driver
   const physicalDriverIndex = motorMapping[logicalAxisIndex];
-  
-  // Send command to Arduino to update hardware inversion
-  // Command: V <axis_index> <state>
   sendCommand(`V ${physicalDriverIndex} ${checked ? 1 : 0}`);
   
   logConsole(`${axisNames[logicalAxisIndex]}-axis (Driver ${axisNames[physicalDriverIndex]}) reverse: ${checked ? 'ON' : 'OFF'}`);
@@ -453,7 +372,6 @@ function loadReverseFlags() {
         reverseFlags = loadedFlags;
         logConsole(`Reverse flags loaded: ${reverseFlags.join(', ')}`);
         
-        // Update UI
         axisNames.forEach((name, i) => {
            const checkbox = document.getElementById(`reverse${name}`);
            if (checkbox) checkbox.checked = reverseFlags[i];
@@ -466,19 +384,15 @@ function loadReverseFlags() {
 }
 
 function syncHardwareConfig() {
-    // Sync Reverse Flags
     for(let i=0; i<4; i++) {
         const physicalDriverIndex = motorMapping[i];
-        // Send explicit state for all axes to ensure sync
         sendCommand(`V ${physicalDriverIndex} ${reverseFlags[i] ? 1 : 0}`);
     }
-    
-    // Sync Speed/Accel
     setSpeed();
     setAcceleration();
 }
 
-// Choreography Functions
+// --- Choreography Functions ---
 
 function recordKeyframe() {
   const time = choreography.length === 0 ? 0 : 
@@ -707,71 +621,7 @@ function handleFileLoad(event) {
   event.target.value = '';
 }
 
-// Make functions globally accessible
-window.quickMove = quickMove;
-window.moveAllMotors = moveAllMotors;
-window.moveToSlider = moveToSlider;
-window.updateSliderDisplay = updateSliderDisplay;
-window.toggleReverse = toggleReverse;
-window.homeAll = homeAll;
-window.toggleMotors = toggleMotors;
-window.setSpeed = setSpeed;
-window.setAcceleration = setAcceleration;
-window.clearConsole = clearConsole;
-window.recordKeyframe = recordKeyframe;
-window.playChoreography = playChoreography;
-window.stopChoreography = stopChoreography;
-window.clearChoreography = clearChoreography;
-window.saveChoreography = saveChoreography;
-window.loadChoreography = loadChoreography;
-window.deleteKeyframe = deleteKeyframe;
-window.goToKeyframe = goToKeyframe;
-window.updatePlaybackSpeed = updatePlaybackSpeed;
-window.handleFileLoad = handleFileLoad;
-
-// Initialize
-document.addEventListener('DOMContentLoaded', () => {
-  connectWebSocket();
-  
-  setTimeout(() => {
-    sendCommand('I');
-  }, 2000);
-});
-
 // --- Virtual Box Logic ---
-
-// PHYSICAL OFFSET: The distance from the motor plane (Z=0) to the default box position.
-// This is required because differential steering (Pitch/Roll) requires the box to be 
-// suspended at a distance to work correctly. At Z=0, geometry is degenerate.
-const PHYSICAL_Z_OFFSET = -900; 
-
-const VBOX_CONFIG = {
-  frameWidth: 560,  // Distance between motors Left/Right
-  frameLength: 400, // Distance between motors Front/Rear
-  boxWidth: 450,    // Distance between corners X
-  boxLength: 350,   // Distance between corners Y
-  
-  // Motor & Spool Physics
-  spoolDiameter: 35,      // Diameter of the spool in mm
-  motorStepsPerRev: 200,  // Steps per full revolution (usually 200 for NEMA 17)
-  
-  // --- MICROSTEPPING CONFIGURATION ---
-  // Update this value when you change the jumpers on the CNC Shield
-  // 1 = Full Step (No jumpers)
-  // 2 = Half Step
-  // 4 = Quarter Step
-  // 8 = 1/8 Step
-  // 16 = 1/16 Step
-  // 32 = 1/32 Step (DRV8825 only)
-  microsteps: 16,          
-  // -----------------------------------
-  
-  // Dynamic calculation: Steps required to move 1mm
-  get stepsPerMm() {
-    const circumference = Math.PI * this.spoolDiameter;
-    return (this.motorStepsPerRev * this.microsteps) / circumference;
-  }
-};
 
 let boxState = {
   z: -300,
@@ -782,10 +632,8 @@ let boxState = {
 // Store the cable lengths at the "Home" position (0 steps)
 let homeLengths = [0, 0, 0, 0];
 
-// Initialize home lengths based on default state
 function initVirtualBox() {
-  // Calculate lengths at default position (Z=PHYSICAL_Z_OFFSET, Roll=0, Pitch=0)
-  // We use the offset so the math works, but the UI will show "0".
+  // Use config logic
   const corners = calculateCorners({ z: PHYSICAL_Z_OFFSET, roll: 0, pitch: 0 });
   const motors = getMotorPositions();
   
@@ -793,72 +641,6 @@ function initVirtualBox() {
     homeLengths[i] = calculateDistance(motors[i], corners[i]);
   }
   console.log("Virtual Box Initialized. Home Lengths:", homeLengths);
-}
-
-function getMotorPositions() {
-  const w = VBOX_CONFIG.frameWidth / 2;
-  const l = VBOX_CONFIG.frameLength / 2;
-  
-  // Standard Motor Mapping (Clockwise from Rear-Left)
-  // M1 (X-Axis): Rear-Left    (-X, +Y)
-  // M2 (Y-Axis): Rear-Right   (+X, +Y)
-  // M3 (Z-Axis): Front-Right  (+X, -Y)
-  // M4 (A-Axis): Front-Left   (-X, -Y)
-  
-  return [
-    { x: -w, y: l, z: 0 },  // M1 (RL)
-    { x: w, y: l, z: 0 },   // M2 (RR)
-    { x: w, y: -l, z: 0 },  // M3 (FR)
-    { x: -w, y: -l, z: 0 }  // M4 (FL)
-  ];
-}
-
-function calculateCorners(state) {
-  const w = VBOX_CONFIG.boxWidth / 2;
-  const l = VBOX_CONFIG.boxLength / 2;
-  
-  // Local corners relative to box center (Same order as motors)
-  const localCorners = [
-    { x: -w, y: l, z: 0 },  // C1 (RL)
-    { x: w, y: l, z: 0 },   // C2 (RR)
-    { x: w, y: -l, z: 0 },  // C3 (FR)
-    { x: -w, y: -l, z: 0 }  // C4 (FL)
-  ];
-  
-  const radRoll = state.roll * Math.PI / 180;
-  const radPitch = state.pitch * Math.PI / 180;
-  
-  return localCorners.map(p => {
-    // Apply Roll (X-axis rotation)
-    let y1 = p.y * Math.cos(radRoll) - p.z * Math.sin(radRoll);
-    let z1 = p.y * Math.sin(radRoll) + p.z * Math.cos(radRoll);
-    let x1 = p.x;
-    
-    // Apply Pitch (Y-axis rotation)
-    // Standard Rotation Matrix for Y-axis:
-    // x' = x*cos(theta) + z*sin(theta)
-    // z' = -x*sin(theta) + z*cos(theta)
-    // y' = y
-    
-    let x2 = x1 * Math.cos(radPitch) + z1 * Math.sin(radPitch);
-    let z2 = -x1 * Math.sin(radPitch) + z1 * Math.cos(radPitch);
-    let y2 = y1;
-    
-    // Translate to Box Center
-    return {
-      x: x2,
-      y: y2,
-      z: z2 + state.z
-    };
-  });
-}
-
-function calculateDistance(p1, p2) {
-  return Math.sqrt(
-    Math.pow(p1.x - p2.x, 2) +
-    Math.pow(p1.y - p2.y, 2) +
-    Math.pow(p1.z - p2.z, 2)
-  );
 }
 
 function updateBoxDisplay() {
@@ -876,38 +658,17 @@ function updateBox() {
   const roll = parseInt(document.getElementById('boxRoll').value);
   const pitch = parseInt(document.getElementById('boxPitch').value);
   
-  // Apply the physical offset to the Z input
   const z = zInput + PHYSICAL_Z_OFFSET;
   
-  // Update display just in case
   updateBoxDisplay();
   
   boxState = { z, roll, pitch };
   
-  const corners = calculateCorners(boxState);
-  const motors = getMotorPositions();
-  const targetSteps = [];
-  
-  // Debug Logging
-  // console.log(`UpdateBox: UI_Z=${zInput}, Phys_Z=${z}, Roll=${roll}, Pitch=${pitch}`);
-  
-  for (let i = 0; i < 4; i++) {
-    const len = calculateDistance(motors[i], corners[i]);
-    let steps = (homeLengths[i] - len) * VBOX_CONFIG.stepsPerMm;
-    let finalSteps = Math.round(steps);
-    targetSteps.push(finalSteps);
-  }
-  
-  // console.log('Target Steps:', targetSteps);
-  
-  // Send command
-  // Note: We are sending absolute steps relative to Home.
-  // The Arduino 'M' command takes absolute steps.
+  // Use kinematics module
+  const targetSteps = calculateTargetSteps(boxState, homeLengths);
   
   for(let i=0; i<4; i++) {
-     // Update internal state
      currentPositions[i] = targetSteps[i];
-     // Update the slider UI and text display
      updatePositionDisplay(i);
   }
   
@@ -933,48 +694,31 @@ function resetPitch() {
 }
 
 function setHomeAsReference() {
-  // Recalculate homeLengths based on current boxState being the "0 steps" state.
-  // Actually, usually "Set Home" means "Current Physical Position is 0,0,0,0".
-  // And we want to associate that with the current Box State.
-  
-  // For simplicity, let's just reset the box state to default and say "This is Home".
-  // Or, if the user manually moved motors to a perfect level position, they click this.
-  
-  // Let's assume the user manually leveled the box.
-  // We set the current physical motor positions to 0 (sendCommand('H')).
-  // And we set the virtual box state to default (0, 0, 0).
-  // And we recalculate homeLengths.
-  
   sendCommand('H'); // Tell Arduino this is 0
   currentPositions = [0, 0, 0, 0];
   
-  // Reset UI sliders
   axisNames.forEach(name => {
       const slider = document.getElementById(`slider${name}`);
       if(slider) slider.value = 0;
       updatePositionDisplay(axisNames.indexOf(name));
   });
   
-  // Reset Box UI
   document.getElementById('boxZ').value = 0;
   document.getElementById('boxRoll').value = 0;
   document.getElementById('boxPitch').value = 0;
   
-  // Recalculate Home Lengths
   initVirtualBox();
   
   logConsole("Home Reference Set. Box at Z=0 (Phys -900), Level.");
 }
 
 function syncUI() {
-  // Sync Speed Slider
   const speedSlider = document.getElementById('choreoSpeed');
   if (speedSlider) {
     speedSlider.value = playbackSpeed;
     document.getElementById('speedDisplay').textContent = playbackSpeed + 'x';
   }
   
-  // Sync Box Inputs
   document.getElementById('boxZ').value = 0;
   document.getElementById('boxRoll').value = 0;
   document.getElementById('boxPitch').value = 0;
@@ -982,25 +726,47 @@ function syncUI() {
   document.getElementById('valBoxRoll').textContent = '0°';
   document.getElementById('valBoxPitch').textContent = '0°';
   
-  // Sync Motor Sliders
-  // currentPositions is initialized to [0,0,0,0]
   for(let i=0; i<4; i++) {
     updatePositionDisplay(i);
   }
-
-  // Send default Speed/Accel to Arduino
-  // Moved to syncHardwareConfig called on connection
-  // setTimeout(() => {
-  //   setSpeed();
-  //   setAcceleration();
-  // }, 1000); // Wait a sec for connection
 }
 
-// Initialize on load
-window.addEventListener('load', () => {
+// --- Initialization ---
+
+window.toggleMappingPanel = toggleMappingPanel;
+window.updateMapping = updateMapping;
+window.quickMove = quickMove;
+window.moveAllMotors = moveAllMotors;
+window.moveToSlider = moveToSlider;
+window.updateSliderDisplay = updateSliderDisplay;
+window.toggleReverse = toggleReverse;
+window.homeAll = homeAll;
+window.setFloor = setFloor;
+window.toggleMotors = toggleMotors;
+window.setSpeed = setSpeed;
+window.setAcceleration = setAcceleration;
+window.clearConsole = clearConsole;
+window.recordKeyframe = recordKeyframe;
+window.playChoreography = playChoreography;
+window.stopChoreography = stopChoreography;
+window.clearChoreography = clearChoreography;
+window.saveChoreography = saveChoreography;
+window.loadChoreography = loadChoreography;
+window.deleteKeyframe = deleteKeyframe;
+window.goToKeyframe = goToKeyframe;
+window.updatePlaybackSpeed = updatePlaybackSpeed;
+window.handleFileLoad = handleFileLoad;
+window.resetBox = resetBox;
+window.resetRoll = resetRoll;
+window.resetPitch = resetPitch;
+window.setHomeAsReference = setHomeAsReference;
+window.updateBoxDisplay = updateBoxDisplay;
+window.updateBox = updateBox;
+
+document.addEventListener('DOMContentLoaded', () => {
   loadMapping();
   loadReverseFlags();
   initVirtualBox();
   syncUI();
+  connectWebSocket();
 });
-
