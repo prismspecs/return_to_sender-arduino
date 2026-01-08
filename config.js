@@ -8,8 +8,8 @@ export const AXIS_NAMES = ['X', 'Y', 'Z', 'A'];
 export const DEFAULT_MOTOR_MAPPING = [0, 1, 3, 2]; 
 
 export const VBOX_CONFIG = {
-  frameWidth: 560,  // Distance between motors Left/Right
-  frameLength: 400, // Distance between motors Front/Rear
+  frameWidth: 636,  // Distance between motors Left/Right
+  frameLength: 416, // Distance between motors Front/Rear (was 395)
   boxWidth: 450,    // Distance between corners X
   boxLength: 350,   // Distance between corners Y
   
