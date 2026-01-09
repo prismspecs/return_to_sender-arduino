@@ -41,7 +41,10 @@ A web-based interface for controlling a 4-axis CNC Shield v3 stepper motor setup
 - [x] Node.js Serial/WebSocket Server (`server.js`)
 - [x] Web Frontend Interface (`index.html`, `app.js`)
 - [x] Feature: Motor Enable/Disable Toggle Switch
+- [x] Feature: Smooth Visual Interpolation (Animation) for motor movements.
+- [x] Fix: Corrected inverted Altitude Readout logic.
 
 ## Architecture Notes
 - The Arduino firmware uses non-blocking `AccelStepper` calls to manage 4 motors simultaneously.
 - The Node.js server acts as a bridge, parsing WebSocket messages from the UI and forwarding G-code-like commands to the Arduino via Serial.
+- **UI Logic:** The frontend now uses a `requestAnimationFrame` loop to smoothly interpolate visual motor positions towards the commanded targets, simulating the acceleration and speed of the physical motors for a realistic display.

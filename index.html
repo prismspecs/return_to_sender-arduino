@@ -125,6 +125,49 @@
         <div class="keyframes-list" id="keyframesList"></div>
       </div>
 
+      <div class="altitude-display">
+        <div class="altitude-strip">
+          <div class="altitude-title">M1 (RL)</div>
+          <div class="altitude-meter-container">
+            <div class="meter-scale">
+               <span class="scale-label">900</span>
+               <span class="scale-label">0</span>
+            </div>
+            <div class="altitude-bar" id="altM0"></div>
+          </div>
+        </div>
+        <div class="altitude-strip">
+          <div class="altitude-title">M2 (RR)</div>
+          <div class="altitude-meter-container">
+             <div class="meter-scale">
+               <span class="scale-label">900</span>
+               <span class="scale-label">0</span>
+             </div>
+            <div class="altitude-bar" id="altM1"></div>
+          </div>
+        </div>
+        <div class="altitude-strip">
+          <div class="altitude-title">M3 (FR)</div>
+          <div class="altitude-meter-container">
+             <div class="meter-scale">
+               <span class="scale-label">900</span>
+               <span class="scale-label">0</span>
+             </div>
+            <div class="altitude-bar" id="altM2"></div>
+          </div>
+        </div>
+        <div class="altitude-strip">
+          <div class="altitude-title">M4 (FL)</div>
+          <div class="altitude-meter-container">
+             <div class="meter-scale">
+               <span class="scale-label">900</span>
+               <span class="scale-label">0</span>
+             </div>
+            <div class="altitude-bar" id="altM3"></div>
+          </div>
+        </div>
+      </div>
+
       <div class="motor-controls">
         <div class="motor-strip" id="motorX">
           <div class="motor-header">
@@ -134,15 +177,7 @@
               Rev
             </label>
           </div>
-          <div class="slider-wrapper">
-            <span class="slider-label-top">900</span>
-            <input type="range" id="sliderX" class="vertical-slider" 
-                   min="0" max="900" value="0" step="1"
-                   orient="vertical"
-                   oninput="updateSliderDisplay('X', 0, this.value)"
-                   onchange="moveToSlider('X', 0, this.value)">
-            <span class="slider-label-bottom">0</span>
-          </div>
+
           <div class="position-value" id="posX">0</div>
           <div class="motor-buttons">
             <button onclick="quickMove('X', 0, -100)">-100</button>
@@ -161,15 +196,7 @@
               Rev
             </label>
           </div>
-          <div class="slider-wrapper">
-            <span class="slider-label-top">900</span>
-            <input type="range" id="sliderY" class="vertical-slider" 
-                   min="0" max="900" value="0" step="1"
-                   orient="vertical"
-                   oninput="updateSliderDisplay('Y', 1, this.value)"
-                   onchange="moveToSlider('Y', 1, this.value)">
-            <span class="slider-label-bottom">0</span>
-          </div>
+
           <div class="position-value" id="posY">0</div>
           <div class="motor-buttons">
             <button onclick="quickMove('Y', 1, -100)">-100</button>
@@ -188,15 +215,7 @@
               Rev
             </label>
           </div>
-          <div class="slider-wrapper">
-            <span class="slider-label-top">900</span>
-            <input type="range" id="sliderA" class="vertical-slider" 
-                   min="0" max="900" value="0" step="1"
-                   orient="vertical"
-                   oninput="updateSliderDisplay('A', 3, this.value)"
-                   onchange="moveToSlider('A', 3, this.value)">
-            <span class="slider-label-bottom">0</span>
-          </div>
+
           <div class="position-value" id="posA">0</div>
           <div class="motor-buttons">
             <button onclick="quickMove('A', 3, -100)">-100</button>
@@ -215,15 +234,7 @@
               Rev
             </label>
           </div>
-          <div class="slider-wrapper">
-            <span class="slider-label-top">900</span>
-            <input type="range" id="sliderZ" class="vertical-slider" 
-                   min="0" max="900" value="0" step="1"
-                   orient="vertical"
-                   oninput="updateSliderDisplay('Z', 2, this.value)"
-                   onchange="moveToSlider('Z', 2, this.value)">
-            <span class="slider-label-bottom">0</span>
-          </div>
+
           <div class="position-value" id="posZ">0</div>
           <div class="motor-buttons">
             <button onclick="quickMove('Z', 2, -100)">-100</button>
@@ -251,6 +262,9 @@
       <div class="settings-panel">
         <label>Speed: <input type="number" id="speed" value="24000" min="100" max="50000" onchange="setSpeed()"></label>
         <label>Accel: <input type="number" id="accel" value="24000" min="100" max="50000" onchange="setAcceleration()"></label>
+        <label class="toggle-switch-label" style="margin-left: 10px; font-size: 0.9em; display: flex; align-items: center;">
+          <input type="checkbox" id="smoothAnimation" checked style="margin-right: 5px;"> Smooth Animation
+        </label>
       </div>
     </div>
 

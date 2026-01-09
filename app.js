@@ -15,9 +15,100 @@ import {
 
 let ws = null;
 let currentPositions = [0, 0, 0, 0];
+// Visual positions for smooth animation
+let visualPositions = [0, 0, 0, 0]; 
+let motorVelocities = [0, 0, 0, 0];
+let lastFrameTime = 0;
+let uiMaxSpeed = 24000;
+let uiAcceleration = 24000;
+
 let reverseFlags = [false, false, false, false];
 let motorMapping = [...DEFAULT_MOTOR_MAPPING]; 
 const axisNames = AXIS_NAMES;
+
+// --- Animation Loop ---
+
+function animateDisplay(timestamp) {
+  if (!lastFrameTime) lastFrameTime = timestamp;
+  const dt = (timestamp - lastFrameTime) / 1000; // seconds
+  lastFrameTime = timestamp;
+
+  // Check toggle
+  const smoothAnimation = document.getElementById('smoothAnimation');
+  const isSmooth = smoothAnimation ? smoothAnimation.checked : true;
+
+  if (!isSmooth) {
+    let changed = false;
+    for (let i = 0; i < 4; i++) {
+        if (visualPositions[i] !== currentPositions[i]) {
+            visualPositions[i] = currentPositions[i];
+            motorVelocities[i] = 0;
+            changed = true;
+        }
+    }
+    if (changed) {
+        for (let i = 0; i < 4; i++) updatePositionDisplay(i);
+    }
+    requestAnimationFrame(animateDisplay);
+    return;
+  }
+
+  // Use globals for speed/accel
+  const maxSpeed = uiMaxSpeed; 
+  const acceleration = uiAcceleration;
+
+  let changed = false;
+
+  for (let i = 0; i < 4; i++) {
+    const target = currentPositions[i];
+    const current = visualPositions[i];
+    const diff = target - current;
+    
+    // Threshold to stop
+    if (Math.abs(diff) < 0.1 && Math.abs(motorVelocities[i]) < 1) {
+      if (visualPositions[i] !== target) {
+        visualPositions[i] = target;
+        motorVelocities[i] = 0;
+        changed = true;
+      }
+      continue;
+    }
+
+    // Velocity Ramping Logic
+    // Desired velocity based on distance
+    // v = sqrt(2 * a * s)
+    // We want to stop at target.
+    // Max safe velocity to be able to stop in time:
+    const safeSpeed = Math.sqrt(2 * acceleration * Math.abs(diff));
+    let targetVel = Math.sign(diff) * Math.min(maxSpeed, safeSpeed);
+
+    // Apply acceleration to current velocity
+    const velDiff = targetVel - motorVelocities[i];
+    const maxVelChange = acceleration * dt;
+    
+    if (Math.abs(velDiff) < maxVelChange) {
+      motorVelocities[i] = targetVel;
+    } else {
+      motorVelocities[i] += Math.sign(velDiff) * maxVelChange;
+    }
+
+    // Apply velocity to position
+    const move = motorVelocities[i] * dt;
+    visualPositions[i] += move;
+    changed = true;
+  }
+
+  if (changed) {
+    for (let i = 0; i < 4; i++) {
+       updatePositionDisplay(i);
+    }
+  }
+
+  requestAnimationFrame(animateDisplay);
+}
+
+// Start animation loop
+requestAnimationFrame(animateDisplay);
 
 // --- Mapping Functions ---
 
@@ -33,6 +124,11 @@ function updateMapping() {
   }
   localStorage.setItem('motorMapping', JSON.stringify(motorMapping));
   logConsole(`Mapping updated: ${motorMapping.join(', ')}`);
+  
+  // Refresh altitude meters based on new mapping
+  for (let i = 0; i < 4; i++) {
+    updatePositionDisplay(i);
+  }
 }
 
 function loadMapping() {
@@ -171,7 +267,16 @@ function parseArduinoMessage(message) {
       if (physicalAxisIndex !== -1) {
         const logicalAxisIndex = reverseMappingIndex(physicalAxisIndex);
         if (logicalAxisIndex !== -1) {
-          currentPositions[logicalAxisIndex] = parseInt(match[2]);
+          const newPos = parseInt(match[2]);
+          currentPositions[logicalAxisIndex] = newPos;
+          
+          // Also sync visual if error is large (e.g. startup sync), 
+          // or let animation catch up.
+          // If we are significantly off, snap to it to avoid long animations on reconnect
+          if (Math.abs(visualPositions[logicalAxisIndex] - newPos) > 5000) {
+              visualPositions[logicalAxisIndex] = newPos;
+          }
+          
           updatePositionDisplay(logicalAxisIndex);
         }
       }
@@ -200,21 +305,44 @@ function parseArduinoMessage(message) {
   }
 }
 
-function updatePositionDisplay(axis) {
-  const displayId = `pos${axisNames[axis]}`;
-  const sliderId = `slider${axisNames[axis]}`;
+function updatePositionDisplay(motorIndex) {
+  // motorIndex is the logical motor index (0-3 for M0-M3)
+  const physicalAxisIndex = motorMapping[motorIndex];
+  const displayId = `pos${axisNames[physicalAxisIndex]}`;
   
-  let displayValue = currentPositions[axis];
+  // Use visualPositions for smooth display
+  let displayValue = Math.round(visualPositions[motorIndex]);
   
-  if (reverseFlags[axis]) {
-    displayValue = -currentPositions[axis];
+  if (reverseFlags[physicalAxisIndex]) {
+    displayValue = -displayValue;
   }
   
   const displayEl = document.getElementById(displayId);
-  if(displayEl) displayEl.textContent = currentPositions[axis];
+  if(displayEl) displayEl.textContent = displayValue;
   
-  const sliderEl = document.getElementById(sliderId);
-  if(sliderEl) sliderEl.value = displayValue;
+  // Update the altitude meter for this specific motor
+  // Show height: 0mm = floor, 900mm = ceiling
+  // Convert steps to mm.
+  // Positive Steps = Pull In = Move UP.
+  // Therefore height is proportional to steps.
+  // 0 steps = Floor.
+  
+  const stringLengthMm = visualPositions[motorIndex] / VBOX_CONFIG.stepsPerMm;
+  const heightMm = stringLengthMm; // Corrected: Steps directly map to height above floor
+  
+  updateAltitudeMeter(motorIndex, heightMm);
+}
+
+function updateAltitudeMeter(motorIndex, heightMm) {
+  const meter = document.getElementById(`altM${motorIndex}`);
+  if (meter) {
+      let h = heightMm;
+      // Clamp to 0-900 range for visual display
+      if (h < 0) h = 0;
+      if (h > 900) h = 900;
+      const percent = (h / 900) * 100;
+      meter.style.height = `${percent}%`;
+  }
 }
 
 function updateSliderDisplay(axisName, axisIndex, value) {
@@ -296,6 +424,7 @@ function moveAllMotors(distanceMm) {
 
 function moveAllToZero() {
   currentPositions = [0, 0, 0, 0];
+  // visualPositions will catch up via animation
   const physicalSteps = applyMapping([0, 0, 0, 0]);
   sendCommand(`M ${physicalSteps.join(' ')}`);
   axisNames.forEach((_, index) => updatePositionDisplay(index));
@@ -304,11 +433,13 @@ function moveAllToZero() {
 
 function setSpeed() {
   const speed = document.getElementById('speed').value;
+  uiMaxSpeed = parseFloat(speed) || 24000;
   sendCommand(`S ${speed}`);
 }
 
 function setAcceleration() {
   const accel = document.getElementById('accel').value;
+  uiAcceleration = parseFloat(accel) || 24000;
   sendCommand(`A ${accel}`);
 }
 
@@ -696,6 +827,8 @@ function resetPitch() {
 function setHomeAsReference() {
   sendCommand('H'); // Tell Arduino this is 0
   currentPositions = [0, 0, 0, 0];
+  visualPositions = [0, 0, 0, 0]; // Snap visual to 0
+  motorVelocities = [0, 0, 0, 0];
   
   axisNames.forEach(name => {
       const slider = document.getElementById(`slider${name}`);

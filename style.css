@@ -522,3 +522,80 @@ input:checked + .toggle-slider:before {
   background: #e0e0e0;
   border-color: #ccc;
 }
+
+/* Altitude Meter Styles */
+.altitude-display {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 10px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.altitude-strip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.altitude-title {
+  font-size: 12px;
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+
+.altitude-meter-container {
+  width: 30px;
+  height: 120px;
+  background: #e0e0e0;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.altitude-bar {
+  width: 100%;
+  background: var(--accent);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  transition: height 0.2s ease-out;
+  height: 0%; /* Default 0 */
+}
+
+.altitude-labels {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 120px;
+  position: absolute;
+  left: 35px; /* Offset from bar */
+  font-size: 10px;
+  color: var(--text-light);
+  display: none; /* Hidden by default, or maybe remove? User asked for labels on the thing */
+}
+
+.meter-scale {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: center;
+  z-index: 1; /* Above bar */
+}
+
+.scale-label {
+  font-size: 9px;
+  color: #555;
+  background: rgba(255,255,255,0.7);
+  padding: 0 2px;
+  width: 100%;
+}
