@@ -15,6 +15,7 @@ export const state = {
     playbackStartTime: 0,
     currentTime: 0,
     selectedKeyframeIndex: -1,
+    timelineDuration: 0, // 0 = auto (based on keyframes)
 
     // Loop & Rest
     restEnabled: false,

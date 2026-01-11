@@ -521,6 +521,10 @@ window.returnToStart = () => {
     const audio = document.getElementById('choreoAudio');
     if(audio) audio.currentTime = 0;
     UI.updatePlayhead(0);
+    
+    // Scroll timeline to the left
+    const timeline = document.getElementById('timeline');
+    if (timeline) timeline.scrollLeft = 0;
 };
 
 window.updatePlaybackSpeed = (val) => {
@@ -533,6 +537,12 @@ window.updateRestSettings = () => {
     state.restDuration = parseFloat(document.getElementById('restDuration').value) || 1;
     localStorage.setItem('restEnabled', state.restEnabled);
     localStorage.setItem('restDuration', state.restDuration);
+};
+
+window.updateTimelineDuration = () => {
+    state.timelineDuration = parseFloat(document.getElementById('timelineDuration').value) || 0;
+    localStorage.setItem('timelineDuration', state.timelineDuration);
+    refreshUI();
 };
 
 window.clearConsole = () => document.getElementById('console').innerHTML = '';
@@ -641,6 +651,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     document.getElementById('restEnabled').checked = state.restEnabled;
     document.getElementById('restDuration').value = state.restDuration;
+    
+    // Load timeline duration from localStorage
+    const savedTimelineDuration = localStorage.getItem('timelineDuration');
+    if (savedTimelineDuration !== null) state.timelineDuration = parseFloat(savedTimelineDuration);
+    document.getElementById('timelineDuration').value = state.timelineDuration;
+    
     Comms.setupComms({ onLog: (msg) => {
         const c = document.getElementById('console');
         if(c) { const d = document.createElement('div'); d.textContent = msg; c.appendChild(d); c.scrollTop = c.scrollHeight; }

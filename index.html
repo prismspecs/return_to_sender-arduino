@@ -250,7 +250,7 @@
                 <input type="range" id="choreoSpeed" min="0.1" max="2" step="0.1" value="1" oninput="updatePlaybackSpeed(this.value)" style="width: 100px;">
                 <span id="speedDisplay" style="font-family: monospace; font-size: 12px; width: 35px;">1.0x</span>
                 <label style="font-size: 12px; margin-left: 10px; display: flex; align-items: center; gap: 4px;">
-                  <input type="checkbox" id="loopChoreography"> Loop
+                  <input type="checkbox" id="loopChoreography" checked> Loop
                 </label>
                 <div style="display: flex; align-items: center; gap: 4px; margin-left: 10px; border-left: 1px solid var(--border); padding-left: 10px;">
                     <label style="font-size: 12px; display: flex; align-items: center; gap: 4px;">
@@ -269,8 +269,12 @@
 
           <div style="display: flex; align-items: stretch; gap: 5px; margin-bottom: 8px;">
             <button onclick="returnToStart()" title="Return to Start" style="padding: 0 10px; font-size: 16px;">⏮</button>
-            <div class="timeline" id="timeline" style="flex-grow: 1;">
+            <div class="timeline" id="timeline" style="flex-grow: 1; overflow-x: auto;">
               <div class="timeline-track"></div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 3px;">
+              <input type="number" id="timelineDuration" value="0" min="0" step="1" style="width: 45px; font-size: 12px; padding: 2px;" onchange="updateTimelineDuration()" title="Timeline duration (0 = auto)">
+              <span style="font-size: 11px; color: var(--text-light);">s</span>
             </div>
           </div>
           <div class="keyframes-list" id="keyframesList"></div>

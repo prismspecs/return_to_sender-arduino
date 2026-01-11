@@ -7,9 +7,11 @@ export function updateTimeline(callbacks) {
   markers.forEach(m => m.remove());
   
   const PPS = 20; 
-  const maxTime = state.choreography.length > 0 ? Math.max(...state.choreography.map(kf => kf.time)) : 0;
+  const maxKeyframeTime = state.choreography.length > 0 ? Math.max(...state.choreography.map(kf => kf.time)) : 0;
+  const setDuration = state.timelineDuration || 0;
   
-  const timeToDisplay = Math.max(maxTime, state.currentTime);
+  // Use the greater of: set duration, max keyframe time, or current time
+  const timeToDisplay = Math.max(maxKeyframeTime, state.currentTime, setDuration);
   const requiredWidth = timeToDisplay * PPS + 200;
   const containerWidth = timeline.clientWidth;
   
