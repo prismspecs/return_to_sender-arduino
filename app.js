@@ -541,10 +541,17 @@ function loadMapping() {
     const m = localStorage.getItem('motorMapping');
     if(m) {
         state.motorMapping = JSON.parse(m);
-        for(let i=0; i<4; i++) {
-            const el = document.getElementById(`mapM${i}`);
-            if(el) el.value = state.motorMapping[i];
-        }
+    }
+    // Always sync dropdowns to state (whether from localStorage or defaults)
+    for(let i=0; i<4; i++) {
+        const el = document.getElementById(`mapM${i}`);
+        if(el) el.value = state.motorMapping[i];
+    }
+    // Check for duplicate mappings on load
+    const uniqueDrivers = new Set(state.motorMapping);
+    const warning = document.getElementById('mappingWarning');
+    if (warning) {
+        warning.style.display = uniqueDrivers.size < 4 ? 'inline' : 'none';
     }
 }
 function loadReverseFlags() {
@@ -597,7 +604,24 @@ document.addEventListener('mouseup', () => {
 window.updateMapping = () => {
     for(let i=0; i<4; i++) state.motorMapping[i] = parseInt(document.getElementById(`mapM${i}`).value);
     localStorage.setItem('motorMapping', JSON.stringify(state.motorMapping));
+    
+    // Check for duplicate mappings
+    const uniqueDrivers = new Set(state.motorMapping);
+    const warning = document.getElementById('mappingWarning');
+    if (warning) {
+        warning.style.display = uniqueDrivers.size < 4 ? 'inline' : 'none';
+    }
+    
     for(let i=0; i<4; i++) updatePositionDisplay(i);
+};
+
+window.toggleMappingPanel = () => {
+    const panel = document.getElementById('mappingPanel');
+    if (panel.style.display === 'none') {
+        panel.style.display = 'grid';
+    } else {
+        panel.style.display = 'none';
+    }
 };
 
 window.updateMicrosteppingOptions = updateMicrosteppingOptions;
