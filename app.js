@@ -490,14 +490,14 @@ function homeAll() {
 }
 
 function haltMotors() {
-  // R 0 0 0 0 tells AccelStepper to "move 0 from current", effectively setting target to current position.
-  sendCommand('R 0 0 0 0');
+  // Q command tells AccelStepper to stop() as fast as possible with deceleration.
+  sendCommand('Q');
   logConsole('STOP command sent.');
   
   if (isPlaying) stopChoreography();
   
   // Request update to sync UI with where it actually stopped
-  setTimeout(() => sendCommand('I'), 100); 
+  setTimeout(() => sendCommand('I'), 250); // Slight delay for deceleration
 }
 
 function setFloor() {
@@ -505,10 +505,15 @@ function setFloor() {
   currentPositions = [0, 0, 0, 0];
   axisNames.forEach((_, index) => updatePositionDisplay(index));
   
+  // Reset Virtual Box UI and Logic
   document.getElementById('boxZ').value = 0;
-  document.getElementById('valBoxZ').textContent = '0';
+  document.getElementById('boxRoll').value = 0;
+  document.getElementById('boxPitch').value = 0;
+  updateBoxDisplay(); // Update span texts
   
-  logConsole('Floor set (0).');
+  initVirtualBox(); // Recalculate baseline
+  
+  logConsole('Floor set (0). Virtual Box reset.');
 }
 
 
@@ -908,8 +913,8 @@ function updateKeyframesList() {
     }
 
     item.innerHTML = `
+      <button onclick="deleteKeyframe(${index})" style="margin-right: 10px;">Del</button>
       <span onclick="goToKeyframe(${index})" style="cursor: pointer; flex-grow: 1;">${kf.time.toFixed(2)}s: [${kf.positions.join(', ')}] <small>(S:${spd} A:${acc})</small></span>
-      <button onclick="deleteKeyframe(${index})">Delete</button>
     `;
     list.appendChild(item);
   });
@@ -1515,27 +1520,6 @@ function resetPitch() {
   updateBox();
 }
 
-function setHomeAsReference() {
-  sendCommand('H'); // Tell Arduino this is 0
-  currentPositions = [0, 0, 0, 0];
-  visualPositions = [0, 0, 0, 0]; // Snap visual to 0
-  motorVelocities = [0, 0, 0, 0];
-  
-  axisNames.forEach(name => {
-      const slider = document.getElementById(`slider${name}`);
-      if(slider) slider.value = 0;
-      updatePositionDisplay(axisNames.indexOf(name));
-  });
-  
-  document.getElementById('boxZ').value = 0;
-  document.getElementById('boxRoll').value = 0;
-  document.getElementById('boxPitch').value = 0;
-  
-  initVirtualBox();
-  
-  logConsole("Home Reference Set. Box at Z=0 (Phys -900), Level.");
-}
-
 function syncUI() {
   const speedSlider = document.getElementById('choreoSpeed');
   if (speedSlider) {
@@ -1661,7 +1645,6 @@ window.handleFileLoad = handleFileLoad;
 window.resetBox = resetBox;
 window.resetRoll = resetRoll;
 window.resetPitch = resetPitch;
-window.setHomeAsReference = setHomeAsReference;
 window.updateBoxDisplay = updateBoxDisplay;
 window.updateBox = updateBox;
 window.saveKeyframeChanges = saveKeyframeChanges;

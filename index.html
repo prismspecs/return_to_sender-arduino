@@ -16,7 +16,6 @@
           <span id="statusText">Connecting...</span>
         </div>
         <button onclick="haltMotors()" class="btn-home" style="background-color: #d32f2f; border-color: #d32f2f; font-weight: 800; letter-spacing: 1px;">STOP</button>
-        <button onclick="homeAll()" class="btn-home" style="background-color: #FF9800; border-color: #FF9800;">Home All</button>
         <button onclick="setFloor()" class="btn-home" style="background-color: #4CAF50; border-color: #4CAF50;">Set Floor</button>
         <button onclick="setCeiling()" class="btn-home" style="background-color: #2196F3; border-color: #2196F3;">Set Ceiling</button>
         <div class="toggle-switch-container">
@@ -182,7 +181,10 @@
         </div>
 
         <div class="console-section">
-          <div class="console-header"><h3>Console</h3><button class="btn-clear" onclick="clearConsole()">Clear</button></div>
+          <div class="console-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+            <h3 style="margin: 0;">Console</h3>
+            <button class="btn-clear" onclick="clearConsole()" style="padding: 2px 8px; font-size: 11px;">Clear</button>
+          </div>
           <div class="console" id="console"></div>
         </div>
       </div>
@@ -198,7 +200,6 @@
           </div>
           <div class="box-actions">
               <button onclick="resetBox()">Reset Box</button>
-              <button onclick="setHomeAsReference()">Set Current as Home Ref</button>
           </div>
         </div>
 
@@ -211,45 +212,50 @@
 
         <div class="choreography-section">
           <h3>Choreography</h3>
-          <div class="choreo-controls-wrapper" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px;">
-            <!-- Top Row: Project & File Operations -->
-            <div class="choreo-row" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+          <div class="choreo-controls-wrapper" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;">
+            <!-- Top Row: Project, File, Audio -->
+            <div class="choreo-row" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 6px;">
               <div style="display: inline-flex; gap: 5px; align-items: center; border-right: 1px solid var(--border); padding-right: 10px;">
                 <select id="quickSaveSelect" style="width: 100px; padding: 2px; font-size: 11px;"></select>
                 <button onclick="quickLoad()">Load</button>
                 <button onclick="quickSave()">Save</button>
-                <button onclick="loadChoreography()" style="margin-left: 5px;">Import</button>
+                <button onclick="quickDelete()" style="color: var(--danger); border-color: var(--danger);" title="Delete">X</button>
+              </div>
+
+              <div style="display: inline-flex; gap: 5px; align-items: center; border-right: 1px solid var(--border); padding-right: 10px;">
                 <button onclick="openSaveDialog()">Export</button>
-                <span id="fileNameDisplay" style="font-size: 11px; font-style: italic; margin-left: 5px;">(Untitled)</span>
+                <button onclick="loadChoreography()">Import</button>
+                <span id="fileNameDisplay" style="font-size: 11px; font-style: italic;">(Untitled)</span>
               </div>
 
-              <div style="margin-left: auto; display: flex; align-items: center;">
-                <span id="timeDisplay" class="time-display" style="font-size: 14px; color: var(--accent);">0.00s</span>
-              </div>
-            </div>
-
-            <!-- Bottom Row: Audio, Playback, Speed -->
-            <div class="choreo-row" style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
-              <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 5px;">
                 <button onclick="document.getElementById('audioInput').click()" title="Load Music" style="background: #eee;">🎵 Load Audio</button>
-                <span id="audioStatus" style="font-size: 11px; color: var(--text-light); max-width: 150px; overflow: hidden; text-overflow: ellipsis;">No Audio</span>
+                <span id="audioStatus" style="font-size: 11px; color: var(--text-light); max-width: 100px; overflow: hidden; text-overflow: ellipsis;">No Audio</span>
                 <input type="file" id="audioInput" accept="audio/*" style="display: none;" onchange="handleAudioLoad(event)">
                 <audio id="choreoAudio" style="display: none;"></audio>
               </div>
+            </div>
 
-              <!-- Playback Controls -->
-              <div style="display: inline-flex; gap: 5px; align-items: center; border-left: 1px solid var(--border); padding-left: 15px;">
+            <!-- Bottom Row: Playback & Speed & Time -->
+            <div class="choreo-row" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+              <div style="display: inline-flex; gap: 5px; align-items: center;">
                 <button onclick="recordKeyframe()" class="btn-record">Record Keyframe</button>
                 <button onclick="playChoreography()" id="btnPlay">Play</button>
                 <button onclick="stopChoreography()" id="btnStop">Stop</button>
                 <button onclick="clearChoreography()">Clear</button>
-                <label style="font-size: 12px; margin-left: 5px;"><input type="checkbox" id="loopChoreography"> Loop</label>
               </div>
 
-              <div style="display: flex; align-items: center; gap: 8px; border-left: 1px solid var(--border); padding-left: 15px;">
-                <label style="font-size: 12px; font-weight: 600;">Timeline Speed:</label>
-                <input type="range" id="choreoSpeed" min="0.1" max="2" step="0.1" value="1" oninput="updatePlaybackSpeed(this.value)" style="width: 120px;">
+              <div style="display: flex; align-items: center; gap: 8px; border-left: 1px solid var(--border); padding-left: 10px;">
+                <label style="font-size: 12px; font-weight: 600;">Speed:</label>
+                <input type="range" id="choreoSpeed" min="0.1" max="2" step="0.1" value="1" oninput="updatePlaybackSpeed(this.value)" style="width: 100px;">
                 <span id="speedDisplay" style="font-family: monospace; font-size: 12px; width: 35px;">1.0x</span>
+                <label style="font-size: 12px; margin-left: 10px; display: flex; align-items: center; gap: 4px;">
+                  <input type="checkbox" id="loopChoreography"> Loop
+                </label>
+              </div>
+
+              <div style="margin-left: auto;">
+                <span id="timeDisplay" class="time-display" style="font-size: 16px; color: var(--accent); font-weight: 700;">0.00s</span>
               </div>
             </div>
           </div>

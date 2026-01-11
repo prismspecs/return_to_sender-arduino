@@ -295,5 +295,14 @@ void processCommand(char* command) {
       case 'P':
         // Just resets watchdog via lastCommandTime update
         break;
+
+      // Q: Quick Stop (Graceful Halt)
+      case 'Q': {
+        for (int i = 0; i < NUM_STEPPERS; i++) {
+          steppers[i].stop(); 
+        }
+        Serial.println("STOPPING.");
+        break;
+      }
     }
 }
