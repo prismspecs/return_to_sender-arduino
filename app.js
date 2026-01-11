@@ -485,12 +485,8 @@ function homeAll() {
   currentPositions = [0, 0, 0, 0];
   axisNames.forEach((_, index) => updatePositionDisplay(index));
 
-  if (!areMotorsEnabled) {
-    const toggle = document.getElementById('motorToggle');
-    if(toggle) toggle.checked = true;
-    toggleMotors(true);
-    logConsole('Motors automatically engaged for homing.');
-  }
+  // Auto-enable removed per request
+  logConsole('All axes homed (0).');
 }
 
 function setFloor() {
@@ -729,40 +725,65 @@ function updateKeyframesList() {
 }
 
 function openKeyframeEditor(index) {
-  const kf = choreography[index];
-  if (!kf) return;
+  try {
+    const kf = choreography[index];
+    if (!kf) {
+        console.error("Keyframe not found at index", index);
+        return;
+    }
+    
+    const editor = document.getElementById('keyframeEditor');
+    if (!editor) {
+        console.error("Editor element not found");
+        return;
+    }
+    
+    editor.style.display = 'block';
+    document.getElementById('editTime').value = kf.time.toFixed(2);
+    
+    // Convert raw values (e.g. 24000) to UI values (e.g. 24)
+    const spd = (kf.speed !== undefined ? kf.speed : uiMaxSpeed) / 1000;
+    const acc = (kf.accel !== undefined ? kf.accel : uiAcceleration) / 1000;
+    
+    document.getElementById('editSpeed').value = spd;
+    document.getElementById('editAccel').value = acc;
+    
+    for(let i=0; i<4; i++) {
+        document.getElementById(`editM${i}`).value = kf.positions[i];
+    }
   
-  document.getElementById('keyframeEditor').style.display = 'block';
-  document.getElementById('editTime').value = kf.time.toFixed(2);
+    // Load Box Pose from keyframe if available, otherwise 0
+    const z = kf.boxPose ? kf.boxPose.z - PHYSICAL_Z_OFFSET : 0; 
+    const roll = kf.boxPose ? kf.boxPose.roll : 0;
+    const pitch = kf.boxPose ? kf.boxPose.pitch : 0;
   
-  // Convert raw values (e.g. 24000) to UI values (e.g. 24)
-  const spd = (kf.speed !== undefined ? kf.speed : uiMaxSpeed) / 1000;
-  const acc = (kf.accel !== undefined ? kf.accel : uiAcceleration) / 1000;
-  
-  document.getElementById('editSpeed').value = spd;
-  document.getElementById('editAccel').value = acc;
-  
-  for(let i=0; i<4; i++) {
-      document.getElementById(`editM${i}`).value = kf.positions[i];
+    document.getElementById('editBoxZ').value = z;
+    document.getElementById('editBoxRoll').value = roll;
+    document.getElementById('editBoxPitch').value = pitch;
+    
+    document.getElementById('dispEditBoxZ').textContent = z;
+    document.getElementById('dispEditBoxRoll').textContent = roll + '°';
+    document.getElementById('dispEditBoxPitch').textContent = pitch + '°';
+    
+    updateKeyframesList(); 
+    updateTimeline(); 
+    
+    // logConsole(`Editor opened for keyframe ${index}`);
+  } catch(e) {
+      console.error("Error opening editor", e);
+      logConsole("Error opening editor");
   }
-
-  // Load Box Pose from keyframe if available, otherwise 0
-  const z = kf.boxPose ? kf.boxPose.z - PHYSICAL_Z_OFFSET : 0; // Convert absolute Z to relative slider
-  const roll = kf.boxPose ? kf.boxPose.roll : 0;
-  const pitch = kf.boxPose ? kf.boxPose.pitch : 0;
-
-  document.getElementById('editBoxZ').value = z;
-  document.getElementById('editBoxRoll').value = roll;
-  document.getElementById('editBoxPitch').value = pitch;
-  
-  document.getElementById('dispEditBoxZ').textContent = z;
-  document.getElementById('dispEditBoxRoll').textContent = roll + '°';
-  document.getElementById('dispEditBoxPitch').textContent = pitch + '°';
-  
-  updateKeyframesList(); 
-  updateTimeline(); 
 }
 
+function goToKeyframe(index) {
+  try {
+      const kf = choreography[index];
+      selectedKeyframeIndex = index;
+      openKeyframeEditor(index);
+  } catch(e) {
+      console.error("Error in goToKeyframe", e);
+  }
+}
 function updateEditorFromBox() {
   const z = document.getElementById('editBoxZ').value;
   const roll = document.getElementById('editBoxRoll').value;
@@ -912,41 +933,6 @@ function updateTimeline() {
     
     track.appendChild(marker);
   });
-}
-
-function goToKeyframe(index) {
-  const kf = choreography[index];
-  
-  // Update Editor UI only
-  // We do NOT send physical commands to the robot anymore.
-  
-  // NOTE: If we want to preview speed/accel settings without moving, we could set them,
-  // but it's safer to just show them in the editor.
-  
-  /* 
-  // DISABLED PHYSICAL MOVEMENT ON EDIT CLICK
-  currentPositions = [...kf.positions];
-  if (kf.speed !== undefined) {
-      uiMaxSpeed = kf.speed;
-      document.getElementById('speed').value = uiMaxSpeed;
-      document.getElementById('speedSlider').value = uiMaxSpeed;
-      sendCommand(`S ${uiMaxSpeed}`);
-  }
-  if (kf.accel !== undefined) {
-      uiAcceleration = kf.accel;
-      document.getElementById('accel').value = uiAcceleration;
-      document.getElementById('accelSlider').value = uiAcceleration;
-      sendCommand(`A ${uiAcceleration}`);
-  }
-  
-  sendCommand(`M ${currentPositions.join(' ')}`);
-  axisNames.forEach((_, i) => updatePositionDisplay(i));
-  */
-  
-  // logConsole(`Editing keyframe at ${kf.time.toFixed(2)}s`);
-  
-  selectedKeyframeIndex = index;
-  openKeyframeEditor(index);
 }
 
 function deleteKeyframe(index) {
@@ -1113,6 +1099,29 @@ function updatePlaybackSpeed(value) {
   document.getElementById('speedDisplay').textContent = `${playbackSpeed.toFixed(1)}x`;
 }
 
+function openSaveDialog() {
+  document.getElementById('saveDialog').style.display = 'flex';
+  document.getElementById('saveFileName').value = currentFileName !== "Untitled" ? currentFileName : "";
+  document.getElementById('saveFileName').focus();
+}
+
+function closeSaveDialog() {
+  document.getElementById('saveDialog').style.display = 'none';
+}
+
+function confirmSave() {
+  const name = document.getElementById('saveFileName').value.trim();
+  if (name) {
+    currentFileName = name;
+    updateFileNameDisplay();
+    saveChoreographyToLocal(); // Save new name to local storage immediately
+    saveChoreography(); // Trigger download
+    closeSaveDialog();
+  } else {
+    alert("Please enter a filename.");
+  }
+}
+
 function saveChoreography() {
   if (choreography.length === 0) {
     logConsole('No choreography to save');
@@ -1131,9 +1140,9 @@ function saveChoreography() {
   
   const a = document.createElement('a');
   a.href = url;
-  // Use current filename or default with timestamp if Untitled
+  
   let name = currentFileName;
-  if (name === "Untitled") name = `choreography_${Date.now()}`;
+  if (!name || name === "Untitled") name = `choreography_${Date.now()}`;
   
   a.download = `${name}.json`;
   a.click();
@@ -1405,6 +1414,9 @@ window.closeKeyframeEditor = closeKeyframeEditor;
 window.getCurrentForEditor = getCurrentForEditor;
 window.updateEditorFromBox = updateEditorFromBox;
 window.applyEditorBoxToMotors = applyEditorBoxToMotors;
+window.openSaveDialog = openSaveDialog;
+window.closeSaveDialog = closeSaveDialog;
+window.confirmSave = confirmSave;
 
 document.addEventListener('DOMContentLoaded', () => {
   loadMapping();
