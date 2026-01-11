@@ -305,6 +305,7 @@ button:active {
   min-height: 50px;
   position: relative;
   border: 1px solid var(--border);
+  overflow-x: auto; /* Allow scrolling */
 }
 
 .timeline-track {
@@ -313,14 +314,33 @@ button:active {
   background: var(--bg-alt);
   border-radius: 2px;
   border: 1px solid var(--border);
+  min-width: 100%; /* Ensure it fills at least the container */
+  /* Width will be set dynamically in JS based on duration if needed, 
+     or we can just make it fixed large for now. 
+     Let's keep it 100% of container by default, but allow JS to expand it. */
 }
 
 .keyframe-marker {
   position: absolute;
-  width: 2px;
+  width: 8px; /* Thicker for easier clicking */
   height: 100%;
   background: var(--accent);
   cursor: pointer;
+  transform: translateX(-50%); /* Center on time */
+  border-radius: 2px;
+  opacity: 0.7;
+}
+
+.keyframe-marker:hover {
+  opacity: 1;
+  background: #004c99;
+}
+
+.keyframe-marker.selected {
+  background: var(--danger); /* Highlight color */
+  opacity: 1;
+  z-index: 5;
+  border: 1px solid white;
 }
 
 .playhead {

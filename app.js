@@ -170,6 +170,7 @@ let playbackSpeed = 1.0;
 let playbackStartTime = 0;
 let choreographyStartTime = 0;
 let playbackInterval = null;
+let selectedKeyframeIndex = -1;
 
 // --- WebSocket & Connection ---
 
@@ -582,12 +583,125 @@ function updateKeyframesList() {
     const spd = kf.speed !== undefined ? kf.speed : 'def';
     const acc = kf.accel !== undefined ? kf.accel : 'def';
     
+    // Highlight if selected
+    if (index === selectedKeyframeIndex) {
+        item.style.border = '2px solid var(--accent)';
+        item.style.backgroundColor = '#e6f2ff'; // Light blue background
+    } else {
+        item.style.border = 'none';
+        item.style.backgroundColor = 'var(--bg-alt)';
+    }
+
     item.innerHTML = `
-      <span>${kf.time.toFixed(2)}s: [${kf.positions.join(', ')}] <small>(S:${spd} A:${acc})</small></span>
+      <span onclick="goToKeyframe(${index})" style="cursor: pointer; flex-grow: 1;">${kf.time.toFixed(2)}s: [${kf.positions.join(', ')}] <small>(S:${spd} A:${acc})</small></span>
       <button onclick="deleteKeyframe(${index})">Delete</button>
     `;
     list.appendChild(item);
   });
+}
+
+function openKeyframeEditor(index) {
+  const kf = choreography[index];
+  if (!kf) return;
+  
+  document.getElementById('keyframeEditor').style.display = 'block';
+  document.getElementById('editTime').value = kf.time.toFixed(2);
+  document.getElementById('editSpeed').value = kf.speed || uiMaxSpeed;
+  document.getElementById('editAccel').value = kf.accel || uiAcceleration;
+  
+  for(let i=0; i<4; i++) {
+      document.getElementById(`editM${i}`).value = kf.positions[i];
+  }
+
+  // Reset Editor Box Controls to Neutral (since inverse kinematics is hard)
+  document.getElementById('editBoxZ').value = 0;
+  document.getElementById('editBoxRoll').value = 0;
+  document.getElementById('editBoxPitch').value = 0;
+  updateEditorFromBox();
+  
+  updateKeyframesList(); // Refresh to show highlight
+  updateTimeline(); // Refresh to highlight marker
+}
+
+function updateEditorFromBox() {
+  const z = document.getElementById('editBoxZ').value;
+  const roll = document.getElementById('editBoxRoll').value;
+  const pitch = document.getElementById('editBoxPitch').value;
+  
+  document.getElementById('dispEditBoxZ').textContent = z;
+  document.getElementById('dispEditBoxRoll').textContent = roll + '°';
+  document.getElementById('dispEditBoxPitch').textContent = pitch + '°';
+  
+  applyEditorBoxToMotors();
+}
+
+function applyEditorBoxToMotors() {
+  const zInput = parseInt(document.getElementById('editBoxZ').value);
+  const roll = parseInt(document.getElementById('editBoxRoll').value);
+  const pitch = parseInt(document.getElementById('editBoxPitch').value);
+  
+  const z = zInput + PHYSICAL_Z_OFFSET;
+  const state = { z, roll, pitch };
+  
+  // Reuse homeLengths from global scope (assumes they are set)
+  if (homeLengths[0] === 0) initVirtualBox();
+  
+  const targetSteps = calculateTargetSteps(state, homeLengths);
+  
+  for(let i=0; i<4; i++) {
+     document.getElementById(`editM${i}`).value = targetSteps[i];
+  }
+}
+
+function closeKeyframeEditor() {
+  document.getElementById('keyframeEditor').style.display = 'none';
+  selectedKeyframeIndex = -1;
+  updateKeyframesList();
+  updateTimeline();
+}
+
+function saveKeyframeChanges() {
+  if (selectedKeyframeIndex === -1 || !choreography[selectedKeyframeIndex]) return;
+  
+  const time = parseFloat(document.getElementById('editTime').value);
+  const speed = parseInt(document.getElementById('editSpeed').value);
+  const accel = parseInt(document.getElementById('editAccel').value);
+  
+  const positions = [
+      parseInt(document.getElementById('editM0').value),
+      parseInt(document.getElementById('editM1').value),
+      parseInt(document.getElementById('editM2').value),
+      parseInt(document.getElementById('editM3').value)
+  ];
+  
+  choreography[selectedKeyframeIndex] = {
+      time,
+      speed,
+      accel,
+      positions
+  };
+  
+  // Re-sort in case time changed
+  choreography.sort((a, b) => a.time - b.time);
+  
+  // Find where it went if index changed after sort
+  // (Optional, but good for keeping selection)
+  
+  updateKeyframesList();
+  updateTimeline();
+  logConsole('Keyframe updated');
+  
+  // Keep editor open but update values/index if needed? 
+  // For simplicity, maybe close or just refresh. 
+  // If time changed, the index might change, so let's close or re-find.
+  // Let's close it to be safe.
+  closeKeyframeEditor();
+}
+
+function getCurrentForEditor() {
+  for(let i=0; i<4; i++) {
+      document.getElementById(`editM${i}`).value = currentPositions[i];
+  }
 }
 
 function updateTimeline() {
@@ -598,14 +712,27 @@ function updateTimeline() {
   if (choreography.length === 0) return;
   
   const maxTime = Math.max(...choreography.map(kf => kf.time));
+  // Allow timeline to expand if long duration, or keep relative?
+  // User asked for scrolling. Let's make the track wider if duration is long?
+  // For now, let's keep it 100% width but use scroll on container.
+  // Actually, to support scrolling for long choreographies, we need to map time to pixels more statically, or just let it be huge.
+  // Let's stick to % for now but add min-width if needed.
+  
   const timelineWidth = timeline.offsetWidth;
   
   choreography.forEach((kf, index) => {
     const marker = document.createElement('div');
     marker.className = 'keyframe-marker';
+    if (index === selectedKeyframeIndex) {
+        marker.classList.add('selected');
+    }
+    
     marker.style.left = `${(kf.time / maxTime) * timelineWidth}px`;
     marker.title = `${kf.time.toFixed(2)}s\nPos: [${kf.positions}]\nSpd: ${kf.speed}\nAcc: ${kf.accel}`;
-    marker.onclick = () => goToKeyframe(index);
+    marker.onclick = (e) => {
+        e.stopPropagation(); // Prevent bubbling if needed
+        goToKeyframe(index);
+    };
     timeline.appendChild(marker);
   });
 }
@@ -630,6 +757,9 @@ function goToKeyframe(index) {
   sendCommand(`M ${currentPositions.join(' ')}`);
   axisNames.forEach((_, i) => updatePositionDisplay(i));
   logConsole(`Jumped to keyframe at ${kf.time.toFixed(2)}s`);
+  
+  selectedKeyframeIndex = index;
+  openKeyframeEditor(index);
 }
 
 function deleteKeyframe(index) {
@@ -1030,6 +1160,11 @@ window.resetPitch = resetPitch;
 window.setHomeAsReference = setHomeAsReference;
 window.updateBoxDisplay = updateBoxDisplay;
 window.updateBox = updateBox;
+window.saveKeyframeChanges = saveKeyframeChanges;
+window.closeKeyframeEditor = closeKeyframeEditor;
+window.getCurrentForEditor = getCurrentForEditor;
+window.updateEditorFromBox = updateEditorFromBox;
+window.applyEditorBoxToMotors = applyEditorBoxToMotors;
 
 document.addEventListener('DOMContentLoaded', () => {
   loadMapping();

@@ -158,10 +158,77 @@
             <input type="checkbox" id="loopChoreography"> Loop
           </label>
         </div>
+
         <div class="timeline" id="timeline">
           <div class="timeline-track"></div>
         </div>
         <div class="keyframes-list" id="keyframesList"></div>
+
+        <div id="keyframeEditor" style="display: none; background: white; padding: 10px; border: 1px solid var(--border); border-radius: 3px; margin-top: 10px;">
+          <h4 style="margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 5px;">Edit Keyframe</h4>
+          
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px;">
+            <div>
+              <label style="display: block; font-size: 11px; margin-bottom: 2px;">Time (s)</label>
+              <input type="number" id="editTime" step="0.1" style="width: 100%;">
+            </div>
+            <div>
+              <label style="display: block; font-size: 11px; margin-bottom: 2px;">Speed</label>
+              <input type="number" id="editSpeed" step="1000" style="width: 100%;">
+            </div>
+            <div>
+              <label style="display: block; font-size: 11px; margin-bottom: 2px;">Accel</label>
+              <input type="number" id="editAccel" step="1000" style="width: 100%;">
+            </div>
+          </div>
+
+          <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border);">
+            <div style="font-size: 12px; font-weight: 600; margin-bottom: 5px;">Virtual Box Pose</div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+               <div>
+                  <label style="display: block; font-size: 11px; margin-bottom: 2px;">Height (Z)</label>
+                  <input type="range" id="editBoxZ" min="0" max="900" step="1" oninput="updateEditorFromBox()" style="width: 100%;">
+                  <span id="dispEditBoxZ" style="font-size: 10px;">0</span>
+               </div>
+               <div>
+                  <label style="display: block; font-size: 11px; margin-bottom: 2px;">Roll</label>
+                  <input type="range" id="editBoxRoll" min="-45" max="45" step="1" oninput="updateEditorFromBox()" style="width: 100%;">
+                  <span id="dispEditBoxRoll" style="font-size: 10px;">0</span>
+               </div>
+               <div>
+                  <label style="display: block; font-size: 11px; margin-bottom: 2px;">Pitch</label>
+                  <input type="range" id="editBoxPitch" min="-45" max="45" step="1" oninput="updateEditorFromBox()" style="width: 100%;">
+                  <span id="dispEditBoxPitch" style="font-size: 10px;">0</span>
+               </div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 5px; font-size: 12px; font-weight: 600;">Motor Positions (Steps)</div>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
+            <div>
+               <label style="display: block; font-size: 11px; margin-bottom: 2px;">M1</label>
+               <input type="number" id="editM0" style="width: 100%;">
+            </div>
+            <div>
+               <label style="display: block; font-size: 11px; margin-bottom: 2px;">M2</label>
+               <input type="number" id="editM1" style="width: 100%;">
+            </div>
+            <div>
+               <label style="display: block; font-size: 11px; margin-bottom: 2px;">M3</label>
+               <input type="number" id="editM2" style="width: 100%;">
+            </div>
+            <div>
+               <label style="display: block; font-size: 11px; margin-bottom: 2px;">M4</label>
+               <input type="number" id="editM3" style="width: 100%;">
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 8px;">
+            <button onclick="saveKeyframeChanges()" style="background-color: var(--success); color: white; border-color: var(--success);">Update Keyframe</button>
+            <button onclick="getCurrentForEditor()">Use Current Pos</button>
+            <button onclick="closeKeyframeEditor()">Cancel</button>
+          </div>
+        </div>
       </div>
 
       <div class="altitude-display">
