@@ -528,6 +528,13 @@ window.updatePlaybackSpeed = (val) => {
     document.getElementById('speedDisplay').textContent = val + 'x';
 };
 
+window.updateRestSettings = () => {
+    state.restEnabled = document.getElementById('restEnabled').checked;
+    state.restDuration = parseFloat(document.getElementById('restDuration').value) || 1;
+    localStorage.setItem('restEnabled', state.restEnabled);
+    localStorage.setItem('restDuration', state.restDuration);
+};
+
 window.clearConsole = () => document.getElementById('console').innerHTML = '';
 
 function loadMapping() {
@@ -601,6 +608,15 @@ document.addEventListener('DOMContentLoaded', () => {
     loadReverseFlags();
     loadMicrostepping();
     initVirtualBox();
+    
+    // Load rest settings from localStorage
+    const savedRestEnabled = localStorage.getItem('restEnabled');
+    const savedRestDuration = localStorage.getItem('restDuration');
+    if (savedRestEnabled !== null) state.restEnabled = savedRestEnabled === 'true';
+    if (savedRestDuration !== null) state.restDuration = parseFloat(savedRestDuration);
+    
+    document.getElementById('restEnabled').checked = state.restEnabled;
+    document.getElementById('restDuration').value = state.restDuration;
     Comms.setupComms({ onLog: (msg) => {
         const c = document.getElementById('console');
         if(c) { const d = document.createElement('div'); d.textContent = msg; c.appendChild(d); c.scrollTop = c.scrollHeight; }

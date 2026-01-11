@@ -15,6 +15,12 @@ export const state = {
     playbackStartTime: 0,
     currentTime: 0,
     selectedKeyframeIndex: -1,
+
+    // Loop & Rest
+    restEnabled: false,
+    restDuration: 1, // Minutes
+    isResting: false,
+    restStartTime: 0,
     
     // Settings
     uiMaxSpeed: 24000,

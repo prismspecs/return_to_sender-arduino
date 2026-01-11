@@ -478,3 +478,13 @@ input:checked + .toggle-slider:before {
   text-align: center;
 }
 
+/* Rest Mode Indicator */
+.time-display.resting {
+  color: #ff9800 !important;
+  animation: rest-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes rest-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}

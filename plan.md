@@ -21,6 +21,7 @@ Web interface for controlling a 4-axis cable robot using an Arduino CNC Shield.
 - **Timeline & Playback:**
     - Draggable Playhead and Keyframes.
     - Infinite playback for recording (loops only if checked).
+    - **Rest & Loop:** Optional rest period between loops to cool down motors. Configurable duration (persisted to localStorage). Visual indicator (pulsing orange) during rest countdown.
     - Audio syncs perfectly with scrubbing.
 - **Calibration:**
     - **Set Floor:** Resets hardware, visual position, and virtual box state to 0.

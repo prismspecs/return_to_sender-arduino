@@ -41,6 +41,40 @@ export function playChoreography(callbacks) {
   }
   
   playbackInterval = setInterval(() => {
+    const timeDisp = document.getElementById('timeDisplay');
+    
+    // Handle Rest State
+    if (state.isResting) {
+        const elapsedRest = Date.now() - state.restStartTime;
+        const totalRest = state.restDuration * 60 * 1000;
+        
+        if (elapsedRest >= totalRest) {
+            // Wake up
+            state.isResting = false;
+            sendCommand('E 1'); // Enable motors
+            if (timeDisp) timeDisp.classList.remove('resting');
+            
+            // Restart
+            state.currentTime = 0;
+            state.playbackStartTime = Date.now();
+            keyframeIndex = 0;
+            
+            if (hasAudio) {
+                audio.currentTime = 0;
+                audio.play().catch(e => console.error("Audio play error", e));
+            }
+            callbacks.onTimeUpdate(0);
+        } else {
+            // Update UI with countdown
+            const remaining = Math.ceil((totalRest - elapsedRest) / 1000);
+            if (timeDisp) {
+                timeDisp.textContent = `Rest: ${remaining}s`;
+                timeDisp.classList.add('resting');
+            }
+        }
+        return; 
+    }
+
     // Update Time
     if (hasAudio) {
         if (Math.abs(audio.playbackRate - state.playbackSpeed) > 0.01) {
@@ -83,6 +117,13 @@ export function playChoreography(callbacks) {
     const shouldLoop = document.getElementById('loopChoreography').checked; // Still reading DOM here, maybe pass in state?
     
     if (shouldLoop && state.currentTime > lastTime + 0.5) {
+        if (state.restEnabled) {
+             state.isResting = true;
+             state.restStartTime = Date.now();
+             sendCommand('E 0'); // Disable motors
+             return;
+        }
+
         state.currentTime = 0;
         state.playbackStartTime = Date.now();
         keyframeIndex = 0;
@@ -104,6 +145,7 @@ export function playChoreography(callbacks) {
 
 export function stopChoreography(callbacks) {
   state.isPlaying = false;
+  state.isResting = false;
   if (playbackInterval) {
     clearInterval(playbackInterval);
     playbackInterval = null;
@@ -112,7 +154,12 @@ export function stopChoreography(callbacks) {
   const audio = document.getElementById('choreoAudio');
   if (audio) audio.pause();
   
+  // Remove resting indicator
+  const timeDisp = document.getElementById('timeDisplay');
+  if (timeDisp) timeDisp.classList.remove('resting');
+  
   if (callbacks && callbacks.onPlayStateChange) callbacks.onPlayStateChange(false);
+  if (callbacks && callbacks.onTimeUpdate) callbacks.onTimeUpdate(state.currentTime);
 }
 
 export function recordKeyframe(callbacks) {
