@@ -15,6 +15,7 @@
           <span class="status-indicator" id="statusIndicator"></span>
           <span id="statusText">Connecting...</span>
         </div>
+        <button onclick="haltMotors()" class="btn-home" style="background-color: #d32f2f; border-color: #d32f2f; font-weight: 800; letter-spacing: 1px;">STOP</button>
         <button onclick="homeAll()" class="btn-home" style="background-color: #FF9800; border-color: #FF9800;">Home All</button>
         <button onclick="setFloor()" class="btn-home" style="background-color: #4CAF50; border-color: #4CAF50;">Set Floor</button>
         <button onclick="setCeiling()" class="btn-home" style="background-color: #2196F3; border-color: #2196F3;">Set Ceiling</button>
@@ -80,32 +81,33 @@
 
         <!-- Settings (Speed/Accel) -->
         <div class="settings-section" style="padding: 10px; background: var(--bg-alt); border: 1px solid var(--border); border-radius: 4px;">
-          <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+          <div style="display: flex; flex-direction: column; gap: 10px;">
             <div style="display: flex; flex-direction: column; gap: 2px;">
                <label style="font-size: 13px; display: flex; align-items: center; gap: 5px;">
                  Speed (x1k): <input type="number" id="speed" value="24" min="1" max="30" step="1" oninput="updateSpeedUI(false)" onchange="setSpeed()" style="width: 50px; padding: 3px 6px;">
                </label>
-               <input type="range" id="speedSlider" value="24" min="1" max="30" step="1" oninput="updateSpeedUI(true)" onchange="setSpeed()" style="width: 140px;">
+               <input type="range" id="speedSlider" value="24" min="1" max="30" step="1" oninput="updateSpeedUI(true)" onchange="setSpeed()" style="width: 100%;">
             </div>
 
             <div style="display: flex; flex-direction: column; gap: 2px;">
                <label style="font-size: 13px; display: flex; align-items: center; gap: 5px;">
                  Accel (x1k): <input type="number" id="accel" value="24" min="1" max="30" step="1" oninput="updateAccelUI(false)" onchange="setAcceleration()" style="width: 50px; padding: 3px 6px;">
                </label>
-               <input type="range" id="accelSlider" value="24" min="1" max="30" step="1" oninput="updateAccelUI(true)" onchange="setAcceleration()" style="width: 140px;">
+               <input type="range" id="accelSlider" value="24" min="1" max="30" step="1" oninput="updateAccelUI(true)" onchange="setAcceleration()" style="width: 100%;">
             </div>
 
-            <label style="font-size: 13px;">Driver: 
-              <select id="driverType" onchange="updateMicrosteppingOptions()" style="padding: 3px 6px; border-radius: 3px; border: 1px solid var(--border);">
-                <option value="A4988">A4988</option>
-                <option value="DRV8825">DRV8825</option>
-              </select>
-            </label>
-            <label style="font-size: 13px;">Steps: 
-              <select id="microstepping" onchange="updateMicrostepping()" style="padding: 3px 6px; border-radius: 3px; border: 1px solid var(--border);">
-                <!-- Populated by JS -->
-              </select>
-            </label>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <label style="font-size: 13px;">Driver: 
+                  <select id="driverType" onchange="updateMicrosteppingOptions()" style="padding: 3px 6px; border-radius: 3px; border: 1px solid var(--border);">
+                    <option value="A4988">A4988</option>
+                    <option value="DRV8825">DRV8825</option>
+                  </select>
+                </label>
+                <label style="font-size: 13px;">Steps: 
+                  <select id="microstepping" onchange="updateMicrostepping()" style="padding: 3px 6px; border-radius: 3px; border: 1px solid var(--border);">
+                  </select>
+                </label>
+            </div>
           </div>
           
           <details style="margin-top: 10px;">
@@ -118,17 +120,10 @@
           </details>
         </div>
 
-        <!-- Motor Controls (Grid) -->
+        <!-- Motor Controls -->
         <div class="motor-controls">
           <div class="motor-strip" id="motorX">
-            <div class="motor-header">
-              <span class="axis-label">1 (RL)</span>
-              <label class="reverse-toggle">
-                <input type="checkbox" id="reverseX" onchange="toggleReverse(0, this.checked)">
-                Rev
-              </label>
-            </div>
-
+            <div class="motor-header"><span class="axis-label">1 (RL)</span><label class="reverse-toggle"><input type="checkbox" id="reverseX" onchange="toggleReverse(0, this.checked)">Rev</label></div>
             <div class="position-value" id="posX">0</div>
             <div class="motor-buttons">
               <button onclick="quickMove('X', 0, -100)">-100</button>
@@ -138,16 +133,8 @@
               <button onclick="quickMove('X', 0, 100)">+100</button>
             </div>
           </div>
-
           <div class="motor-strip" id="motorY">
-            <div class="motor-header">
-              <span class="axis-label">2 (RR)</span>
-              <label class="reverse-toggle">
-                <input type="checkbox" id="reverseY" onchange="toggleReverse(1, this.checked)">
-                Rev
-              </label>
-            </div>
-
+            <div class="motor-header"><span class="axis-label">2 (RR)</span><label class="reverse-toggle"><input type="checkbox" id="reverseY" onchange="toggleReverse(1, this.checked)">Rev</label></div>
             <div class="position-value" id="posY">0</div>
             <div class="motor-buttons">
               <button onclick="quickMove('Y', 1, -100)">-100</button>
@@ -157,16 +144,8 @@
               <button onclick="quickMove('Y', 1, 100)">+100</button>
             </div>
           </div>
-
           <div class="motor-strip" id="motorA">
-            <div class="motor-header">
-              <span class="axis-label">4 (FL)</span>
-              <label class="reverse-toggle">
-                <input type="checkbox" id="reverseA" onchange="toggleReverse(3, this.checked)">
-                Rev
-              </label>
-            </div>
-
+            <div class="motor-header"><span class="axis-label">4 (FL)</span><label class="reverse-toggle"><input type="checkbox" id="reverseA" onchange="toggleReverse(3, this.checked)">Rev</label></div>
             <div class="position-value" id="posA">0</div>
             <div class="motor-buttons">
               <button onclick="quickMove('A', 3, -100)">-100</button>
@@ -176,16 +155,8 @@
               <button onclick="quickMove('A', 3, 100)">+100</button>
             </div>
           </div>
-
           <div class="motor-strip" id="motorZ">
-            <div class="motor-header">
-              <span class="axis-label">3 (FR)</span>
-              <label class="reverse-toggle">
-                <input type="checkbox" id="reverseZ" onchange="toggleReverse(2, this.checked)">
-                Rev
-              </label>
-            </div>
-
+            <div class="motor-header"><span class="axis-label">3 (FR)</span><label class="reverse-toggle"><input type="checkbox" id="reverseZ" onchange="toggleReverse(2, this.checked)">Rev</label></div>
             <div class="position-value" id="posZ">0</div>
             <div class="motor-buttons">
               <button onclick="quickMove('Z', 2, -100)">-100</button>
@@ -197,7 +168,6 @@
           </div>
         </div>
 
-        <!-- Global Controls -->
         <div class="global-controls">
           <h3>All Motors</h3>
           <div class="global-buttons">
@@ -211,43 +181,20 @@
           </div>
         </div>
 
-        <!-- Console -->
         <div class="console-section">
-          <div class="console-header">
-            <h3>Console</h3>
-            <button class="btn-clear" onclick="clearConsole()">Clear</button>
-          </div>
+          <div class="console-header"><h3>Console</h3><button class="btn-clear" onclick="clearConsole()">Clear</button></div>
           <div class="console" id="console"></div>
         </div>
       </div>
 
       <!-- RIGHT COLUMN -->
       <div class="right-column">
-        <!-- Virtual Box Control Section -->
         <div class="virtual-box-controls">
           <h2>Virtual Box Control</h2>
           <div class="box-sliders">
-            <div class="control-group">
-              <label>Height (Z)</label>
-              <input type="range" id="boxZ" min="0" max="900" value="0" step="1" oninput="updateBoxDisplay()" onchange="updateBox()">
-              <span id="valBoxZ">0</span>
-            </div>
-            <div class="control-group">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <label>Roll (X-Tilt)</label>
-                <button onclick="resetRoll()" style="padding: 2px 6px; font-size: 12px;">0</button>
-              </div>
-              <input type="range" id="boxRoll" min="-45" max="45" value="0" step="1" oninput="updateBoxDisplay()" onchange="updateBox()">
-              <span id="valBoxRoll">0°</span>
-            </div>
-            <div class="control-group">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <label>Pitch (Y-Tilt)</label>
-                <button onclick="resetPitch()" style="padding: 2px 6px; font-size: 12px;">0</button>
-              </div>
-              <input type="range" id="boxPitch" min="-45" max="45" value="0" step="1" oninput="updateBoxDisplay()" onchange="updateBox()">
-              <span id="valBoxPitch">0°</span>
-            </div>
+            <div class="control-group"><label>Height (Z)</label><input type="range" id="boxZ" min="0" max="900" value="0" step="1" oninput="updateBoxDisplay()" onchange="updateBox()"><span id="valBoxZ">0</span></div>
+            <div class="control-group"><label>Roll (X-Tilt)</label><input type="range" id="boxRoll" min="-45" max="45" value="0" step="1" oninput="updateBoxDisplay()" onchange="updateBox()"><span id="valBoxRoll">0°</span></div>
+            <div class="control-group"><label>Pitch (Y-Tilt)</label><input type="range" id="boxPitch" min="-45" max="45" value="0" step="1" oninput="updateBoxDisplay()" onchange="updateBox()"><span id="valBoxPitch">0°</span></div>
           </div>
           <div class="box-actions">
               <button onclick="resetBox()">Reset Box</button>
@@ -255,142 +202,89 @@
           </div>
         </div>
 
-        <!-- Altitude Display -->
         <div class="altitude-display">
-          <div class="altitude-strip">
-            <div class="altitude-title">M1 (RL)</div>
-            <div class="altitude-meter-container">
-              <div class="meter-scale">
-                 <span class="scale-label">900</span>
-                 <span class="scale-label">0</span>
-              </div>
-              <div class="altitude-bar" id="altM0"></div>
-            </div>
-          </div>
-          <div class="altitude-strip">
-            <div class="altitude-title">M2 (RR)</div>
-            <div class="altitude-meter-container">
-               <div class="meter-scale">
-                 <span class="scale-label">900</span>
-                 <span class="scale-label">0</span>
-               </div>
-              <div class="altitude-bar" id="altM1"></div>
-            </div>
-          </div>
-          <div class="altitude-strip">
-            <div class="altitude-title">M3 (FR)</div>
-            <div class="altitude-meter-container">
-               <div class="meter-scale">
-                 <span class="scale-label">900</span>
-                 <span class="scale-label">0</span>
-               </div>
-              <div class="altitude-bar" id="altM2"></div>
-            </div>
-          </div>
-          <div class="altitude-strip">
-            <div class="altitude-title">M4 (FL)</div>
-            <div class="altitude-meter-container">
-               <div class="meter-scale">
-                 <span class="scale-label">900</span>
-                 <span class="scale-label">0</span>
-               </div>
-              <div class="altitude-bar" id="altM3"></div>
-            </div>
-          </div>
+          <div class="altitude-strip"><div class="altitude-title">M1 (RL)</div><div class="altitude-meter-container"><div class="meter-scale"><span class="scale-label">900</span><span class="scale-label">0</span></div><div class="altitude-bar" id="altM0"></div></div></div>
+          <div class="altitude-strip"><div class="altitude-title">M2 (RR)</div><div class="altitude-meter-container"><div class="meter-scale"><span class="scale-label">900</span><span class="scale-label">0</span></div><div class="altitude-bar" id="altM1"></div></div></div>
+          <div class="altitude-strip"><div class="altitude-title">M3 (FR)</div><div class="altitude-meter-container"><div class="meter-scale"><span class="scale-label">900</span><span class="scale-label">0</span></div><div class="altitude-bar" id="altM2"></div></div></div>
+          <div class="altitude-strip"><div class="altitude-title">M4 (FL)</div><div class="altitude-meter-container"><div class="meter-scale"><span class="scale-label">900</span><span class="scale-label">0</span></div><div class="altitude-bar" id="altM3"></div></div></div>
         </div>
 
-        <!-- Choreography Section -->
         <div class="choreography-section">
           <h3>Choreography</h3>
-                  <div class="choreo-controls">
-                    <div style="display: inline-flex; gap: 5px; align-items: center; border-right: 1px solid var(--border); padding-right: 10px; margin-right: 10px;">
-                      <select id="quickSaveSelect" style="width: 120px; padding: 4px; font-size: 12px;"></select>
-                      <button onclick="quickLoad()" title="Load Selected">Load</button>
-                      <button onclick="quickSave()" title="Save Current">Save</button>
-                      <button onclick="quickDelete()" style="color: var(--danger); border-color: var(--danger);" title="Delete Selected">X</button>
-                    </div>
-          
-                    <button onclick="recordKeyframe()" class="btn-record">Record</button>
-                    <button onclick="playChoreography()" id="btnPlay">Play</button>
-                    <button onclick="stopChoreography()" id="btnStop">Stop</button>
-                    <button onclick="clearChoreography()">Clear</button>
+          <div class="choreo-controls-wrapper" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px;">
+            <!-- Top Row: Project & File Operations -->
+            <div class="choreo-row" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+              <div style="display: inline-flex; gap: 5px; align-items: center; border-right: 1px solid var(--border); padding-right: 10px;">
+                <select id="quickSaveSelect" style="width: 100px; padding: 2px; font-size: 11px;"></select>
+                <button onclick="quickLoad()">Load</button>
+                <button onclick="quickSave()">Save</button>
+                <button onclick="loadChoreography()" style="margin-left: 5px;">Import</button>
+                <button onclick="openSaveDialog()">Export</button>
+                <span id="fileNameDisplay" style="font-size: 11px; font-style: italic; margin-left: 5px;">(Untitled)</span>
+              </div>
 
-                    <button onclick="openSaveDialog()">Export</button>
-                    <button onclick="loadChoreography()">Import</button>
-                    <span id="fileNameDisplay" style="font-size: 12px; color: var(--text-light); margin-left: 5px; font-style: italic;">(Untitled)</span>
-                    <label>Speed: <input type="range" id="choreoSpeed" min="0.1" max="10" step="0.1" value="1" oninput="updatePlaybackSpeed(this.value)"> <span id="speedDisplay">1.0x</span></label>                                <label class="loop-toggle">
-                                  <input type="checkbox" id="loopChoreography"> Loop
-                                </label>
-                                <span id="timeDisplay" class="time-display">0.00s</span>
-                              </div>
-                      
-                              <div class="timeline" id="timeline">
-                                <div class="timeline-track"></div>
-                              </div>
-                              <div class="keyframes-list" id="keyframesList"></div>
-                      
-                              <div id="keyframeEditor" style="display: none; background: white; padding: 10px; border: 1px solid var(--border); border-radius: 3px; margin-top: 10px;">
-          <h4 style="margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 5px;">Edit Keyframe</h4>
-          
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px;">
-            <div>
-              <label style="display: block; font-size: 11px; margin-bottom: 2px;">Time (s)</label>
-              <input type="number" id="editTime" step="0.1" style="width: 100%;" oninput="saveKeyframeChanges()">
+              <div style="margin-left: auto; display: flex; align-items: center;">
+                <span id="timeDisplay" class="time-display" style="font-size: 14px; color: var(--accent);">0.00s</span>
+              </div>
             </div>
-            <div>
-              <label style="display: block; font-size: 11px; margin-bottom: 2px;">Speed (x1k)</label>
-              <input type="number" id="editSpeed" step="1" min="1" max="30" style="width: 100%;" oninput="saveKeyframeChanges()">
-            </div>
-            <div>
-              <label style="display: block; font-size: 11px; margin-bottom: 2px;">Accel (x1k)</label>
-              <input type="number" id="editAccel" step="1" min="1" max="30" style="width: 100%;" oninput="saveKeyframeChanges()">
+
+            <!-- Bottom Row: Audio, Playback, Speed -->
+            <div class="choreo-row" style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <button onclick="document.getElementById('audioInput').click()" title="Load Music" style="background: #eee;">🎵 Load Audio</button>
+                <span id="audioStatus" style="font-size: 11px; color: var(--text-light); max-width: 150px; overflow: hidden; text-overflow: ellipsis;">No Audio</span>
+                <input type="file" id="audioInput" accept="audio/*" style="display: none;" onchange="handleAudioLoad(event)">
+                <audio id="choreoAudio" style="display: none;"></audio>
+              </div>
+
+              <!-- Playback Controls -->
+              <div style="display: inline-flex; gap: 5px; align-items: center; border-left: 1px solid var(--border); padding-left: 15px;">
+                <button onclick="recordKeyframe()" class="btn-record">Record Keyframe</button>
+                <button onclick="playChoreography()" id="btnPlay">Play</button>
+                <button onclick="stopChoreography()" id="btnStop">Stop</button>
+                <button onclick="clearChoreography()">Clear</button>
+                <label style="font-size: 12px; margin-left: 5px;"><input type="checkbox" id="loopChoreography"> Loop</label>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 8px; border-left: 1px solid var(--border); padding-left: 15px;">
+                <label style="font-size: 12px; font-weight: 600;">Timeline Speed:</label>
+                <input type="range" id="choreoSpeed" min="0.1" max="2" step="0.1" value="1" oninput="updatePlaybackSpeed(this.value)" style="width: 120px;">
+                <span id="speedDisplay" style="font-family: monospace; font-size: 12px; width: 35px;">1.0x</span>
+              </div>
             </div>
           </div>
 
-          <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border);">
-            <div style="font-size: 12px; font-weight: 600; margin-bottom: 5px;">Virtual Box Pose</div>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
-               <div>
-                  <label style="display: block; font-size: 11px; margin-bottom: 2px;">Height (Z)</label>
-                  <input type="range" id="editBoxZ" min="0" max="900" step="1" oninput="updateEditorFromBox()" style="width: 100%;">
-                  <span id="dispEditBoxZ" style="font-size: 10px;">0</span>
-               </div>
-               <div>
-                  <label style="display: block; font-size: 11px; margin-bottom: 2px;">Roll</label>
-                  <input type="range" id="editBoxRoll" min="-45" max="45" step="1" oninput="updateEditorFromBox()" style="width: 100%;">
-                  <span id="dispEditBoxRoll" style="font-size: 10px;">0</span>
-               </div>
-               <div>
-                  <label style="display: block; font-size: 11px; margin-bottom: 2px;">Pitch</label>
-                  <input type="range" id="editBoxPitch" min="-45" max="45" step="1" oninput="updateEditorFromBox()" style="width: 100%;">
-                  <span id="dispEditBoxPitch" style="font-size: 10px;">0</span>
-               </div>
+          <div style="display: flex; align-items: stretch; gap: 5px; margin-bottom: 8px;">
+            <button onclick="returnToStart()" title="Return to Start" style="padding: 0 10px; font-size: 16px;">⏮</button>
+            <div class="timeline" id="timeline" style="flex-grow: 1;">
+              <div class="timeline-track"></div>
             </div>
           </div>
+          <div class="keyframes-list" id="keyframesList"></div>
 
-          <div style="margin-bottom: 5px; font-size: 12px; font-weight: 600;">Motor Positions (Steps)</div>
-          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
-            <div>
-               <label style="display: block; font-size: 11px; margin-bottom: 2px;">M1</label>
-               <input type="number" id="editM0" style="width: 100%;" oninput="saveKeyframeChanges()">
+          <div id="keyframeEditor" style="display: none; background: white; padding: 10px; border: 1px solid var(--border); border-radius: 3px; margin-top: 10px;">
+            <h4 style="margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 5px;">Edit Keyframe</h4>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px;">
+              <div><label style="display: block; font-size: 11px;">Time (s)</label><input type="number" id="editTime" step="0.1" style="width: 100%;" oninput="saveKeyframeChanges()"></div>
+              <div><label style="display: block; font-size: 11px;">Speed (x1k)</label><input type="number" id="editSpeed" step="1" min="1" max="30" style="width: 100%;" oninput="saveKeyframeChanges()"></div>
+              <div><label style="display: block; font-size: 11px;">Accel (x1k)</label><input type="number" id="editAccel" step="1" min="1" max="30" style="width: 100%;" oninput="saveKeyframeChanges()"></div>
             </div>
-            <div>
-               <label style="display: block; font-size: 11px; margin-bottom: 2px;">M2</label>
-               <input type="number" id="editM1" style="width: 100%;" oninput="saveKeyframeChanges()">
+            <div style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border);">
+              <div style="font-size: 12px; font-weight: 600; margin-bottom: 5px;">Virtual Box Pose</div>
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                 <div><label style="display: block; font-size: 11px;">Height (Z)</label><input type="range" id="editBoxZ" min="0" max="900" step="1" oninput="updateEditorFromBox()" style="width: 100%;"><span id="dispEditBoxZ" style="font-size: 10px;">0</span></div>
+                 <div><label style="display: block; font-size: 11px;">Roll</label><input type="range" id="editBoxRoll" min="-45" max="45" step="1" oninput="updateEditorFromBox()" style="width: 100%;"><span id="dispEditBoxRoll" style="font-size: 10px;">0</span></div>
+                 <div><label style="display: block; font-size: 11px;">Pitch</label><input type="range" id="editBoxPitch" min="-45" max="45" step="1" oninput="updateEditorFromBox()" style="width: 100%;"><span id="dispEditBoxPitch" style="font-size: 10px;">0</span></div>
+              </div>
             </div>
-            <div>
-               <label style="display: block; font-size: 11px; margin-bottom: 2px;">M3</label>
-               <input type="number" id="editM2" style="width: 100%;" oninput="saveKeyframeChanges()">
+            <div style="margin-bottom: 5px; font-size: 12px; font-weight: 600;">Motor Positions</div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
+              <div><label style="display: block; font-size: 11px;">M1</label><input type="number" id="editM0" style="width: 100%;" oninput="saveKeyframeChanges()"></div>
+              <div><label style="display: block; font-size: 11px;">M2</label><input type="number" id="editM1" style="width: 100%;" oninput="saveKeyframeChanges()"></div>
+              <div><label style="display: block; font-size: 11px;">M3</label><input type="number" id="editM2" style="width: 100%;" oninput="saveKeyframeChanges()"></div>
+              <div><label style="display: block; font-size: 11px;">M4</label><input type="number" id="editM3" style="width: 100%;" oninput="saveKeyframeChanges()"></div>
             </div>
-            <div>
-               <label style="display: block; font-size: 11px; margin-bottom: 2px;">M4</label>
-               <input type="number" id="editM3" style="width: 100%;" oninput="saveKeyframeChanges()">
-            </div>
-          </div>
-
-          <div style="display: flex; gap: 8px;">
-            <button onclick="getCurrentForEditor()">Use Current Pos</button>
-            <button onclick="closeKeyframeEditor()">Close</button>
+            <div style="display: flex; gap: 8px;"><button onclick="getCurrentForEditor()">Use Current Pos</button><button onclick="closeKeyframeEditor()">Close</button></div>
           </div>
         </div>
       </div>
@@ -402,10 +296,7 @@
         <h3 style="margin-top: 0;">Save Choreography</h3>
         <label style="display: block; margin-bottom: 5px; font-size: 13px;">Filename:</label>
         <input type="text" id="saveFileName" style="width: 100%; margin-bottom: 15px; padding: 5px;" placeholder="Enter filename...">
-        <div style="display: flex; justify-content: flex-end; gap: 10px;">
-          <button onclick="closeSaveDialog()">Cancel</button>
-          <button onclick="confirmSave()" style="background-color: var(--success); color: white; border-color: var(--success);">Save</button>
-        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px;"><button onclick="closeSaveDialog()">Cancel</button><button onclick="confirmSave()" style="background-color: var(--success); color: white; border-color: var(--success);">Save</button></div>
       </div>
     </div>
 

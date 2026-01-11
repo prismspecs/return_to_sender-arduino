@@ -489,6 +489,17 @@ function homeAll() {
   logConsole('All axes homed (0).');
 }
 
+function haltMotors() {
+  // R 0 0 0 0 tells AccelStepper to "move 0 from current", effectively setting target to current position.
+  sendCommand('R 0 0 0 0');
+  logConsole('STOP command sent.');
+  
+  if (isPlaying) stopChoreography();
+  
+  // Request update to sync UI with where it actually stopped
+  setTimeout(() => sendCommand('I'), 100); 
+}
+
 function setFloor() {
   sendCommand('H');
   currentPositions = [0, 0, 0, 0];
@@ -499,6 +510,7 @@ function setFloor() {
   
   logConsole('Floor set (0).');
 }
+
 
 function setCeiling() {
   // Find the maximum current position in mm
@@ -527,7 +539,9 @@ function toggleMotors(isChecked) {
     logConsole('Motors ENGAGED');
   } else {
     sendCommand('E 0');
-    logConsole('Motors DISENGAGED (resting)');
+    // Auto-home when disabling to set current resting position as zero/floor
+    setFloor();
+    logConsole('Motors DISENGAGED (resting) - Floor Set');
   }
 }
 
@@ -777,6 +791,83 @@ function updateFileNameDisplay() {
     if (el) el.textContent = `(${currentFileName})`;
 }
 
+// --- Audio Logic ---
+let audioFile = null;
+
+// IndexedDB Helper for Audio
+const DB_NAME = 'ChoreoAudioDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'audioFiles';
+
+function openAudioDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+  });
+}
+
+async function saveAudioToDB(file) {
+  try {
+    const db = await openAudioDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    // Store file with a fixed key 'currentTrack'
+    store.put(file, 'currentTrack'); 
+    logConsole('Audio saved to local storage');
+  } catch (e) {
+    console.error("Error saving audio to DB", e);
+  }
+}
+
+async function loadAudioFromDB() {
+  try {
+    const db = await openAudioDB();
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.get('currentTrack');
+    
+    request.onsuccess = () => {
+      const file = request.result;
+      if (file) {
+        audioFile = file;
+        const audio = document.getElementById('choreoAudio');
+        audio.src = URL.createObjectURL(file);
+        document.getElementById('audioStatus').textContent = file.name;
+        logConsole(`Audio restored: ${file.name}`);
+      }
+    };
+  } catch (e) {
+    console.error("Error loading audio from DB", e);
+  }
+}
+
+function handleAudioLoad(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  audioFile = file;
+  const audio = document.getElementById('choreoAudio');
+  audio.src = URL.createObjectURL(file);
+  
+  document.getElementById('audioStatus').textContent = file.name;
+  logConsole(`Audio loaded: ${file.name}`);
+  
+  saveAudioToDB(file);
+  
+  // Reset time
+  currentTime = 0;
+  updatePlayhead(0);
+}
+
+// --- Choreography Functions ---
+
 function recordKeyframe() {
   // Use the current playhead time
   const time = currentTime;
@@ -980,8 +1071,14 @@ function setTimeFromClick(e) {
   if (newTime < 0) newTime = 0;
   
   currentTime = newTime;
+  
+  // Sync Audio if present
+  const audio = document.getElementById('choreoAudio');
+  if (audio && audio.src) {
+      audio.currentTime = currentTime;
+  }
+  
   updatePlayhead(currentTime);
-  // logConsole(`Time set to ${currentTime.toFixed(2)}s`);
 }
 
 function updateTimeline() {
@@ -1063,13 +1160,21 @@ function playChoreography() {
   }
   
   isPlaying = true;
-  // Calculate "wall clock" start time such that (Now - Start) * Speed = CurrentTime
-  playbackStartTime = Date.now() - (currentTime * 1000 / playbackSpeed);
-  
   document.getElementById('btnPlay').textContent = 'Pause';
   document.getElementById('btnPlay').classList.add('playing');
   
-  logConsole('Playing choreography...');
+  const audio = document.getElementById('choreoAudio');
+  const hasAudio = audio && audio.src;
+  
+  if (hasAudio) {
+      audio.currentTime = currentTime;
+      audio.play().catch(e => console.error("Audio play error", e));
+      logConsole('Playing with Audio...');
+  } else {
+      // Calculate "wall clock" start time
+      playbackStartTime = Date.now() - (currentTime * 1000 / playbackSpeed);
+      logConsole('Playing (No Audio)...');
+  }
   
   // Find next keyframe to play
   let keyframeIndex = 0;
@@ -1078,8 +1183,34 @@ function playChoreography() {
   }
   
   playbackInterval = setInterval(() => {
-    // Update currentTime based on wall clock
-    currentTime = ((Date.now() - playbackStartTime) / 1000) * playbackSpeed;
+    // Update currentTime
+    if (hasAudio) {
+        // Master clock is Audio
+        // Handle playbackSpeed if supported by audio element (audio.playbackRate)
+        if (Math.abs(audio.playbackRate - playbackSpeed) > 0.01) {
+            audio.playbackRate = playbackSpeed;
+        }
+        currentTime = audio.currentTime;
+        
+        // If audio ended
+        if (audio.ended) {
+             const shouldLoop = document.getElementById('loopChoreography').checked;
+             if (shouldLoop) {
+                 logConsole('Looping...');
+                 currentTime = 0;
+                 audio.currentTime = 0;
+                 audio.play();
+                 keyframeIndex = 0;
+             } else {
+                 stopChoreography();
+                 logConsole('Audio complete');
+                 return;
+             }
+        }
+    } else {
+        // Master clock is System Time
+        currentTime = ((Date.now() - playbackStartTime) / 1000) * playbackSpeed;
+    }
     
     updatePlayhead(currentTime);
     
@@ -1113,25 +1244,7 @@ function playChoreography() {
       keyframeIndex++;
     }
     
-    // Check if loop is enabled
-    const lastTime = choreography.length > 0 ? choreography[choreography.length - 1].time : 0;
-    
-    // Only check for loop/stop if we have actually passed the last keyframe
-    // But we want to allow "recording space" so we won't auto-stop at the end.
-    // We ONLY handle Loop logic here.
-    
-    if (currentTime > lastTime + 0.5) {
-      const shouldLoop = document.getElementById('loopChoreography').checked;
-      if (shouldLoop) {
-        logConsole('Looping choreography...');
-        currentTime = 0;
-        playbackStartTime = Date.now();
-        keyframeIndex = 0;
-      }
-      // Else: Continue playing indefinitely (User request)
-    }
-    
-    // Ensure timeline track expands if playhead goes past current width
+    // Auto-scroll track
     const timeline = document.querySelector('.timeline');
     const track = document.querySelector('.timeline-track');
     if (timeline && track) {
@@ -1139,16 +1252,38 @@ function playChoreography() {
         const requiredWidth = currentTime * PPS + 200;
         if (requiredWidth > track.offsetWidth) {
             track.style.width = `${requiredWidth}px`;
-            // Auto-scroll to keep playhead in view?
-            // Simple logic: if playhead is off screen right, scroll right.
-            const playheadPos = currentTime * PPS;
-            const scrollRight = timeline.scrollLeft + timeline.clientWidth;
-            if (playheadPos > scrollRight - 50) {
-                timeline.scrollLeft = playheadPos - timeline.clientWidth + 100;
-            }
+            // Scroll logic...
         }
     }
-  }, 50);
+    
+    // Check for Loop Condition (Prioritize Choreography Duration)
+    const lastTime = choreography.length > 0 ? choreography[choreography.length - 1].time : 0;
+    const shouldLoop = document.getElementById('loopChoreography').checked;
+    
+    // If we passed the last keyframe + buffer, and loop is enabled: LOOP.
+    if (shouldLoop && currentTime > lastTime + 0.5) {
+        logConsole('Looping sequence...');
+        currentTime = 0;
+        playbackStartTime = Date.now(); // Reset wall clock reference
+        keyframeIndex = 0;
+        
+        // Reset Audio if present
+        if (hasAudio) {
+            audio.currentTime = 0;
+            if (audio.paused) audio.play();
+        }
+        
+        updatePlayhead(0);
+        return; // Skip rest of loop for this tick
+    }
+    
+    // Fallback: If audio ends but loop is NOT checked
+    if (hasAudio && audio.ended && !shouldLoop) {
+         stopChoreography();
+         logConsole('Audio complete');
+         return;
+    }
+  }, 20); // Faster tick for smoother audio sync
 }
 
 function stopChoreography() {
@@ -1157,9 +1292,13 @@ function stopChoreography() {
     clearInterval(playbackInterval);
     playbackInterval = null;
   }
+  
+  // Pause Audio
+  const audio = document.getElementById('choreoAudio');
+  if (audio) audio.pause();
+  
   document.getElementById('btnPlay').textContent = 'Play';
   document.getElementById('btnPlay').classList.remove('playing');
-  // Do NOT remove playhead, keep current time
 }
 
 function updatePlayhead(time) {
@@ -1197,6 +1336,21 @@ function removePlayhead() {
 function updatePlaybackSpeed(value) {
   playbackSpeed = parseFloat(value);
   document.getElementById('speedDisplay').textContent = `${playbackSpeed.toFixed(1)}x`;
+}
+
+function returnToStart() {
+  if (isPlaying) stopChoreography();
+  
+  currentTime = 0;
+  
+  // Sync Audio if present
+  const audio = document.getElementById('choreoAudio');
+  if (audio && audio.src) {
+      audio.currentTime = 0;
+  }
+  
+  updatePlayhead(0);
+  logConsole("Timeline reset to 0.00s");
 }
 
 function openSaveDialog() {
@@ -1483,7 +1637,7 @@ window.moveAllMotors = moveAllMotors;
 window.moveToSlider = moveToSlider;
 window.updateSliderDisplay = updateSliderDisplay;
 window.toggleReverse = toggleReverse;
-window.homeAll = homeAll;
+window.haltMotors = haltMotors;
 window.setFloor = setFloor;
 window.toggleMotors = toggleMotors;
 window.setSpeed = setSpeed;
@@ -1501,6 +1655,7 @@ window.saveChoreography = saveChoreography;
 window.loadChoreography = loadChoreography;
 window.deleteKeyframe = deleteKeyframe;
 window.goToKeyframe = goToKeyframe;
+window.returnToStart = returnToStart;
 window.updatePlaybackSpeed = updatePlaybackSpeed;
 window.handleFileLoad = handleFileLoad;
 window.resetBox = resetBox;
@@ -1517,6 +1672,7 @@ window.applyEditorBoxToMotors = applyEditorBoxToMotors;
 window.openSaveDialog = openSaveDialog;
 window.closeSaveDialog = closeSaveDialog;
 window.confirmSave = confirmSave;
+window.handleAudioLoad = handleAudioLoad;
 
 window.quickSave = quickSave;
 window.quickLoad = quickLoad;
@@ -1531,4 +1687,5 @@ document.addEventListener('DOMContentLoaded', () => {
   connectWebSocket();
   loadChoreographyFromLocal();
   refreshQuickSaveList();
+  loadAudioFromDB();
 });
