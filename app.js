@@ -636,7 +636,107 @@ function handleKeyframeDrag(e) {
   }
 }
 
-// --- Choreography Functions ---
+// --- Quick Save System ---
+
+function refreshQuickSaveList() {
+  const select = document.getElementById('quickSaveSelect');
+  if (!select) return;
+  select.innerHTML = '';
+  
+  const projects = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.startsWith('project_')) {
+      projects.push(key.replace('project_', ''));
+    }
+  }
+  
+  projects.sort().forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    select.appendChild(opt);
+  });
+  
+  // Select current filename if it exists in list
+  if (projects.includes(currentFileName)) {
+      select.value = currentFileName;
+  }
+}
+
+function quickSave() {
+  let name = prompt("Enter project name:", currentFileName !== "Untitled" ? currentFileName : "");
+  if (!name) return;
+  
+  name = name.trim();
+  const key = `project_${name}`;
+  
+  const data = {
+    version: '1.0',
+    choreography: choreography,
+    reverseFlags: reverseFlags,
+    fileName: name
+  };
+  
+  localStorage.setItem(key, JSON.stringify(data));
+  currentFileName = name;
+  updateFileNameDisplay();
+  refreshQuickSaveList();
+  
+  // Also update 'choreographyData' (current working copy)
+  saveChoreographyToLocal();
+  logConsole(`Project saved: ${name}`);
+}
+
+function quickLoad() {
+  const select = document.getElementById('quickSaveSelect');
+  const name = select.value;
+  if (!name) return;
+  
+  const key = `project_${name}`;
+  const saved = localStorage.getItem(key);
+  
+  if (saved) {
+    if(!confirm(`Load project "${name}"? Unsaved changes will be lost.`)) return;
+    
+    try {
+      const data = JSON.parse(saved);
+      choreography = data.choreography || [];
+      if (data.reverseFlags) {
+        reverseFlags = data.reverseFlags;
+        // Sync checkoxes
+        axisNames.forEach((n, i) => {
+             const cb = document.getElementById(`reverse${n}`);
+             if(cb) cb.checked = reverseFlags[i];
+        });
+      }
+      currentFileName = name;
+      updateFileNameDisplay();
+      
+      // Update working copy
+      saveChoreographyToLocal();
+      
+      updateKeyframesList();
+      updateTimeline();
+      logConsole(`Project loaded: ${name}`);
+    } catch (e) {
+      console.error(e);
+      alert("Error loading project.");
+    }
+  }
+}
+
+function quickDelete() {
+  const select = document.getElementById('quickSaveSelect');
+  const name = select.value;
+  if (!name) return;
+  
+  if (confirm(`Delete project "${name}"?`)) {
+    localStorage.removeItem(`project_${name}`);
+    refreshQuickSaveList();
+    logConsole(`Project deleted: ${name}`);
+  }
+}
 
 function saveChoreographyToLocal() {
   const data = {
@@ -1418,6 +1518,10 @@ window.openSaveDialog = openSaveDialog;
 window.closeSaveDialog = closeSaveDialog;
 window.confirmSave = confirmSave;
 
+window.quickSave = quickSave;
+window.quickLoad = quickLoad;
+window.quickDelete = quickDelete;
+
 document.addEventListener('DOMContentLoaded', () => {
   loadMapping();
   loadReverseFlags();
@@ -1426,4 +1530,5 @@ document.addEventListener('DOMContentLoaded', () => {
   syncUI();
   connectWebSocket();
   loadChoreographyFromLocal();
+  refreshQuickSaveList();
 });

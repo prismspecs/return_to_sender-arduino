@@ -302,16 +302,23 @@
         <!-- Choreography Section -->
         <div class="choreography-section">
           <h3>Choreography</h3>
-          <div class="choreo-controls">
-            <button onclick="recordKeyframe()" class="btn-record">Record Keyframe</button>
-            <button onclick="playChoreography()" id="btnPlay">Play</button>
-            <button onclick="stopChoreography()" id="btnStop">Stop</button>
-            <button onclick="clearChoreography()">Clear</button>
-                                <button onclick="openSaveDialog()">Save</button>
-                                <button onclick="loadChoreography()">Load</button>
-                                <span id="fileNameDisplay" style="font-size: 12px; color: var(--text-light); margin-left: 5px; font-style: italic;">(Untitled)</span>
-                                <label>Speed: <input type="range" id="choreoSpeed" min="0.1" max="10" step="0.1" value="1" oninput="updatePlaybackSpeed(this.value)"> <span id="speedDisplay">1.0x</span></label>
-                                <label class="loop-toggle">
+                  <div class="choreo-controls">
+                    <div style="display: inline-flex; gap: 5px; align-items: center; border-right: 1px solid var(--border); padding-right: 10px; margin-right: 10px;">
+                      <select id="quickSaveSelect" style="width: 120px; padding: 4px; font-size: 12px;"></select>
+                      <button onclick="quickLoad()" title="Load Selected">Load</button>
+                      <button onclick="quickSave()" title="Save Current">Save</button>
+                      <button onclick="quickDelete()" style="color: var(--danger); border-color: var(--danger);" title="Delete Selected">X</button>
+                    </div>
+          
+                    <button onclick="recordKeyframe()" class="btn-record">Record</button>
+                    <button onclick="playChoreography()" id="btnPlay">Play</button>
+                    <button onclick="stopChoreography()" id="btnStop">Stop</button>
+                    <button onclick="clearChoreography()">Clear</button>
+
+                    <button onclick="openSaveDialog()">Export</button>
+                    <button onclick="loadChoreography()">Import</button>
+                    <span id="fileNameDisplay" style="font-size: 12px; color: var(--text-light); margin-left: 5px; font-style: italic;">(Untitled)</span>
+                    <label>Speed: <input type="range" id="choreoSpeed" min="0.1" max="10" step="0.1" value="1" oninput="updatePlaybackSpeed(this.value)"> <span id="speedDisplay">1.0x</span></label>                                <label class="loop-toggle">
                                   <input type="checkbox" id="loopChoreography"> Loop
                                 </label>
                                 <span id="timeDisplay" class="time-display">0.00s</span>
@@ -323,27 +330,82 @@
                               <div class="keyframes-list" id="keyframesList"></div>
                       
                               <div id="keyframeEditor" style="display: none; background: white; padding: 10px; border: 1px solid var(--border); border-radius: 3px; margin-top: 10px;">
-                                  <!-- Editor Content -->
-                                  <!-- ... -->
-                              </div>
-                            </div>
-                          </div>
-                      
-                          <!-- Save Dialog -->
-                          <div id="saveDialog" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-                            <div style="background: white; padding: 20px; border-radius: 5px; width: 300px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                              <h3 style="margin-top: 0;">Save Choreography</h3>
-                              <label style="display: block; margin-bottom: 5px; font-size: 13px;">Filename:</label>
-                              <input type="text" id="saveFileName" style="width: 100%; margin-bottom: 15px; padding: 5px;" placeholder="Enter filename...">
-                              <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                                <button onclick="closeSaveDialog()">Cancel</button>
-                                <button onclick="confirmSave()" style="background-color: var(--success); color: white; border-color: var(--success);">Save</button>
-                              </div>
-                            </div>
-                          </div>
-                      
-                          <input type="file" id="fileInput" accept=".json" style="display: none;" onchange="handleFileLoad(event)">
-                        </div>        </div>
+          <h4 style="margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 5px;">Edit Keyframe</h4>
+          
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px;">
+            <div>
+              <label style="display: block; font-size: 11px; margin-bottom: 2px;">Time (s)</label>
+              <input type="number" id="editTime" step="0.1" style="width: 100%;" oninput="saveKeyframeChanges()">
+            </div>
+            <div>
+              <label style="display: block; font-size: 11px; margin-bottom: 2px;">Speed (x1k)</label>
+              <input type="number" id="editSpeed" step="1" min="1" max="30" style="width: 100%;" oninput="saveKeyframeChanges()">
+            </div>
+            <div>
+              <label style="display: block; font-size: 11px; margin-bottom: 2px;">Accel (x1k)</label>
+              <input type="number" id="editAccel" step="1" min="1" max="30" style="width: 100%;" oninput="saveKeyframeChanges()">
+            </div>
+          </div>
+
+          <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border);">
+            <div style="font-size: 12px; font-weight: 600; margin-bottom: 5px;">Virtual Box Pose</div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+               <div>
+                  <label style="display: block; font-size: 11px; margin-bottom: 2px;">Height (Z)</label>
+                  <input type="range" id="editBoxZ" min="0" max="900" step="1" oninput="updateEditorFromBox()" style="width: 100%;">
+                  <span id="dispEditBoxZ" style="font-size: 10px;">0</span>
+               </div>
+               <div>
+                  <label style="display: block; font-size: 11px; margin-bottom: 2px;">Roll</label>
+                  <input type="range" id="editBoxRoll" min="-45" max="45" step="1" oninput="updateEditorFromBox()" style="width: 100%;">
+                  <span id="dispEditBoxRoll" style="font-size: 10px;">0</span>
+               </div>
+               <div>
+                  <label style="display: block; font-size: 11px; margin-bottom: 2px;">Pitch</label>
+                  <input type="range" id="editBoxPitch" min="-45" max="45" step="1" oninput="updateEditorFromBox()" style="width: 100%;">
+                  <span id="dispEditBoxPitch" style="font-size: 10px;">0</span>
+               </div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 5px; font-size: 12px; font-weight: 600;">Motor Positions (Steps)</div>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
+            <div>
+               <label style="display: block; font-size: 11px; margin-bottom: 2px;">M1</label>
+               <input type="number" id="editM0" style="width: 100%;" oninput="saveKeyframeChanges()">
+            </div>
+            <div>
+               <label style="display: block; font-size: 11px; margin-bottom: 2px;">M2</label>
+               <input type="number" id="editM1" style="width: 100%;" oninput="saveKeyframeChanges()">
+            </div>
+            <div>
+               <label style="display: block; font-size: 11px; margin-bottom: 2px;">M3</label>
+               <input type="number" id="editM2" style="width: 100%;" oninput="saveKeyframeChanges()">
+            </div>
+            <div>
+               <label style="display: block; font-size: 11px; margin-bottom: 2px;">M4</label>
+               <input type="number" id="editM3" style="width: 100%;" oninput="saveKeyframeChanges()">
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 8px;">
+            <button onclick="getCurrentForEditor()">Use Current Pos</button>
+            <button onclick="closeKeyframeEditor()">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Save Dialog -->
+    <div id="saveDialog" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+      <div style="background: white; padding: 20px; border-radius: 5px; width: 300px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <h3 style="margin-top: 0;">Save Choreography</h3>
+        <label style="display: block; margin-bottom: 5px; font-size: 13px;">Filename:</label>
+        <input type="text" id="saveFileName" style="width: 100%; margin-bottom: 15px; padding: 5px;" placeholder="Enter filename...">
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button onclick="closeSaveDialog()">Cancel</button>
+          <button onclick="confirmSave()" style="background-color: var(--success); color: white; border-color: var(--success);">Save</button>
+        </div>
       </div>
     </div>
 
