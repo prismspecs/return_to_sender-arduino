@@ -535,13 +535,15 @@ function recordKeyframe() {
   
   const keyframe = {
     time: time,
-    positions: [...currentPositions]
+    positions: [...currentPositions],
+    speed: uiMaxSpeed,
+    accel: uiAcceleration
   };
   
   choreography.push(keyframe);
   choreography.sort((a, b) => a.time - b.time);
   
-  logConsole(`Keyframe recorded at ${time.toFixed(2)}s: [${currentPositions.join(', ')}]`);
+  logConsole(`Keyframe recorded at ${time.toFixed(2)}s: [${currentPositions.join(', ')}] Spd:${uiMaxSpeed} Acc:${uiAcceleration}`);
   updateKeyframesList();
   updateTimeline();
 }
@@ -553,8 +555,12 @@ function updateKeyframesList() {
   choreography.forEach((kf, index) => {
     const item = document.createElement('div');
     item.className = 'keyframe-item';
+    // Handle legacy keyframes without speed/accel
+    const spd = kf.speed !== undefined ? kf.speed : 'def';
+    const acc = kf.accel !== undefined ? kf.accel : 'def';
+    
     item.innerHTML = `
-      <span>${kf.time.toFixed(2)}s: [${kf.positions.join(', ')}]</span>
+      <span>${kf.time.toFixed(2)}s: [${kf.positions.join(', ')}] <small>(S:${spd} A:${acc})</small></span>
       <button onclick="deleteKeyframe(${index})">Delete</button>
     `;
     list.appendChild(item);
@@ -575,7 +581,7 @@ function updateTimeline() {
     const marker = document.createElement('div');
     marker.className = 'keyframe-marker';
     marker.style.left = `${(kf.time / maxTime) * timelineWidth}px`;
-    marker.title = `${kf.time.toFixed(2)}s`;
+    marker.title = `${kf.time.toFixed(2)}s\nPos: [${kf.positions}]\nSpd: ${kf.speed}\nAcc: ${kf.accel}`;
     marker.onclick = () => goToKeyframe(index);
     timeline.appendChild(marker);
   });
@@ -584,6 +590,18 @@ function updateTimeline() {
 function goToKeyframe(index) {
   const kf = choreography[index];
   currentPositions = [...kf.positions];
+  
+  if (kf.speed !== undefined) {
+      uiMaxSpeed = kf.speed;
+      document.getElementById('speed').value = uiMaxSpeed;
+      sendCommand(`S ${uiMaxSpeed}`);
+  }
+  if (kf.accel !== undefined) {
+      uiAcceleration = kf.accel;
+      document.getElementById('accel').value = uiAcceleration;
+      sendCommand(`A ${uiAcceleration}`);
+  }
+  
   sendCommand(`M ${currentPositions.join(' ')}`);
   axisNames.forEach((_, i) => updatePositionDisplay(i));
   logConsole(`Jumped to keyframe at ${kf.time.toFixed(2)}s`);
@@ -632,6 +650,19 @@ function playChoreography() {
            choreography[keyframeIndex].time <= elapsed) {
       
       const kf = choreography[keyframeIndex];
+      
+      // Update Speed/Accel if present
+      if (kf.speed !== undefined && kf.speed !== uiMaxSpeed) {
+          uiMaxSpeed = kf.speed;
+          document.getElementById('speed').value = uiMaxSpeed;
+          sendCommand(`S ${uiMaxSpeed}`);
+      }
+      if (kf.accel !== undefined && kf.accel !== uiAcceleration) {
+          uiAcceleration = kf.accel;
+          document.getElementById('accel').value = uiAcceleration;
+          sendCommand(`A ${uiAcceleration}`);
+      }
+      
       currentPositions = [...kf.positions];
       const physicalSteps = applyMapping(currentPositions);
       sendCommand(`M ${physicalSteps.join(' ')}`);
@@ -864,6 +895,79 @@ function syncUI() {
   }
 }
 
+const JUMPER_CONFIGS = {
+  A4988: [
+    { val: 1, label: '1 (Full Step - No Jumpers)', jumpers: '---' },
+    { val: 2, label: '1/2 (J1 only)', jumpers: 'H--' },
+    { val: 4, label: '1/4 (J2 only)', jumpers: '-H-' },
+    { val: 8, label: '1/8 (J1 & J2)', jumpers: 'HH-' },
+    { val: 16, label: '1/16 (All 3 Jumpers)', jumpers: 'HHH' }
+  ],
+  DRV8825: [
+    { val: 1, label: '1 (Full Step - No Jumpers)', jumpers: '---' },
+    { val: 2, label: '1/2 (J1 only)', jumpers: 'H--' },
+    { val: 4, label: '1/4 (J2 only)', jumpers: '-H-' },
+    { val: 8, label: '1/8 (J1 & J2)', jumpers: 'HH-' },
+    { val: 16, label: '1/16 (J3 only)', jumpers: '--H' },
+    { val: 32, label: '1/32 (All 3 Jumpers)', jumpers: 'HHH' }
+  ]
+};
+
+function updateMicrosteppingOptions() {
+  const driverSelect = document.getElementById('driverType');
+  const msSelect = document.getElementById('microstepping');
+  const driver = driverSelect.value;
+  
+  localStorage.setItem('driverType', driver);
+  
+  // Save current value to try and restore it
+  const currentVal = parseInt(msSelect.value) || VBOX_CONFIG.microsteps;
+  
+  msSelect.innerHTML = '';
+  JUMPER_CONFIGS[driver].forEach(cfg => {
+    const opt = document.createElement('option');
+    opt.value = cfg.val;
+    opt.textContent = cfg.label;
+    msSelect.appendChild(opt);
+  });
+  
+  // Restore value if it exists in new list, else use default for driver
+  if ([...msSelect.options].some(o => parseInt(o.value) === currentVal)) {
+    msSelect.value = currentVal;
+  } else {
+    msSelect.value = JUMPER_CONFIGS[driver][JUMPER_CONFIGS[driver].length - 1].val;
+  }
+  
+  updateMicrostepping();
+}
+
+function updateMicrostepping() {
+  const select = document.getElementById('microstepping');
+  const ms = parseInt(select.value);
+  VBOX_CONFIG.microsteps = ms;
+  localStorage.setItem('microsteps', ms);
+  logConsole(`Microstepping set to 1/${ms}. Steps/mm: ${VBOX_CONFIG.stepsPerMm.toFixed(2)}`);
+}
+
+function loadMicrostepping() {
+  const savedDriver = localStorage.getItem('driverType');
+  if (savedDriver) {
+    document.getElementById('driverType').value = savedDriver;
+  }
+  
+  updateMicrosteppingOptions(); // This populates the list
+
+  const savedMs = localStorage.getItem('microsteps');
+  if (savedMs) {
+    const ms = parseInt(savedMs);
+    const select = document.getElementById('microstepping');
+    if (select && [...select.options].some(o => parseInt(o.value) === ms)) {
+      select.value = ms;
+      VBOX_CONFIG.microsteps = ms;
+    }
+  }
+}
+
 // --- Initialization ---
 
 window.toggleMappingPanel = toggleMappingPanel;
@@ -878,6 +982,8 @@ window.setFloor = setFloor;
 window.toggleMotors = toggleMotors;
 window.setSpeed = setSpeed;
 window.setAcceleration = setAcceleration;
+window.updateMicrostepping = updateMicrostepping;
+window.updateMicrosteppingOptions = updateMicrosteppingOptions;
 window.clearConsole = clearConsole;
 window.recordKeyframe = recordKeyframe;
 window.playChoreography = playChoreography;
@@ -899,6 +1005,7 @@ window.updateBox = updateBox;
 document.addEventListener('DOMContentLoaded', () => {
   loadMapping();
   loadReverseFlags();
+  loadMicrostepping();
   initVirtualBox();
   syncUI();
   connectWebSocket();

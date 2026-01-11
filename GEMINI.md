@@ -27,7 +27,7 @@ A web-based interface for controlling a 4-axis CNC Shield v3 stepper motor setup
     - *Update:* Replaced momentary button with a toggle switch (Green/Red) for intuitive Enable/Disable state (Commands: `E1`/`E0`).
 
 ### Advanced Features
-- [x] Choreography Recording & Playback
+- [x] Choreography Recording & Playback (Supports Speed/Accel changes per keyframe)
 - [x] Real-time position feedback
 
 ## Development Plan & Roadmap
@@ -48,3 +48,15 @@ A web-based interface for controlling a 4-axis CNC Shield v3 stepper motor setup
 - The Arduino firmware uses non-blocking `AccelStepper` calls to manage 4 motors simultaneously.
 - The Node.js server acts as a bridge, parsing WebSocket messages from the UI and forwarding G-code-like commands to the Arduino via Serial.
 - **UI Logic:** The frontend now uses a `requestAnimationFrame` loop to smoothly interpolate visual motor positions towards the commanded targets, simulating the acceleration and speed of the physical motors for a realistic display.
+
+## Performance Tuning
+**Motors moving too slow?**
+The `AccelStepper` library on Arduino Uno R4 hits a software speed limit around ~20,000 steps/sec total across all axes.
+To increase physical speed without hitting this CPU limit, **reduce microstepping** by removing jumpers on the CNC Shield (under the drivers).
+
+**Jumper Config (Speed vs Smoothness):**
+- **1/16 Step (All 3 Jumpers):** High resolution, very smooth, but slow (Max ~300mm/s).
+- **1/4 Step (Middle Jumper Only):** **Recommended.** Good balance. 4x faster than 1/16.
+- **Full Step (No Jumpers):** Maximum speed, but noisy and rough.
+
+*Note: If you change microstepping, remember to update `stepsPerMm` in your configuration.*
