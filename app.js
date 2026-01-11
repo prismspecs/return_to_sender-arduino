@@ -431,14 +431,37 @@ function moveAllToZero() {
   logConsole('All motors: moving to 0');
 }
 
+function updateSpeedUI(fromSlider) {
+  const slider = document.getElementById('speedSlider');
+  const input = document.getElementById('speed');
+  if (fromSlider) {
+    input.value = slider.value;
+  } else {
+    slider.value = input.value;
+  }
+}
+
+function updateAccelUI(fromSlider) {
+  const slider = document.getElementById('accelSlider');
+  const input = document.getElementById('accel');
+  if (fromSlider) {
+    input.value = slider.value;
+  } else {
+    slider.value = input.value;
+  }
+}
+
 function setSpeed() {
   const speed = document.getElementById('speed').value;
+  // Ensure both are synced before sending
+  document.getElementById('speedSlider').value = speed;
   uiMaxSpeed = parseFloat(speed) || 24000;
   sendCommand(`S ${speed}`);
 }
 
 function setAcceleration() {
   const accel = document.getElementById('accel').value;
+  document.getElementById('accelSlider').value = accel;
   uiAcceleration = parseFloat(accel) || 24000;
   sendCommand(`A ${accel}`);
 }
@@ -594,11 +617,13 @@ function goToKeyframe(index) {
   if (kf.speed !== undefined) {
       uiMaxSpeed = kf.speed;
       document.getElementById('speed').value = uiMaxSpeed;
+      document.getElementById('speedSlider').value = uiMaxSpeed;
       sendCommand(`S ${uiMaxSpeed}`);
   }
   if (kf.accel !== undefined) {
       uiAcceleration = kf.accel;
       document.getElementById('accel').value = uiAcceleration;
+      document.getElementById('accelSlider').value = uiAcceleration;
       sendCommand(`A ${uiAcceleration}`);
   }
   
@@ -655,11 +680,13 @@ function playChoreography() {
       if (kf.speed !== undefined && kf.speed !== uiMaxSpeed) {
           uiMaxSpeed = kf.speed;
           document.getElementById('speed').value = uiMaxSpeed;
+          document.getElementById('speedSlider').value = uiMaxSpeed;
           sendCommand(`S ${uiMaxSpeed}`);
       }
       if (kf.accel !== undefined && kf.accel !== uiAcceleration) {
           uiAcceleration = kf.accel;
           document.getElementById('accel').value = uiAcceleration;
+          document.getElementById('accelSlider').value = uiAcceleration;
           sendCommand(`A ${uiAcceleration}`);
       }
       
@@ -982,6 +1009,8 @@ window.setFloor = setFloor;
 window.toggleMotors = toggleMotors;
 window.setSpeed = setSpeed;
 window.setAcceleration = setAcceleration;
+window.updateSpeedUI = updateSpeedUI;
+window.updateAccelUI = updateAccelUI;
 window.updateMicrostepping = updateMicrostepping;
 window.updateMicrosteppingOptions = updateMicrosteppingOptions;
 window.clearConsole = clearConsole;
