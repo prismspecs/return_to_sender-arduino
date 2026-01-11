@@ -64,8 +64,8 @@ function animateDisplay(timestamp) {
     const current = visualPositions[i];
     const diff = target - current;
     
-    // Threshold to stop
-    if (Math.abs(diff) < 0.1 && Math.abs(motorVelocities[i]) < 1) {
+    // Threshold to stop (Increased to 0.5 to prevent display flicker)
+    if (Math.abs(diff) < 0.5 && Math.abs(motorVelocities[i]) < 10) {
       if (visualPositions[i] !== target) {
         visualPositions[i] = target;
         motorVelocities[i] = 0;
@@ -168,9 +168,12 @@ let choreography = [];
 let isPlaying = false;
 let playbackSpeed = 1.0;
 let playbackStartTime = 0;
-let choreographyStartTime = 0;
+// let choreographyStartTime = 0; // Removed, using currentTime
+let currentTime = 0; // Current playhead time in seconds
 let playbackInterval = null;
 let selectedKeyframeIndex = -1;
+let maxCeiling = 900; // Default max height in mm
+let currentFileName = "Untitled";
 
 // --- WebSocket & Connection ---
 
@@ -338,11 +341,15 @@ function updateAltitudeMeter(motorIndex, heightMm) {
   const meter = document.getElementById(`altM${motorIndex}`);
   if (meter) {
       let h = heightMm;
-      // Clamp to 0-900 range for visual display
+      // Clamp to 0-max range for visual display
       if (h < 0) h = 0;
-      if (h > 900) h = 900;
-      const percent = (h / 900) * 100;
+      if (h > maxCeiling) h = maxCeiling;
+      
+      const percent = (h / maxCeiling) * 100;
       meter.style.height = `${percent}%`;
+      
+      // Update scale label if we want dynamic labels (optional, tricky with HTML structure)
+      // For now just the bar scales dynamically
   }
 }
 
@@ -453,18 +460,22 @@ function updateAccelUI(fromSlider) {
 }
 
 function setSpeed() {
-  const speed = document.getElementById('speed').value;
+  const speedVal = document.getElementById('speed').value;
   // Ensure both are synced before sending
-  document.getElementById('speedSlider').value = speed;
-  uiMaxSpeed = parseFloat(speed) || 24000;
-  sendCommand(`S ${speed}`);
+  document.getElementById('speedSlider').value = speedVal;
+  
+  const realSpeed = (parseFloat(speedVal) || 24) * 1000;
+  uiMaxSpeed = realSpeed;
+  sendCommand(`S ${realSpeed}`);
 }
 
 function setAcceleration() {
-  const accel = document.getElementById('accel').value;
-  document.getElementById('accelSlider').value = accel;
-  uiAcceleration = parseFloat(accel) || 24000;
-  sendCommand(`A ${accel}`);
+  const accelVal = document.getElementById('accel').value;
+  document.getElementById('accelSlider').value = accelVal;
+  
+  const realAccel = (parseFloat(accelVal) || 24) * 1000;
+  uiAcceleration = realAccel;
+  sendCommand(`A ${realAccel}`);
 }
 
 let areMotorsEnabled = false;
@@ -490,7 +501,27 @@ function setFloor() {
   document.getElementById('boxZ').value = 0;
   document.getElementById('valBoxZ').textContent = '0';
   
-  logConsole('Floor set (Current position set to 0).');
+  logConsole('Floor set (0).');
+}
+
+function setCeiling() {
+  // Find the maximum current position in mm
+  // Since positive steps = Up, we look for the max steps
+  const maxSteps = Math.max(...currentPositions);
+  const maxMm = maxSteps / VBOX_CONFIG.stepsPerMm;
+  
+  // Set ceiling slightly higher than current or exactly current?
+  // Let's set it to current.
+  maxCeiling = Math.max(100, maxMm); // Minimum 100mm to prevent div by zero/bugs
+  
+  // Update sliders max range if needed? 
+  document.getElementById('boxZ').max = Math.ceil(maxCeiling);
+  document.getElementById('editBoxZ').max = Math.ceil(maxCeiling);
+  
+  // Refresh meters
+  for(let i=0; i<4; i++) updatePositionDisplay(i);
+  
+  logConsole(`Ceiling set to ${maxCeiling.toFixed(0)}mm`);
 }
 
 function toggleMotors(isChecked) {
@@ -547,27 +578,126 @@ function syncHardwareConfig() {
     setAcceleration();
 }
 
+// --- Drag & Drop Logic ---
+let isDraggingPlayhead = false;
+let isDraggingKeyframe = false;
+let draggedKeyframeIndex = -1;
+
+document.addEventListener('mousemove', (e) => {
+  if (isDraggingPlayhead) {
+    handlePlayheadDrag(e);
+  } else if (isDraggingKeyframe) {
+    handleKeyframeDrag(e);
+  }
+});
+
+document.addEventListener('mouseup', () => {
+  if (isDraggingPlayhead) {
+    isDraggingPlayhead = false;
+  }
+  if (isDraggingKeyframe) {
+    isDraggingKeyframe = false;
+    draggedKeyframeIndex = -1;
+    // Resort and save on drop
+    choreography.sort((a, b) => a.time - b.time);
+    saveChoreographyToLocal();
+    updateTimeline();
+    updateKeyframesList();
+  }
+});
+
+function handlePlayheadDrag(e) {
+  const track = document.querySelector('.timeline-track');
+  const rect = track.getBoundingClientRect();
+  const PPS = 20;
+  const x = e.clientX - rect.left;
+  let t = x / PPS;
+  if (t < 0) t = 0;
+  
+  currentTime = t;
+  updatePlayhead(currentTime);
+}
+
+function handleKeyframeDrag(e) {
+  if (draggedKeyframeIndex === -1) return;
+  
+  const track = document.querySelector('.timeline-track');
+  const rect = track.getBoundingClientRect();
+  const PPS = 20;
+  const x = e.clientX - rect.left;
+  let t = x / PPS;
+  if (t < 0) t = 0;
+  
+  choreography[draggedKeyframeIndex].time = t;
+  
+  // Update marker position visually (without full resort yet)
+  updateTimeline(); 
+  
+  // Also update editor time input if open
+  if (selectedKeyframeIndex === draggedKeyframeIndex) {
+      const editTime = document.getElementById('editTime');
+      if(editTime) editTime.value = t.toFixed(2);
+  }
+}
+
 // --- Choreography Functions ---
 
-function recordKeyframe() {
-  const time = choreography.length === 0 ? 0 : 
-    (Date.now() - choreographyStartTime) / 1000;
-  
-  if (choreography.length === 0) {
-    choreographyStartTime = Date.now();
+function saveChoreographyToLocal() {
+  const data = {
+      choreography: choreography,
+      fileName: currentFileName
+  };
+  localStorage.setItem('choreographyData', JSON.stringify(data));
+  // Keep legacy for safety or just overwrite? Let's use a new key to be clean.
+  // Actually, let's just use the new object structure.
+}
+
+function loadChoreographyFromLocal() {
+  const saved = localStorage.getItem('choreographyData');
+  if (saved) {
+    try {
+      const data = JSON.parse(saved);
+      // Support both old array format and new object format
+      if (Array.isArray(data)) {
+          choreography = data;
+          currentFileName = "Untitled";
+      } else {
+          choreography = data.choreography || [];
+          currentFileName = data.fileName || "Untitled";
+      }
+      
+      updateFileNameDisplay();
+      updateKeyframesList();
+      updateTimeline();
+      logConsole(`Loaded ${choreography.length} keyframes (${currentFileName})`);
+    } catch (e) {
+      console.error("Error loading choreography", e);
+    }
   }
+}
+
+function updateFileNameDisplay() {
+    const el = document.getElementById('fileNameDisplay');
+    if (el) el.textContent = `(${currentFileName})`;
+}
+
+function recordKeyframe() {
+  // Use the current playhead time
+  const time = currentTime;
   
   const keyframe = {
     time: time,
     positions: [...currentPositions],
     speed: uiMaxSpeed,
-    accel: uiAcceleration
+    accel: uiAcceleration,
+    boxPose: { ...boxState } // Save current box state
   };
   
   choreography.push(keyframe);
   choreography.sort((a, b) => a.time - b.time);
   
-  logConsole(`Keyframe recorded at ${time.toFixed(2)}s: [${currentPositions.join(', ')}] Spd:${uiMaxSpeed} Acc:${uiAcceleration}`);
+  saveChoreographyToLocal();
+  logConsole(`Keyframe recorded at ${time.toFixed(2)}s`);
   updateKeyframesList();
   updateTimeline();
 }
@@ -579,14 +709,12 @@ function updateKeyframesList() {
   choreography.forEach((kf, index) => {
     const item = document.createElement('div');
     item.className = 'keyframe-item';
-    // Handle legacy keyframes without speed/accel
-    const spd = kf.speed !== undefined ? kf.speed : 'def';
-    const acc = kf.accel !== undefined ? kf.accel : 'def';
+    const spd = kf.speed !== undefined ? (kf.speed/1000) + 'k' : 'def';
+    const acc = kf.accel !== undefined ? (kf.accel/1000) + 'k' : 'def';
     
-    // Highlight if selected
     if (index === selectedKeyframeIndex) {
         item.style.border = '2px solid var(--accent)';
-        item.style.backgroundColor = '#e6f2ff'; // Light blue background
+        item.style.backgroundColor = '#e6f2ff';
     } else {
         item.style.border = 'none';
         item.style.backgroundColor = 'var(--bg-alt)';
@@ -606,21 +734,33 @@ function openKeyframeEditor(index) {
   
   document.getElementById('keyframeEditor').style.display = 'block';
   document.getElementById('editTime').value = kf.time.toFixed(2);
-  document.getElementById('editSpeed').value = kf.speed || uiMaxSpeed;
-  document.getElementById('editAccel').value = kf.accel || uiAcceleration;
+  
+  // Convert raw values (e.g. 24000) to UI values (e.g. 24)
+  const spd = (kf.speed !== undefined ? kf.speed : uiMaxSpeed) / 1000;
+  const acc = (kf.accel !== undefined ? kf.accel : uiAcceleration) / 1000;
+  
+  document.getElementById('editSpeed').value = spd;
+  document.getElementById('editAccel').value = acc;
   
   for(let i=0; i<4; i++) {
       document.getElementById(`editM${i}`).value = kf.positions[i];
   }
 
-  // Reset Editor Box Controls to Neutral (since inverse kinematics is hard)
-  document.getElementById('editBoxZ').value = 0;
-  document.getElementById('editBoxRoll').value = 0;
-  document.getElementById('editBoxPitch').value = 0;
-  updateEditorFromBox();
+  // Load Box Pose from keyframe if available, otherwise 0
+  const z = kf.boxPose ? kf.boxPose.z - PHYSICAL_Z_OFFSET : 0; // Convert absolute Z to relative slider
+  const roll = kf.boxPose ? kf.boxPose.roll : 0;
+  const pitch = kf.boxPose ? kf.boxPose.pitch : 0;
+
+  document.getElementById('editBoxZ').value = z;
+  document.getElementById('editBoxRoll').value = roll;
+  document.getElementById('editBoxPitch').value = pitch;
   
-  updateKeyframesList(); // Refresh to show highlight
-  updateTimeline(); // Refresh to highlight marker
+  document.getElementById('dispEditBoxZ').textContent = z;
+  document.getElementById('dispEditBoxRoll').textContent = roll + '°';
+  document.getElementById('dispEditBoxPitch').textContent = pitch + '°';
+  
+  updateKeyframesList(); 
+  updateTimeline(); 
 }
 
 function updateEditorFromBox() {
@@ -633,6 +773,7 @@ function updateEditorFromBox() {
   document.getElementById('dispEditBoxPitch').textContent = pitch + '°';
   
   applyEditorBoxToMotors();
+  saveKeyframeChanges();
 }
 
 function applyEditorBoxToMotors() {
@@ -643,7 +784,6 @@ function applyEditorBoxToMotors() {
   const z = zInput + PHYSICAL_Z_OFFSET;
   const state = { z, roll, pitch };
   
-  // Reuse homeLengths from global scope (assumes they are set)
   if (homeLengths[0] === 0) initVirtualBox();
   
   const targetSteps = calculateTargetSteps(state, homeLengths);
@@ -664,8 +804,10 @@ function saveKeyframeChanges() {
   if (selectedKeyframeIndex === -1 || !choreography[selectedKeyframeIndex]) return;
   
   const time = parseFloat(document.getElementById('editTime').value);
-  const speed = parseInt(document.getElementById('editSpeed').value);
-  const accel = parseInt(document.getElementById('editAccel').value);
+  
+  // Convert UI values (e.g. 24) back to raw values (e.g. 24000)
+  const speed = parseInt(document.getElementById('editSpeed').value) * 1000;
+  const accel = parseInt(document.getElementById('editAccel').value) * 1000;
   
   const positions = [
       parseInt(document.getElementById('editM0').value),
@@ -673,52 +815,81 @@ function saveKeyframeChanges() {
       parseInt(document.getElementById('editM2').value),
       parseInt(document.getElementById('editM3').value)
   ];
+
+  // Capture current Editor Box State for storage
+  const boxPose = {
+      z: parseInt(document.getElementById('editBoxZ').value) + PHYSICAL_Z_OFFSET,
+      roll: parseInt(document.getElementById('editBoxRoll').value),
+      pitch: parseInt(document.getElementById('editBoxPitch').value)
+  };
   
   choreography[selectedKeyframeIndex] = {
       time,
       speed,
       accel,
-      positions
+      positions,
+      boxPose
   };
   
-  // Re-sort in case time changed
   choreography.sort((a, b) => a.time - b.time);
-  
-  // Find where it went if index changed after sort
-  // (Optional, but good for keeping selection)
-  
+  saveChoreographyToLocal();
   updateKeyframesList();
   updateTimeline();
-  logConsole('Keyframe updated');
-  
-  // Keep editor open but update values/index if needed? 
-  // For simplicity, maybe close or just refresh. 
-  // If time changed, the index might change, so let's close or re-find.
-  // Let's close it to be safe.
-  closeKeyframeEditor();
 }
 
 function getCurrentForEditor() {
   for(let i=0; i<4; i++) {
       document.getElementById(`editM${i}`).value = currentPositions[i];
   }
+  // If getting current positions, we technically don't know the box pose anymore.
+  // We could invalidate boxPose or leave it as is. Leaving it as is might be confusing if it doesn't match.
+  // But we can't reverse solve it easily.
+  saveKeyframeChanges();
+}
+
+function setTimeFromClick(e) {
+  if (isPlaying) return; // Don't jump while playing for now
+  
+  const track = document.querySelector('.timeline-track');
+  const rect = track.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  const PPS = 20;
+  
+  let newTime = clickX / PPS;
+  if (newTime < 0) newTime = 0;
+  
+  currentTime = newTime;
+  updatePlayhead(currentTime);
+  // logConsole(`Time set to ${currentTime.toFixed(2)}s`);
 }
 
 function updateTimeline() {
-  const timeline = document.querySelector('.timeline-track');
-  const markers = timeline.querySelectorAll('.keyframe-marker:not(.playhead)');
+  const timeline = document.querySelector('.timeline'); // The scrollable container
+  const track = document.querySelector('.timeline-track');
+  const markers = track.querySelectorAll('.keyframe-marker:not(.playhead)');
   markers.forEach(m => m.remove());
   
+  // Pixels per second determines the "zoom level" of the timeline
+  const PPS = 20; 
+  
+  const maxTime = choreography.length > 0 ? Math.max(...choreography.map(kf => kf.time)) : 0;
+  
+  // Ensure we have enough width for the current time cursor too
+  const timeToDisplay = Math.max(maxTime, currentTime);
+  
+  const requiredWidth = timeToDisplay * PPS + 200; // Extra padding
+  const containerWidth = timeline.clientWidth;
+  
+  const finalWidth = Math.max(containerWidth, requiredWidth);
+  track.style.width = `${finalWidth}px`;
+  
+  // Add click listener to track for setting time
+  track.onclick = setTimeFromClick;
+  
+  // Ensure playhead is visible
+  updatePlayhead(currentTime);
+  
   if (choreography.length === 0) return;
-  
-  const maxTime = Math.max(...choreography.map(kf => kf.time));
-  // Allow timeline to expand if long duration, or keep relative?
-  // User asked for scrolling. Let's make the track wider if duration is long?
-  // For now, let's keep it 100% width but use scroll on container.
-  // Actually, to support scrolling for long choreographies, we need to map time to pixels more statically, or just let it be huge.
-  // Let's stick to % for now but add min-width if needed.
-  
-  const timelineWidth = timeline.offsetWidth;
   
   choreography.forEach((kf, index) => {
     const marker = document.createElement('div');
@@ -727,20 +898,34 @@ function updateTimeline() {
         marker.classList.add('selected');
     }
     
-    marker.style.left = `${(kf.time / maxTime) * timelineWidth}px`;
-    marker.title = `${kf.time.toFixed(2)}s\nPos: [${kf.positions}]\nSpd: ${kf.speed}\nAcc: ${kf.accel}`;
-    marker.onclick = (e) => {
-        e.stopPropagation(); // Prevent bubbling if needed
-        goToKeyframe(index);
+    marker.style.left = `${kf.time * PPS}px`;
+    marker.title = `${kf.time.toFixed(2)}s`;
+    
+    // Drag Start
+    marker.onmousedown = (e) => {
+        e.stopPropagation();
+        isDraggingKeyframe = true;
+        draggedKeyframeIndex = index;
+        selectedKeyframeIndex = index; // Select on drag start
+        goToKeyframe(index); // Load data
     };
-    timeline.appendChild(marker);
+    
+    track.appendChild(marker);
   });
 }
 
 function goToKeyframe(index) {
   const kf = choreography[index];
-  currentPositions = [...kf.positions];
   
+  // Update Editor UI only
+  // We do NOT send physical commands to the robot anymore.
+  
+  // NOTE: If we want to preview speed/accel settings without moving, we could set them,
+  // but it's safer to just show them in the editor.
+  
+  /* 
+  // DISABLED PHYSICAL MOVEMENT ON EDIT CLICK
+  currentPositions = [...kf.positions];
   if (kf.speed !== undefined) {
       uiMaxSpeed = kf.speed;
       document.getElementById('speed').value = uiMaxSpeed;
@@ -756,7 +941,9 @@ function goToKeyframe(index) {
   
   sendCommand(`M ${currentPositions.join(' ')}`);
   axisNames.forEach((_, i) => updatePositionDisplay(i));
-  logConsole(`Jumped to keyframe at ${kf.time.toFixed(2)}s`);
+  */
+  
+  // logConsole(`Editing keyframe at ${kf.time.toFixed(2)}s`);
   
   selectedKeyframeIndex = index;
   openKeyframeEditor(index);
@@ -764,6 +951,7 @@ function goToKeyframe(index) {
 
 function deleteKeyframe(index) {
   choreography.splice(index, 1);
+  saveChoreographyToLocal();
   updateKeyframesList();
   updateTimeline();
   logConsole(`Keyframe ${index} deleted`);
@@ -771,6 +959,7 @@ function deleteKeyframe(index) {
 
 function clearChoreography() {
   choreography = [];
+  saveChoreographyToLocal();
   updateKeyframesList();
   updateTimeline();
   logConsole('Choreography cleared');
@@ -788,35 +977,45 @@ function playChoreography() {
   }
   
   isPlaying = true;
-  playbackStartTime = Date.now();
+  // Calculate "wall clock" start time such that (Now - Start) * Speed = CurrentTime
+  playbackStartTime = Date.now() - (currentTime * 1000 / playbackSpeed);
+  
   document.getElementById('btnPlay').textContent = 'Pause';
   document.getElementById('btnPlay').classList.add('playing');
   
   logConsole('Playing choreography...');
   
+  // Find next keyframe to play
   let keyframeIndex = 0;
+  while(keyframeIndex < choreography.length && choreography[keyframeIndex].time <= currentTime) {
+      keyframeIndex++;
+  }
   
   playbackInterval = setInterval(() => {
-    const elapsed = ((Date.now() - playbackStartTime) / 1000) * playbackSpeed;
+    // Update currentTime based on wall clock
+    currentTime = ((Date.now() - playbackStartTime) / 1000) * playbackSpeed;
     
-    updatePlayhead(elapsed);
+    updatePlayhead(currentTime);
     
+    // Execute keyframes that have just passed
     while (keyframeIndex < choreography.length && 
-           choreography[keyframeIndex].time <= elapsed) {
+           choreography[keyframeIndex].time <= currentTime) {
       
       const kf = choreography[keyframeIndex];
       
       // Update Speed/Accel if present
       if (kf.speed !== undefined && kf.speed !== uiMaxSpeed) {
           uiMaxSpeed = kf.speed;
-          document.getElementById('speed').value = uiMaxSpeed;
-          document.getElementById('speedSlider').value = uiMaxSpeed;
+          const uiVal = uiMaxSpeed / 1000;
+          document.getElementById('speed').value = uiVal;
+          document.getElementById('speedSlider').value = uiVal;
           sendCommand(`S ${uiMaxSpeed}`);
       }
       if (kf.accel !== undefined && kf.accel !== uiAcceleration) {
           uiAcceleration = kf.accel;
-          document.getElementById('accel').value = uiAcceleration;
-          document.getElementById('accelSlider').value = uiAcceleration;
+          const uiVal = uiAcceleration / 1000;
+          document.getElementById('accel').value = uiVal;
+          document.getElementById('accelSlider').value = uiVal;
           sendCommand(`A ${uiAcceleration}`);
       }
       
@@ -828,16 +1027,40 @@ function playChoreography() {
       keyframeIndex++;
     }
     
-    if (keyframeIndex >= choreography.length) {
+    // Check if loop is enabled
+    const lastTime = choreography.length > 0 ? choreography[choreography.length - 1].time : 0;
+    
+    // Only check for loop/stop if we have actually passed the last keyframe
+    // But we want to allow "recording space" so we won't auto-stop at the end.
+    // We ONLY handle Loop logic here.
+    
+    if (currentTime > lastTime + 0.5) {
       const shouldLoop = document.getElementById('loopChoreography').checked;
       if (shouldLoop) {
         logConsole('Looping choreography...');
+        currentTime = 0;
         playbackStartTime = Date.now();
         keyframeIndex = 0;
-      } else {
-        stopChoreography();
-        logConsole('Choreography complete');
       }
+      // Else: Continue playing indefinitely (User request)
+    }
+    
+    // Ensure timeline track expands if playhead goes past current width
+    const timeline = document.querySelector('.timeline');
+    const track = document.querySelector('.timeline-track');
+    if (timeline && track) {
+        const PPS = 20;
+        const requiredWidth = currentTime * PPS + 200;
+        if (requiredWidth > track.offsetWidth) {
+            track.style.width = `${requiredWidth}px`;
+            // Auto-scroll to keep playhead in view?
+            // Simple logic: if playhead is off screen right, scroll right.
+            const playheadPos = currentTime * PPS;
+            const scrollRight = timeline.scrollLeft + timeline.clientWidth;
+            if (playheadPos > scrollRight - 50) {
+                timeline.scrollLeft = playheadPos - timeline.clientWidth + 100;
+            }
+        }
     }
   }, 50);
 }
@@ -850,26 +1073,34 @@ function stopChoreography() {
   }
   document.getElementById('btnPlay').textContent = 'Play';
   document.getElementById('btnPlay').classList.remove('playing');
-  removePlayhead();
+  // Do NOT remove playhead, keep current time
 }
 
 function updatePlayhead(time) {
-  const timeline = document.querySelector('.timeline-track');
-  let playhead = timeline.querySelector('.playhead');
+  const track = document.querySelector('.timeline-track');
+  if(!track) return;
+  
+  let playhead = track.querySelector('.playhead');
   
   if (!playhead) {
     playhead = document.createElement('div');
     playhead.className = 'playhead';
-    timeline.appendChild(playhead);
+    
+    // Drag Start for Playhead
+    playhead.onmousedown = (e) => {
+        e.stopPropagation();
+        isDraggingPlayhead = true;
+    };
+    
+    track.appendChild(playhead);
   }
   
-  if (choreography.length === 0) return;
+  const PPS = 20; 
+  playhead.style.left = `${time * PPS}px`;
   
-  const maxTime = Math.max(...choreography.map(kf => kf.time));
-  const timelineWidth = timeline.offsetWidth;
-  const position = (time / maxTime) * timelineWidth;
-  
-  playhead.style.left = `${Math.min(position, timelineWidth)}px`;
+  // Update Time Display
+  const timeDisp = document.getElementById('timeDisplay');
+  if(timeDisp) timeDisp.textContent = `${time.toFixed(2)}s`;
 }
 
 function removePlayhead() {
@@ -900,7 +1131,11 @@ function saveChoreography() {
   
   const a = document.createElement('a');
   a.href = url;
-  a.download = `choreography_${Date.now()}.json`;
+  // Use current filename or default with timestamp if Untitled
+  let name = currentFileName;
+  if (name === "Untitled") name = `choreography_${Date.now()}`;
+  
+  a.download = `${name}.json`;
   a.click();
   
   URL.revokeObjectURL(url);
@@ -927,6 +1162,11 @@ function handleFileLoad(event) {
           document.getElementById(`reverse${name}`).checked = reverseFlags[i];
         });
       }
+      
+      // Update Filename
+      currentFileName = file.name.replace('.json', '');
+      updateFileNameDisplay();
+      saveChoreographyToLocal();
       
       updateKeyframesList();
       updateTimeline();
@@ -1173,4 +1413,5 @@ document.addEventListener('DOMContentLoaded', () => {
   initVirtualBox();
   syncUI();
   connectWebSocket();
+  loadChoreographyFromLocal();
 });

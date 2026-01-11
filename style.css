@@ -25,7 +25,7 @@ body {
 }
 
 .container {
-  max-width: 900px;
+  max-width: 1400px; /* Increased from 900px */
   margin: 0 auto;
 }
 
@@ -54,6 +54,85 @@ h3 {
   gap: 10px;
   align-items: center;
 }
+
+/* Layout Classes */
+.main-layout {
+  display: grid;
+  grid-template-columns: 30% 1fr; /* Left column approx 25% smaller than before (50% -> 30%) */
+  gap: 20px;
+  align-items: start;
+}
+
+.left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0; /* Prevent grid blowout from wide content */
+}
+
+/* Time Readout */
+.time-display {
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 10px;
+  color: var(--accent);
+}
+
+.keyframe-marker {
+  position: absolute;
+  width: 8px; /* Thicker for easier clicking */
+  height: 100%;
+  background: var(--accent);
+  cursor: grab; /* Indicate draggable */
+  transform: translateX(-50%); /* Center on time */
+  border-radius: 2px;
+  opacity: 0.7;
+  z-index: 5;
+}
+
+.keyframe-marker:active {
+  cursor: grabbing;
+}
+
+.playhead {
+  position: absolute;
+  width: 2px;
+  height: 100%;
+  background: var(--success);
+  z-index: 10;
+  cursor: col-resize; /* Indicate draggable time */
+}
+
+/* Handle for easier grabbing */
+.playhead::after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: -6px;
+  width: 0; 
+  height: 0; 
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 8px solid var(--success);
+  cursor: col-resize;
+}
+
+/* Make hit area larger invisibly if needed, but handle is usually enough */
+
+/* Responsive: Stack on small screens */
+@media (max-width: 1000px) {
+  .main-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 
 .connection-status {
   display: flex;
@@ -93,6 +172,7 @@ h3 {
 }
 
 .controls-section {
+  /* No longer used as a big wrapper, but maybe kept for backwards compatibility if js targets it? No js targets class. */
   background: var(--bg-alt);
   padding: 10px;
   border-radius: 4px;
@@ -104,7 +184,7 @@ h3 {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
-  margin-bottom: 10px;
+  /* margin-bottom: 10px; Removed margin since flex gap handles it */
 }
 
 .motor-strip {
@@ -205,10 +285,10 @@ h3 {
 }
 
 .global-controls {
-  background: white;
+  background: white; /* Changed to white to stand out in grey column background if used, or vice versa */
   padding: 10px;
   border-radius: 3px;
-  margin-bottom: 10px;
+  /* margin-bottom: 10px; handled by gap */
   border: 1px solid var(--border);
 }
 
@@ -266,7 +346,7 @@ button:active {
   background: var(--bg-alt);
   padding: 10px;
   border-radius: 4px;
-  margin-bottom: 10px;
+  /* margin-bottom: 10px; handled by gap */
   border: 1px solid var(--border);
 }
 
@@ -385,6 +465,7 @@ button:active {
   padding: 10px;
   border-radius: 4px;
   border: 1px solid var(--border);
+  /* width 100% in column */
 }
 
 .console-header {
@@ -480,7 +561,7 @@ input:checked + .toggle-slider:before {
   background: #fff;
   padding: 15px;
   border-radius: 4px;
-  margin-bottom: 15px;
+  /* margin-bottom: 15px; handled by gap */
   border: 1px solid var(--border);
 }
 
@@ -548,7 +629,7 @@ input:checked + .toggle-slider:before {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 10px;
-  margin-bottom: 10px;
+  /* margin-bottom: 10px; handled by gap */
   padding: 10px;
   background: var(--bg-alt);
   border: 1px solid var(--border);

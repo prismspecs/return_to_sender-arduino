@@ -17,6 +17,7 @@
         </div>
         <button onclick="homeAll()" class="btn-home">Home All</button>
         <button onclick="setFloor()" class="btn-home" style="background-color: #4CAF50;">Set Floor</button>
+        <button onclick="setCeiling()" class="btn-home" style="background-color: #2196F3;">Set Ceiling</button>
         <div class="toggle-switch-container">
           <label for="motorToggle" class="toggle-switch-label">Motors:</label>
           <label class="toggle-switch">
@@ -27,355 +28,363 @@
       </div>
     </header>
 
-    <div class="mapping-section" style="margin-bottom: 10px; padding: 10px; background: var(--bg-alt); border: 1px solid var(--border); border-radius: 4px;">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h3 style="margin: 0;">Motor Mapping</h3>
-        <button onclick="toggleMappingPanel()" style="padding: 2px 8px; font-size: 12px;">Toggle</button>
-      </div>
-      <div id="mappingPanel" style="display: none; margin-top: 10px; grid-template-columns: repeat(4, 1fr); gap: 10px;">
-        <div>
-          <label style="display: block; font-size: 12px; margin-bottom: 4px;">Motor 1 (RL) &rarr;</label>
-          <select id="mapM0" onchange="updateMapping()" style="width: 100%;">
-            <option value="0">Driver X</option>
-            <option value="1">Driver Y</option>
-            <option value="2">Driver Z</option>
-            <option value="3">Driver A</option>
-          </select>
-        </div>
-        <div>
-          <label style="display: block; font-size: 12px; margin-bottom: 4px;">Motor 2 (RR) &rarr;</label>
-          <select id="mapM1" onchange="updateMapping()" style="width: 100%;">
-            <option value="0">Driver X</option>
-            <option value="1">Driver Y</option>
-            <option value="2">Driver Z</option>
-            <option value="3">Driver A</option>
-          </select>
-        </div>
-        <div>
-          <label style="display: block; font-size: 12px; margin-bottom: 4px;">Motor 3 (FR) &rarr;</label>
-          <select id="mapM2" onchange="updateMapping()" style="width: 100%;">
-            <option value="0">Driver X</option>
-            <option value="1">Driver Y</option>
-            <option value="2">Driver Z</option>
-            <option value="3">Driver A</option>
-          </select>
-        </div>
-        <div>
-          <label style="display: block; font-size: 12px; margin-bottom: 4px;">Motor 4 (FL) &rarr;</label>
-          <select id="mapM3" onchange="updateMapping()" style="width: 100%;">
-            <option value="0">Driver X</option>
-            <option value="1">Driver Y</option>
-            <option value="2">Driver Z</option>
-            <option value="3">Driver A</option>
-          </select>
-        </div>
-      </div>
-    </div>
-
-    <div class="settings-section" style="margin-bottom: 10px; padding: 10px; background: var(--bg-alt); border: 1px solid var(--border); border-radius: 4px;">
-      <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-        <div style="display: flex; flex-direction: column; gap: 2px;">
-           <label style="font-size: 13px; display: flex; align-items: center; gap: 5px;">
-             Speed: <input type="number" id="speed" value="24000" min="1000" max="30000" step="1000" oninput="updateSpeedUI(false)" onchange="setSpeed()" style="width: 70px; padding: 3px 6px;">
-           </label>
-           <input type="range" id="speedSlider" value="24000" min="1000" max="30000" step="1000" oninput="updateSpeedUI(true)" onchange="setSpeed()" style="width: 140px;">
-        </div>
-
-        <div style="display: flex; flex-direction: column; gap: 2px;">
-           <label style="font-size: 13px; display: flex; align-items: center; gap: 5px;">
-             Accel: <input type="number" id="accel" value="24000" min="1000" max="30000" step="1000" oninput="updateAccelUI(false)" onchange="setAcceleration()" style="width: 70px; padding: 3px 6px;">
-           </label>
-           <input type="range" id="accelSlider" value="24000" min="1000" max="30000" step="1000" oninput="updateAccelUI(true)" onchange="setAcceleration()" style="width: 140px;">
-        </div>
-
-        <label style="font-size: 13px;">Driver: 
-          <select id="driverType" onchange="updateMicrosteppingOptions()" style="padding: 3px 6px; border-radius: 3px; border: 1px solid var(--border);">
-            <option value="A4988">A4988</option>
-            <option value="DRV8825">DRV8825</option>
-          </select>
-        </label>
-        <label style="font-size: 13px;">Steps: 
-          <select id="microstepping" onchange="updateMicrostepping()" style="padding: 3px 6px; border-radius: 3px; border: 1px solid var(--border);">
-            <!-- Populated by JS -->
-          </select>
-        </label>
-      </div>
-      
-      <details style="margin-top: 10px;">
-        <summary style="font-size: 12px; cursor: pointer; color: var(--text-light);">More Options</summary>
-        <div style="margin-top: 8px; padding-left: 10px;">
-          <label class="toggle-switch-label" style="font-size: 13px; display: flex; align-items: center;">
-            <input type="checkbox" id="smoothAnimation" style="margin-right: 5px;"> Smooth Animation
-          </label>
-        </div>
-      </details>
-    </div>
-
-    <div class="controls-section">
-      <!-- Virtual Box Control Section -->
-      <div class="virtual-box-controls">
-        <h2>Virtual Box Control</h2>
-        <div class="box-sliders">
-          <div class="control-group">
-            <label>Height (Z)</label>
-            <input type="range" id="boxZ" min="0" max="900" value="0" step="1" oninput="updateBoxDisplay()" onchange="updateBox()">
-            <span id="valBoxZ">0</span>
+    <div class="main-layout">
+      <!-- LEFT COLUMN -->
+      <div class="left-column">
+        
+        <!-- Motor Mapping -->
+        <div class="mapping-section" style="padding: 10px; background: var(--bg-alt); border: 1px solid var(--border); border-radius: 4px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0;">Motor Mapping</h3>
+            <button onclick="toggleMappingPanel()" style="padding: 2px 8px; font-size: 12px;">Toggle</button>
           </div>
-          <div class="control-group">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <label>Roll (X-Tilt)</label>
-              <button onclick="resetRoll()" style="padding: 2px 6px; font-size: 12px;">0</button>
+          <div id="mappingPanel" style="display: none; margin-top: 10px; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+            <div>
+              <label style="display: block; font-size: 12px; margin-bottom: 4px;">Motor 1 (RL) &rarr;</label>
+              <select id="mapM0" onchange="updateMapping()" style="width: 100%;">
+                <option value="0">Driver X</option>
+                <option value="1">Driver Y</option>
+                <option value="2">Driver Z</option>
+                <option value="3">Driver A</option>
+              </select>
             </div>
-            <input type="range" id="boxRoll" min="-45" max="45" value="0" step="1" oninput="updateBoxDisplay()" onchange="updateBox()">
-            <span id="valBoxRoll">0°</span>
-          </div>
-          <div class="control-group">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <label>Pitch (Y-Tilt)</label>
-              <button onclick="resetPitch()" style="padding: 2px 6px; font-size: 12px;">0</button>
+            <div>
+              <label style="display: block; font-size: 12px; margin-bottom: 4px;">Motor 2 (RR) &rarr;</label>
+              <select id="mapM1" onchange="updateMapping()" style="width: 100%;">
+                <option value="0">Driver X</option>
+                <option value="1">Driver Y</option>
+                <option value="2">Driver Z</option>
+                <option value="3">Driver A</option>
+              </select>
             </div>
-            <input type="range" id="boxPitch" min="-45" max="45" value="0" step="1" oninput="updateBoxDisplay()" onchange="updateBox()">
-            <span id="valBoxPitch">0°</span>
+            <div>
+              <label style="display: block; font-size: 12px; margin-bottom: 4px;">Motor 3 (FR) &rarr;</label>
+              <select id="mapM2" onchange="updateMapping()" style="width: 100%;">
+                <option value="0">Driver X</option>
+                <option value="1">Driver Y</option>
+                <option value="2">Driver Z</option>
+                <option value="3">Driver A</option>
+              </select>
+            </div>
+            <div>
+              <label style="display: block; font-size: 12px; margin-bottom: 4px;">Motor 4 (FL) &rarr;</label>
+              <select id="mapM3" onchange="updateMapping()" style="width: 100%;">
+                <option value="0">Driver X</option>
+                <option value="1">Driver Y</option>
+                <option value="2">Driver Z</option>
+                <option value="3">Driver A</option>
+              </select>
+            </div>
           </div>
         </div>
-        <div class="box-actions">
-            <button onclick="resetBox()">Reset Box</button>
-            <button onclick="setHomeAsReference()">Set Current as Home Ref</button>
-        </div>
-      </div>
 
-      <div class="choreography-section">
-        <h3>Choreography</h3>
-        <div class="choreo-controls">
-          <button onclick="recordKeyframe()" class="btn-record">Record Keyframe</button>
-          <button onclick="playChoreography()" id="btnPlay">Play</button>
-          <button onclick="stopChoreography()" id="btnStop">Stop</button>
-          <button onclick="clearChoreography()">Clear</button>
-          <button onclick="saveChoreography()">Save</button>
-          <button onclick="loadChoreography()">Load</button>
-          <label>Speed: <input type="range" id="choreoSpeed" min="0.1" max="10" step="0.1" value="1" oninput="updatePlaybackSpeed(this.value)"> <span id="speedDisplay">1.0x</span></label>
-          <label class="loop-toggle">
-            <input type="checkbox" id="loopChoreography"> Loop
-          </label>
-        </div>
+        <!-- Settings (Speed/Accel) -->
+        <div class="settings-section" style="padding: 10px; background: var(--bg-alt); border: 1px solid var(--border); border-radius: 4px;">
+          <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+               <label style="font-size: 13px; display: flex; align-items: center; gap: 5px;">
+                 Speed (x1k): <input type="number" id="speed" value="24" min="1" max="30" step="1" oninput="updateSpeedUI(false)" onchange="setSpeed()" style="width: 50px; padding: 3px 6px;">
+               </label>
+               <input type="range" id="speedSlider" value="24" min="1" max="30" step="1" oninput="updateSpeedUI(true)" onchange="setSpeed()" style="width: 140px;">
+            </div>
 
-        <div class="timeline" id="timeline">
-          <div class="timeline-track"></div>
-        </div>
-        <div class="keyframes-list" id="keyframesList"></div>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+               <label style="font-size: 13px; display: flex; align-items: center; gap: 5px;">
+                 Accel (x1k): <input type="number" id="accel" value="24" min="1" max="30" step="1" oninput="updateAccelUI(false)" onchange="setAcceleration()" style="width: 50px; padding: 3px 6px;">
+               </label>
+               <input type="range" id="accelSlider" value="24" min="1" max="30" step="1" oninput="updateAccelUI(true)" onchange="setAcceleration()" style="width: 140px;">
+            </div>
 
-        <div id="keyframeEditor" style="display: none; background: white; padding: 10px; border: 1px solid var(--border); border-radius: 3px; margin-top: 10px;">
-          <h4 style="margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 5px;">Edit Keyframe</h4>
+            <label style="font-size: 13px;">Driver: 
+              <select id="driverType" onchange="updateMicrosteppingOptions()" style="padding: 3px 6px; border-radius: 3px; border: 1px solid var(--border);">
+                <option value="A4988">A4988</option>
+                <option value="DRV8825">DRV8825</option>
+              </select>
+            </label>
+            <label style="font-size: 13px;">Steps: 
+              <select id="microstepping" onchange="updateMicrostepping()" style="padding: 3px 6px; border-radius: 3px; border: 1px solid var(--border);">
+                <!-- Populated by JS -->
+              </select>
+            </label>
+          </div>
           
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px;">
-            <div>
-              <label style="display: block; font-size: 11px; margin-bottom: 2px;">Time (s)</label>
-              <input type="number" id="editTime" step="0.1" style="width: 100%;">
+          <details style="margin-top: 10px;">
+            <summary style="font-size: 12px; cursor: pointer; color: var(--text-light);">More Options</summary>
+            <div style="margin-top: 8px; padding-left: 10px;">
+              <label class="toggle-switch-label" style="font-size: 13px; display: flex; align-items: center;">
+                <input type="checkbox" id="smoothAnimation" style="margin-right: 5px;"> Smooth Animation
+              </label>
             </div>
-            <div>
-              <label style="display: block; font-size: 11px; margin-bottom: 2px;">Speed</label>
-              <input type="number" id="editSpeed" step="1000" style="width: 100%;">
+          </details>
+        </div>
+
+        <!-- Motor Controls (Grid) -->
+        <div class="motor-controls">
+          <div class="motor-strip" id="motorX">
+            <div class="motor-header">
+              <span class="axis-label">1 (RL)</span>
+              <label class="reverse-toggle">
+                <input type="checkbox" id="reverseX" onchange="toggleReverse(0, this.checked)">
+                Rev
+              </label>
             </div>
-            <div>
-              <label style="display: block; font-size: 11px; margin-bottom: 2px;">Accel</label>
-              <input type="number" id="editAccel" step="1000" style="width: 100%;">
+
+            <div class="position-value" id="posX">0</div>
+            <div class="motor-buttons">
+              <button onclick="quickMove('X', 0, -100)">-100</button>
+              <button onclick="quickMove('X', 0, -10)">-10</button>
+              <button onclick="moveToSlider('X', 0, 0)">0</button>
+              <button onclick="quickMove('X', 0, 10)">+10</button>
+              <button onclick="quickMove('X', 0, 100)">+100</button>
             </div>
           </div>
 
-          <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border);">
-            <div style="font-size: 12px; font-weight: 600; margin-bottom: 5px;">Virtual Box Pose</div>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
-               <div>
-                  <label style="display: block; font-size: 11px; margin-bottom: 2px;">Height (Z)</label>
-                  <input type="range" id="editBoxZ" min="0" max="900" step="1" oninput="updateEditorFromBox()" style="width: 100%;">
-                  <span id="dispEditBoxZ" style="font-size: 10px;">0</span>
+          <div class="motor-strip" id="motorY">
+            <div class="motor-header">
+              <span class="axis-label">2 (RR)</span>
+              <label class="reverse-toggle">
+                <input type="checkbox" id="reverseY" onchange="toggleReverse(1, this.checked)">
+                Rev
+              </label>
+            </div>
+
+            <div class="position-value" id="posY">0</div>
+            <div class="motor-buttons">
+              <button onclick="quickMove('Y', 1, -100)">-100</button>
+              <button onclick="quickMove('Y', 1, -10)">-10</button>
+              <button onclick="moveToSlider('Y', 1, 0)">0</button>
+              <button onclick="quickMove('Y', 1, 10)">+10</button>
+              <button onclick="quickMove('Y', 1, 100)">+100</button>
+            </div>
+          </div>
+
+          <div class="motor-strip" id="motorA">
+            <div class="motor-header">
+              <span class="axis-label">4 (FL)</span>
+              <label class="reverse-toggle">
+                <input type="checkbox" id="reverseA" onchange="toggleReverse(3, this.checked)">
+                Rev
+              </label>
+            </div>
+
+            <div class="position-value" id="posA">0</div>
+            <div class="motor-buttons">
+              <button onclick="quickMove('A', 3, -100)">-100</button>
+              <button onclick="quickMove('A', 3, -10)">-10</button>
+              <button onclick="moveToSlider('A', 3, 0)">0</button>
+              <button onclick="quickMove('A', 3, 10)">+10</button>
+              <button onclick="quickMove('A', 3, 100)">+100</button>
+            </div>
+          </div>
+
+          <div class="motor-strip" id="motorZ">
+            <div class="motor-header">
+              <span class="axis-label">3 (FR)</span>
+              <label class="reverse-toggle">
+                <input type="checkbox" id="reverseZ" onchange="toggleReverse(2, this.checked)">
+                Rev
+              </label>
+            </div>
+
+            <div class="position-value" id="posZ">0</div>
+            <div class="motor-buttons">
+              <button onclick="quickMove('Z', 2, -100)">-100</button>
+              <button onclick="quickMove('Z', 2, -10)">-10</button>
+              <button onclick="moveToSlider('Z', 2, 0)">0</button>
+              <button onclick="quickMove('Z', 2, 10)">+10</button>
+              <button onclick="quickMove('Z', 2, 100)">+100</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Global Controls -->
+        <div class="global-controls">
+          <h3>All Motors</h3>
+          <div class="global-buttons">
+            <button onclick="moveAllMotors(-1000)">-1000</button>
+            <button onclick="moveAllMotors(-100)">-100</button>
+            <button onclick="moveAllMotors(-10)">-10</button>
+            <button onclick="moveAllToZero()">0</button>
+            <button onclick="moveAllMotors(10)">+10</button>
+            <button onclick="moveAllMotors(100)">+100</button>
+            <button onclick="moveAllMotors(1000)">+1000</button>
+          </div>
+        </div>
+
+        <!-- Console -->
+        <div class="console-section">
+          <div class="console-header">
+            <h3>Console</h3>
+            <button class="btn-clear" onclick="clearConsole()">Clear</button>
+          </div>
+          <div class="console" id="console"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div class="right-column">
+        <!-- Virtual Box Control Section -->
+        <div class="virtual-box-controls">
+          <h2>Virtual Box Control</h2>
+          <div class="box-sliders">
+            <div class="control-group">
+              <label>Height (Z)</label>
+              <input type="range" id="boxZ" min="0" max="900" value="0" step="1" oninput="updateBoxDisplay()" onchange="updateBox()">
+              <span id="valBoxZ">0</span>
+            </div>
+            <div class="control-group">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <label>Roll (X-Tilt)</label>
+                <button onclick="resetRoll()" style="padding: 2px 6px; font-size: 12px;">0</button>
+              </div>
+              <input type="range" id="boxRoll" min="-45" max="45" value="0" step="1" oninput="updateBoxDisplay()" onchange="updateBox()">
+              <span id="valBoxRoll">0°</span>
+            </div>
+            <div class="control-group">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <label>Pitch (Y-Tilt)</label>
+                <button onclick="resetPitch()" style="padding: 2px 6px; font-size: 12px;">0</button>
+              </div>
+              <input type="range" id="boxPitch" min="-45" max="45" value="0" step="1" oninput="updateBoxDisplay()" onchange="updateBox()">
+              <span id="valBoxPitch">0°</span>
+            </div>
+          </div>
+          <div class="box-actions">
+              <button onclick="resetBox()">Reset Box</button>
+              <button onclick="setHomeAsReference()">Set Current as Home Ref</button>
+          </div>
+        </div>
+
+        <!-- Altitude Display -->
+        <div class="altitude-display">
+          <div class="altitude-strip">
+            <div class="altitude-title">M1 (RL)</div>
+            <div class="altitude-meter-container">
+              <div class="meter-scale">
+                 <span class="scale-label">900</span>
+                 <span class="scale-label">0</span>
+              </div>
+              <div class="altitude-bar" id="altM0"></div>
+            </div>
+          </div>
+          <div class="altitude-strip">
+            <div class="altitude-title">M2 (RR)</div>
+            <div class="altitude-meter-container">
+               <div class="meter-scale">
+                 <span class="scale-label">900</span>
+                 <span class="scale-label">0</span>
                </div>
-               <div>
-                  <label style="display: block; font-size: 11px; margin-bottom: 2px;">Roll</label>
-                  <input type="range" id="editBoxRoll" min="-45" max="45" step="1" oninput="updateEditorFromBox()" style="width: 100%;">
-                  <span id="dispEditBoxRoll" style="font-size: 10px;">0</span>
+              <div class="altitude-bar" id="altM1"></div>
+            </div>
+          </div>
+          <div class="altitude-strip">
+            <div class="altitude-title">M3 (FR)</div>
+            <div class="altitude-meter-container">
+               <div class="meter-scale">
+                 <span class="scale-label">900</span>
+                 <span class="scale-label">0</span>
                </div>
-               <div>
-                  <label style="display: block; font-size: 11px; margin-bottom: 2px;">Pitch</label>
-                  <input type="range" id="editBoxPitch" min="-45" max="45" step="1" oninput="updateEditorFromBox()" style="width: 100%;">
-                  <span id="dispEditBoxPitch" style="font-size: 10px;">0</span>
+              <div class="altitude-bar" id="altM2"></div>
+            </div>
+          </div>
+          <div class="altitude-strip">
+            <div class="altitude-title">M4 (FL)</div>
+            <div class="altitude-meter-container">
+               <div class="meter-scale">
+                 <span class="scale-label">900</span>
+                 <span class="scale-label">0</span>
                </div>
+              <div class="altitude-bar" id="altM3"></div>
             </div>
-          </div>
-
-          <div style="margin-bottom: 5px; font-size: 12px; font-weight: 600;">Motor Positions (Steps)</div>
-          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
-            <div>
-               <label style="display: block; font-size: 11px; margin-bottom: 2px;">M1</label>
-               <input type="number" id="editM0" style="width: 100%;">
-            </div>
-            <div>
-               <label style="display: block; font-size: 11px; margin-bottom: 2px;">M2</label>
-               <input type="number" id="editM1" style="width: 100%;">
-            </div>
-            <div>
-               <label style="display: block; font-size: 11px; margin-bottom: 2px;">M3</label>
-               <input type="number" id="editM2" style="width: 100%;">
-            </div>
-            <div>
-               <label style="display: block; font-size: 11px; margin-bottom: 2px;">M4</label>
-               <input type="number" id="editM3" style="width: 100%;">
-            </div>
-          </div>
-
-          <div style="display: flex; gap: 8px;">
-            <button onclick="saveKeyframeChanges()" style="background-color: var(--success); color: white; border-color: var(--success);">Update Keyframe</button>
-            <button onclick="getCurrentForEditor()">Use Current Pos</button>
-            <button onclick="closeKeyframeEditor()">Cancel</button>
           </div>
         </div>
+
+        <!-- Choreography Section -->
+        <div class="choreography-section">
+          <h3>Choreography</h3>
+          <div class="choreo-controls">
+            <button onclick="recordKeyframe()" class="btn-record">Record Keyframe</button>
+            <button onclick="playChoreography()" id="btnPlay">Play</button>
+            <button onclick="stopChoreography()" id="btnStop">Stop</button>
+            <button onclick="clearChoreography()">Clear</button>
+                      <button onclick="saveChoreography()">Save</button>
+                      <button onclick="loadChoreography()">Load</button>
+                      <span id="fileNameDisplay" style="font-size: 12px; color: var(--text-light); margin-left: 5px; font-style: italic;">(Untitled)</span>
+                      <label>Speed: <input type="range" id="choreoSpeed" min="0.1" max="10" step="0.1" value="1" oninput="updatePlaybackSpeed(this.value)"> <span id="speedDisplay">1.0x</span></label>                      <label class="loop-toggle">
+                        <input type="checkbox" id="loopChoreography"> Loop
+                      </label>
+                      <span id="timeDisplay" class="time-display">0.00s</span>
+                    </div>
+          <div class="timeline" id="timeline">
+            <div class="timeline-track"></div>
+          </div>
+          <div class="keyframes-list" id="keyframesList"></div>
+
+          <div id="keyframeEditor" style="display: none; background: white; padding: 10px; border: 1px solid var(--border); border-radius: 3px; margin-top: 10px;">
+            <h4 style="margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 5px;">Edit Keyframe</h4>
+            
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px;">
+              <div>
+                <label style="display: block; font-size: 11px; margin-bottom: 2px;">Time (s)</label>
+                <input type="number" id="editTime" step="0.1" style="width: 100%;" oninput="saveKeyframeChanges()">
+              </div>
+              <div>
+                <label style="display: block; font-size: 11px; margin-bottom: 2px;">Speed (x1k)</label>
+                <input type="number" id="editSpeed" step="1" min="1" max="30" style="width: 100%;" oninput="saveKeyframeChanges()">
+              </div>
+              <div>
+                <label style="display: block; font-size: 11px; margin-bottom: 2px;">Accel (x1k)</label>
+                <input type="number" id="editAccel" step="1" min="1" max="30" style="width: 100%;" oninput="saveKeyframeChanges()">
+              </div>
+            </div>
+
+            <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border);">
+              <div style="font-size: 12px; font-weight: 600; margin-bottom: 5px;">Virtual Box Pose</div>
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                 <div>
+                    <label style="display: block; font-size: 11px; margin-bottom: 2px;">Height (Z)</label>
+                    <input type="range" id="editBoxZ" min="0" max="900" step="1" oninput="updateEditorFromBox()" style="width: 100%;">
+                    <span id="dispEditBoxZ" style="font-size: 10px;">0</span>
+                 </div>
+                 <div>
+                    <label style="display: block; font-size: 11px; margin-bottom: 2px;">Roll</label>
+                    <input type="range" id="editBoxRoll" min="-45" max="45" step="1" oninput="updateEditorFromBox()" style="width: 100%;">
+                    <span id="dispEditBoxRoll" style="font-size: 10px;">0</span>
+                 </div>
+                 <div>
+                    <label style="display: block; font-size: 11px; margin-bottom: 2px;">Pitch</label>
+                    <input type="range" id="editBoxPitch" min="-45" max="45" step="1" oninput="updateEditorFromBox()" style="width: 100%;">
+                    <span id="dispEditBoxPitch" style="font-size: 10px;">0</span>
+                 </div>
+              </div>
+            </div>
+
+                      <div style="margin-bottom: 5px; font-size: 12px; font-weight: 600;">Motor Positions (Steps)</div>
+                      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
+                        <div>
+                           <label style="display: block; font-size: 11px; margin-bottom: 2px;">M1</label>
+                           <input type="number" id="editM0" style="width: 100%;" oninput="saveKeyframeChanges()">
+                        </div>
+                        <div>
+                           <label style="display: block; font-size: 11px; margin-bottom: 2px;">M2</label>
+                           <input type="number" id="editM1" style="width: 100%;" oninput="saveKeyframeChanges()">
+                        </div>
+                        <div>
+                           <label style="display: block; font-size: 11px; margin-bottom: 2px;">M3</label>
+                           <input type="number" id="editM2" style="width: 100%;" oninput="saveKeyframeChanges()">
+                        </div>
+                        <div>
+                           <label style="display: block; font-size: 11px; margin-bottom: 2px;">M4</label>
+                           <input type="number" id="editM3" style="width: 100%;" oninput="saveKeyframeChanges()">
+                        </div>
+                      </div>
+            
+                      <div style="display: flex; gap: 8px;">
+                        <button onclick="getCurrentForEditor()">Use Current Pos</button>
+                        <button onclick="closeKeyframeEditor()">Close</button>
+                      </div>
+                    </div>        </div>
       </div>
-
-      <div class="altitude-display">
-        <div class="altitude-strip">
-          <div class="altitude-title">M1 (RL)</div>
-          <div class="altitude-meter-container">
-            <div class="meter-scale">
-               <span class="scale-label">900</span>
-               <span class="scale-label">0</span>
-            </div>
-            <div class="altitude-bar" id="altM0"></div>
-          </div>
-        </div>
-        <div class="altitude-strip">
-          <div class="altitude-title">M2 (RR)</div>
-          <div class="altitude-meter-container">
-             <div class="meter-scale">
-               <span class="scale-label">900</span>
-               <span class="scale-label">0</span>
-             </div>
-            <div class="altitude-bar" id="altM1"></div>
-          </div>
-        </div>
-        <div class="altitude-strip">
-          <div class="altitude-title">M3 (FR)</div>
-          <div class="altitude-meter-container">
-             <div class="meter-scale">
-               <span class="scale-label">900</span>
-               <span class="scale-label">0</span>
-             </div>
-            <div class="altitude-bar" id="altM2"></div>
-          </div>
-        </div>
-        <div class="altitude-strip">
-          <div class="altitude-title">M4 (FL)</div>
-          <div class="altitude-meter-container">
-             <div class="meter-scale">
-               <span class="scale-label">900</span>
-               <span class="scale-label">0</span>
-             </div>
-            <div class="altitude-bar" id="altM3"></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="motor-controls">
-        <div class="motor-strip" id="motorX">
-          <div class="motor-header">
-            <span class="axis-label">1 (RL)</span>
-            <label class="reverse-toggle">
-              <input type="checkbox" id="reverseX" onchange="toggleReverse(0, this.checked)">
-              Rev
-            </label>
-          </div>
-
-          <div class="position-value" id="posX">0</div>
-          <div class="motor-buttons">
-            <button onclick="quickMove('X', 0, -100)">-100</button>
-            <button onclick="quickMove('X', 0, -10)">-10</button>
-            <button onclick="moveToSlider('X', 0, 0)">0</button>
-            <button onclick="quickMove('X', 0, 10)">+10</button>
-            <button onclick="quickMove('X', 0, 100)">+100</button>
-          </div>
-        </div>
-
-        <div class="motor-strip" id="motorY">
-          <div class="motor-header">
-            <span class="axis-label">2 (RR)</span>
-            <label class="reverse-toggle">
-              <input type="checkbox" id="reverseY" onchange="toggleReverse(1, this.checked)">
-              Rev
-            </label>
-          </div>
-
-          <div class="position-value" id="posY">0</div>
-          <div class="motor-buttons">
-            <button onclick="quickMove('Y', 1, -100)">-100</button>
-            <button onclick="quickMove('Y', 1, -10)">-10</button>
-            <button onclick="moveToSlider('Y', 1, 0)">0</button>
-            <button onclick="quickMove('Y', 1, 10)">+10</button>
-            <button onclick="quickMove('Y', 1, 100)">+100</button>
-          </div>
-        </div>
-
-        <div class="motor-strip" id="motorA">
-          <div class="motor-header">
-            <span class="axis-label">4 (FL)</span>
-            <label class="reverse-toggle">
-              <input type="checkbox" id="reverseA" onchange="toggleReverse(3, this.checked)">
-              Rev
-            </label>
-          </div>
-
-          <div class="position-value" id="posA">0</div>
-          <div class="motor-buttons">
-            <button onclick="quickMove('A', 3, -100)">-100</button>
-            <button onclick="quickMove('A', 3, -10)">-10</button>
-            <button onclick="moveToSlider('A', 3, 0)">0</button>
-            <button onclick="quickMove('A', 3, 10)">+10</button>
-            <button onclick="quickMove('A', 3, 100)">+100</button>
-          </div>
-        </div>
-
-        <div class="motor-strip" id="motorZ">
-          <div class="motor-header">
-            <span class="axis-label">3 (FR)</span>
-            <label class="reverse-toggle">
-              <input type="checkbox" id="reverseZ" onchange="toggleReverse(2, this.checked)">
-              Rev
-            </label>
-          </div>
-
-          <div class="position-value" id="posZ">0</div>
-          <div class="motor-buttons">
-            <button onclick="quickMove('Z', 2, -100)">-100</button>
-            <button onclick="quickMove('Z', 2, -10)">-10</button>
-            <button onclick="moveToSlider('Z', 2, 0)">0</button>
-            <button onclick="quickMove('Z', 2, 10)">+10</button>
-            <button onclick="quickMove('Z', 2, 100)">+100</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="global-controls">
-        <h3>All Motors</h3>
-        <div class="global-buttons">
-          <button onclick="moveAllMotors(-1000)">-1000</button>
-          <button onclick="moveAllMotors(-100)">-100</button>
-          <button onclick="moveAllMotors(-10)">-10</button>
-          <button onclick="moveAllToZero()">0</button>
-          <button onclick="moveAllMotors(10)">+10</button>
-          <button onclick="moveAllMotors(100)">+100</button>
-          <button onclick="moveAllMotors(1000)">+1000</button>
-        </div>
-      </div>
-
-
-    </div>
-
-
-
-    <div class="console-section">
-      <div class="console-header">
-        <h3>Console</h3>
-        <button class="btn-clear" onclick="clearConsole()">Clear</button>
-      </div>
-      <div class="console" id="console"></div>
     </div>
 
     <input type="file" id="fileInput" accept=".json" style="display: none;" onchange="handleFileLoad(event)">
@@ -384,4 +393,3 @@
   <script type="module" src="app.js"></script>
 </body>
 </html>
-
