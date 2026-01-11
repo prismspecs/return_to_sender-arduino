@@ -4,7 +4,14 @@
 A web-based interface for controlling a 4-axis CNC Shield v3 stepper motor setup using an Arduino Uno R4. The project enables real-time motor control, choreography recording/playback, and parameter tuning via a browser.
 
 ## Tech Stack
-- **Frontend:** HTML5, CSS3, JavaScript (WebSocket client)
+- **Frontend:** HTML5, CSS3, JavaScript (ES6 Modules)
+    - `app.js`: Main controller.
+    - `comms.js`: WebSocket communication.
+    - `state.js`: Global state management.
+    - `ui.js`: DOM updates (Timeline, Lists).
+    - `choreography.js`: Playback loop and logic.
+    - `storage.js`: LocalStorage & IndexedDB.
+    - `kinematics.js`: Geometry math.
 - **Backend:** Node.js, Express, `ws` (WebSocket), `serialport`
 - **Firmware:** Arduino (C++), `AccelStepper` library, optimized for Arduino Uno R4
 - **Communication:** Serial (115200 baud) for Arduino <-> Node.js, WebSocket for Browser <-> Node.js
@@ -19,44 +26,39 @@ A web-based interface for controlling a 4-axis CNC Shield v3 stepper motor setup
 
 ### Core Motion Control
 - [x] Independent control of 4 stepper motors (X, Y, Z, A)
-- [x] Absolute and Relative positioning
-- [x] Dynamic Speed and Acceleration configuration
-- [x] Homing (Set Current Position as Zero)
+- [x] Absolute (`M`) and Relative (`R`) positioning
+- [x] Dynamic Speed and Acceleration configuration (x1000 scale in UI)
+- [x] **Set Floor:** Sets current position as Zero (Hardware & Software).
+- [x] **Set Ceiling:** Sets Max Height limit based on current position.
+- [x] **STOP:** Immediate deceleration halt (`Q` command).
 - [x] Motor Direction Inversion
-- [x] Emergency Stop / Motor Rest (Disable Torque)
-    - *Update:* Replaced momentary button with a toggle switch (Green/Red) for intuitive Enable/Disable state (Commands: `E1`/`E0`).
+- [x] Motor Enable/Disable (Auto-homes on disable)
 
 ### Advanced Features
-- [x] Choreography Recording & Playback (Supports Speed/Accel changes per keyframe)
-- [x] Real-time position feedback
-
-## Development Plan & Roadmap
-
-### Active Tasks
-- [ ] Maintenance and bug fixing.
-- [ ] Documentation improvements (wiring diagrams, setup guide).
-
-### Completed
-- [x] Initial Firmware Implementation (`CNCshield.ino`)
-- [x] Node.js Serial/WebSocket Server (`server.js`)
-- [x] Web Frontend Interface (`index.html`, `app.js`)
-- [x] Feature: Motor Enable/Disable Toggle Switch
-- [x] Feature: Smooth Visual Interpolation (Animation) for motor movements.
-- [x] Fix: Corrected inverted Altitude Readout logic.
+- [x] **Choreography:** Record & Playback with Speed/Accel per keyframe.
+- [x] **Audio Sync:** Load audio tracks, sync playback, scrub timeline.
+- [x] **Project Management:** Quick Save/Load slots in LocalStorage.
+- [x] **Visual Editor:** Drag-and-drop keyframes, virtual box pose editing.
+- [x] **Infinite Recording:** Playback continues past end for extending sequences.
 
 ## Architecture Notes
-- The Arduino firmware uses non-blocking `AccelStepper` calls to manage 4 motors simultaneously.
-- The Node.js server acts as a bridge, parsing WebSocket messages from the UI and forwarding G-code-like commands to the Arduino via Serial.
-- **UI Logic:** The frontend now uses a `requestAnimationFrame` loop to smoothly interpolate visual motor positions towards the commanded targets, simulating the acceleration and speed of the physical motors for a realistic display.
+- **Modular JS:** The frontend is now split into ES6 modules to manage complexity.
+- **State Management:** `state.js` acts as the single source of truth.
+- **Firmware Protocol:**
+    - `M x y z a`: Move Absolute
+    - `R x y z a`: Move Relative
+    - `Q`: Quick Stop (Decelerate to 0)
+    - `E 0/1`: Enable/Disable
+    - `H`: Set Home (0)
+- **Persistence:**
+    - **Choreography:** `localStorage`
+    - **Audio:** `IndexedDB` (to handle large binary blobs)
 
 ## Performance Tuning
-**Motors moving too slow?**
-The `AccelStepper` library on Arduino Uno R4 hits a software speed limit around ~20,000 steps/sec total across all axes.
-To increase physical speed without hitting this CPU limit, **reduce microstepping** by removing jumpers on the CNC Shield (under the drivers).
+- **Microstepping:** UI allows selecting driver type and jumper config to calculate steps/mm.
+- **Speed Limits:** UI caps speed at 30k steps/sec to prevent stalling.
+- **Interpolation:** Frontend uses a `requestAnimationFrame` loop with velocity ramping to smooth out visual updates between status polls.
 
-**Jumper Config (Speed vs Smoothness):**
-- **1/16 Step (All 3 Jumpers):** High resolution, very smooth, but slow (Max ~300mm/s).
-- **1/4 Step (Middle Jumper Only):** **Recommended.** Good balance. 4x faster than 1/16.
-- **Full Step (No Jumpers):** Maximum speed, but noisy and rough.
+## Maintenance Rules
+- **Update Context:** Every time a significant feature is implemented, an architectural change is made, or a major bug is fixed, this file (`GEMINI.md`) MUST be updated to reflect the new technical state of the project. This ensures AI agents and developers always have an accurate source of truth.
 
-*Note: If you change microstepping, remember to update `stepsPerMm` in your configuration.*

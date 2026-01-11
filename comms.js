@@ -35,12 +35,10 @@ export function connectWebSocket() {
 
   ws.onopen = () => {
     clearTimeout(connectionTimeout);
-    onStatus(true);
+    onStatus(true, 'Connected to Arduino');
     onLog('Connected to server');
     setTimeout(() => {
         sendCommand('I');
-        // We need to sync hardware config here, but that logic is in app.js/main
-        // We can expose a hook or just let app.js call it after connect
     }, UI_CONFIG.statusCheckDelay);
   };
 
@@ -64,7 +62,7 @@ export function connectWebSocket() {
         parseArduinoMessage(data.message);
       } else if (data.type === 'status') {
         if (data.connected) {
-           onStatus(true, 'Connected');
+           onStatus(true, 'Connected to Arduino');
            onLog('Arduino connected');
            setTimeout(() => sendCommand('I'), 500);
         } else {

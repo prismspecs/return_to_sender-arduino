@@ -607,8 +607,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }, onStatus: (conn, msg) => {
         const ind = document.getElementById('statusIndicator');
         const txt = document.getElementById('statusText');
-        if(conn) { ind.classList.add('connected'); ind.classList.remove('connecting'); txt.textContent = msg || 'Connected'; }
-        else { ind.classList.remove('connected'); txt.textContent = msg || 'Disconnected'; }
+        if(conn) { 
+            ind.classList.add('connected'); 
+            ind.classList.remove('connecting'); 
+            txt.textContent = 'Connected to Arduino'; 
+        }
+        else { 
+            ind.classList.remove('connected'); 
+            txt.textContent = msg || 'Disconnected'; 
+        }
     }, onPositionUpdate: () => {} });
     Comms.connectWebSocket();
     Storage.loadChoreographyFromLocal({ onLoaded: () => refreshUI() });
