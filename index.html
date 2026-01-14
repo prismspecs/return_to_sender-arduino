@@ -19,9 +19,7 @@
             <select id="portSelector" style="max-width: 150px; font-size: 11px; padding: 2px;"></select>
             <button onclick="connectSerial()" id="btnConnect" class="btn-home" style="background-color: #555; border-color: #555; padding: 2px 8px;">Connect</button>
         </div>
-        <button onclick="haltMotors()" class="btn-home" style="background-color: #d32f2f; border-color: #d32f2f; font-weight: 800; letter-spacing: 1px;">STOP</button>
-        <button onclick="setFloor()" class="btn-home" style="background-color: #4CAF50; border-color: #4CAF50;">Set Floor</button>
-        <button onclick="setCeiling()" class="btn-home" style="background-color: #2196F3; border-color: #2196F3;">Set Ceiling</button>
+        <button onclick="haltMotors()" class="btn-home" style="background-color: #d32f2f; border-color: #d32f2f; font-weight: 800; letter-spacing: 1px;">Emergency Stop Motors</button>
         <div class="toggle-switch-container">
           <label for="motorToggle" class="toggle-switch-label">Motors:</label>
           <label class="toggle-switch">
@@ -81,6 +79,12 @@
               </select>
             </div>
           </div>
+        </div>
+
+        <!-- Limit Controls -->
+        <div class="limit-controls" style="display: flex; gap: 5px;">
+          <button onclick="setFloor()" class="btn-home" style="background-color: #eee; border-color: #ccc; color: #333; flex-grow: 1;">Set Floor</button>
+          <button onclick="setCeiling()" class="btn-home" style="background-color: #eee; border-color: #ccc; color: #333; flex-grow: 1;">Set Ceiling</button>
         </div>
 
         <!-- Settings (Speed/Accel) -->
@@ -244,9 +248,9 @@
             <div class="choreo-row" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
               <div style="display: inline-flex; gap: 5px; align-items: center;">
                 <button onclick="recordKeyframe()" class="btn-record">Record Keyframe</button>
-                <button onclick="playChoreography()" id="btnPlay">Play</button>
+                <button onclick="playChoreography()" id="btnPlay" style="background-color: green; color: white; border-color: green;">Play</button>
                 <button onclick="stopChoreography()" id="btnStop">Stop</button>
-                <button onclick="clearChoreography()">Clear</button>
+                <button onclick="clearChoreography()">Clear Keyframes</button>
               </div>
 
               <div style="display: flex; align-items: center; gap: 8px; border-left: 1px solid var(--border); padding-left: 10px;">
