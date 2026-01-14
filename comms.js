@@ -35,11 +35,9 @@ export function connectWebSocket() {
 
   ws.onopen = () => {
     clearTimeout(connectionTimeout);
-    onStatus(true, 'Connected to Arduino');
+    // onStatus(true, 'Connected to Arduino'); // Wait for actual serial status
     onLog('Connected to server');
-    setTimeout(() => {
-        sendCommand('I');
-    }, UI_CONFIG.statusCheckDelay);
+    // Status check 'I' will be sent when we receive connected: true from server
   };
 
   ws.onclose = () => {

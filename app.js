@@ -654,6 +654,8 @@ window.fetchPorts = async () => {
             const lastPort = localStorage.getItem('lastSerialPort');
             if (lastPort && [...select.options].some(o => o.value === lastPort)) {
                 select.value = lastPort;
+                // Auto-connect if we have a saved port
+                window.connectSerial();
             }
         }
     } catch (e) {
