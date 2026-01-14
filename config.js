@@ -14,11 +14,11 @@ export const VBOX_CONFIG = {
   boxLength: 350,   // Distance between corners Y
   
   // Motor & Spool Physics
-  spoolDiameter: 35,      // Diameter of the spool in mm
+  spoolDiameter: 24,      // Diameter of the spool in mm
   motorStepsPerRev: 200,  // Steps per full revolution
   
   // Microstepping (Match CNC Shield jumpers)
-  microsteps: 16,          
+  microsteps: 8,          
   
   // Dynamic calculation: Steps required to move 1mm
   get stepsPerMm() {

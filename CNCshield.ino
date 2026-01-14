@@ -48,13 +48,18 @@
 // ============================================================================
 
 // --- MICROSTEPPING & SPEED SETTINGS ---
-// Current Setup: 1/16 Microstepping
+// Current Setup: 1/8 Microstepping
 // 1.8 deg motor = 200 steps/rev
-// 1/16 microstepping = 3200 steps/rev
+// 1/8 microstepping = 1600 steps/rev
+//
+// Spool Geometry:
+// Trough diameter = 24mm
+// Circumference = π * 24mm = 75.4mm/rev
+// Linear resolution = 1600 steps / 75.4mm = 21.2 steps/mm
 
 // Speed & Acceleration
 // Note: Arduino Uno R4 (48MHz) can handle higher interrupt rates than R3.
-// 24000 steps/sec @ 3200 steps/rev = 7.5 revs/sec
+// 24000 steps/sec @ 1600 steps/rev = 15 revs/sec = 1131 mm/sec
 #define SPEED_DEFAULT 24000.0
 #define ACCEL_DEFAULT 24000.0
 

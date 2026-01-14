@@ -637,7 +637,61 @@ window.toggleMappingPanel = () => {
 window.updateMicrosteppingOptions = updateMicrosteppingOptions;
 window.updateMicrostepping = updateMicrostepping;
 
+window.fetchPorts = async () => {
+    try {
+        const res = await fetch('/api/ports');
+        const ports = await res.json();
+        const select = document.getElementById('portSelector');
+        if (select) {
+            select.innerHTML = '';
+            ports.forEach(port => {
+                const opt = document.createElement('option');
+                opt.value = port.path;
+                opt.textContent = port.path + (port.manufacturer ? ` (${port.manufacturer})` : '');
+                select.appendChild(opt);
+            });
+            // Select the last used port if available in localStorage
+            const lastPort = localStorage.getItem('lastSerialPort');
+            if (lastPort && [...select.options].some(o => o.value === lastPort)) {
+                select.value = lastPort;
+            }
+        }
+    } catch (e) {
+        console.error('Error fetching ports:', e);
+    }
+};
+
+window.connectSerial = async () => {
+    const port = document.getElementById('portSelector').value;
+    if (!port) return;
+    localStorage.setItem('lastSerialPort', port);
+    
+    // Disable button temporarily
+    const btn = document.getElementById('btnConnect');
+    const originalText = btn.textContent;
+    btn.textContent = '...';
+    btn.disabled = true;
+
+    try {
+        const res = await fetch('/api/connect', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ port })
+        });
+        const data = await res.json();
+        console.log(data);
+    } catch (e) {
+        console.error('Error connecting:', e);
+    } finally {
+        setTimeout(() => {
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }, 1000);
+    }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
+    window.fetchPorts();
     loadMapping();
     loadReverseFlags();
     loadMicrostepping();

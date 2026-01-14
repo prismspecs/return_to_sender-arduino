@@ -12,7 +12,7 @@ const app = express();
 const PORT = 3000;
 
 // Configure serial port - adjust to your device
-const SERIAL_PORT = '/dev/ttyACM0';
+let currentSerialPort = null;
 const BAUD_RATE = 115200;
 
 let serialPort = null;
@@ -21,20 +21,32 @@ let wsClients = new Set();
 let isSerialConnected = false;
 
 // Initialize serial connection
-function initSerial() {
-  if (isSerialConnected) return;
+function initSerial(portPath) {
+  if (!portPath) return;
 
   // Cleanup previous instance
   if (serialPort) {
+    // If we are already connected to this port, do nothing
+    if (serialPort.path === portPath && serialPort.isOpen) {
+        console.log(`Already connected to ${portPath}`);
+        return;
+    }
+    
+    console.log('Closing existing connection...');
+    if (serialPort.isOpen) {
+        serialPort.close();
+    }
     serialPort.removeAllListeners();
     if (parser) parser.removeAllListeners();
     serialPort = null;
     parser = null;
   }
 
+  currentSerialPort = portPath;
+
   try {
     serialPort = new SerialPort({
-      path: SERIAL_PORT,
+      path: portPath,
       baudRate: BAUD_RATE,
       autoOpen: false
     });
@@ -43,31 +55,21 @@ function initSerial() {
 
     serialPort.open((err) => {
       if (err) {
-        // Silent retry or minimal log
-        // console.log('Waiting for Arduino...');
+        console.error(`Error opening ${portPath}:`, err.message);
         isSerialConnected = false;
-        setTimeout(initSerial, 2000);
+        broadcastStatus(false);
         return;
       }
       
-      console.log(`\n✓ Connected to Arduino on ${SERIAL_PORT}`);
+      console.log(`\n✓ Connected to Arduino on ${portPath}`);
       isSerialConnected = true;
-      
-      // Notify all connected clients
-      wsClients.forEach(client => {
-        if (client.readyState === 1) {
-          client.send(JSON.stringify({
-            type: 'status',
-            connected: true
-          }));
-        }
-      });
+      broadcastStatus(true);
     });
 
     // Forward Arduino responses to all connected WebSocket clients
     parser.on('data', (data) => {
       const message = data.trim();
-      console.log('Arduino:', message);
+      // console.log('Arduino:', message);
       
       wsClients.forEach(client => {
         if (client.readyState === 1) { // WebSocket.OPEN
@@ -81,34 +83,57 @@ function initSerial() {
 
     serialPort.on('error', (err) => {
       console.error('Serial port error:', err.message);
+      isSerialConnected = false;
+      broadcastStatus(false);
     });
 
     serialPort.on('close', () => {
-      console.log('\nSerial port closed. Reconnecting...');
+      console.log('\nSerial port closed.');
       isSerialConnected = false;
-      
-      // Notify all connected clients
-      wsClients.forEach(client => {
-        if (client.readyState === 1) {
-          client.send(JSON.stringify({
-            type: 'status',
-            connected: false
-          }));
-        }
-      });
-      
-      setTimeout(initSerial, 2000);
+      broadcastStatus(false);
     });
 
   } catch (error) {
     console.error('Failed to initialize serial:', error.message);
-    setTimeout(initSerial, 2000);
+    isSerialConnected = false;
+    broadcastStatus(false);
   }
+}
+
+function broadcastStatus(connected) {
+    wsClients.forEach(client => {
+        if (client.readyState === 1) {
+            client.send(JSON.stringify({
+                type: 'status',
+                connected: connected
+            }));
+        }
+    });
 }
 
 // Serve static files
 app.use(express.static(__dirname));
 app.use(express.json());
+
+// API endpoint to list ports
+app.get('/api/ports', async (req, res) => {
+    try {
+        const ports = await SerialPort.list();
+        res.json(ports);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// API endpoint to connect to a port
+app.post('/api/connect', (req, res) => {
+    const { port } = req.body;
+    if (!port) {
+        return res.status(400).json({ error: 'Port is required' });
+    }
+    initSerial(port);
+    res.json({ success: true, message: `Connecting to ${port}...` });
+});
 
 // API endpoint to send commands
 app.post('/api/command', (req, res) => {
@@ -134,7 +159,7 @@ SerialPort.list().then(ports => {
     console.log('No serial ports found!');
   } else {
     ports.forEach(port => {
-      console.log(`  ${port.path}${port.path === SERIAL_PORT ? ' (configured)' : ''}`);
+      console.log(`  ${port.path}`);
     });
   }
   console.log('==============================\n');
@@ -197,7 +222,10 @@ wss.on('connection', (ws) => {
 });
 
 // Initialize serial connection
-initSerial();
+
+// initSerial(); 
+
+
 
 // Heartbeat to keep Arduino alive
 setInterval(() => {

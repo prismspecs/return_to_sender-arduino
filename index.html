@@ -15,6 +15,10 @@
           <span class="status-indicator" id="statusIndicator"></span>
           <span id="statusText">Connecting...</span>
         </div>
+        <div class="port-controls" style="display: flex; gap: 5px;">
+            <select id="portSelector" style="max-width: 150px; font-size: 11px; padding: 2px;"></select>
+            <button onclick="connectSerial()" id="btnConnect" class="btn-home" style="background-color: #555; border-color: #555; padding: 2px 8px;">Connect</button>
+        </div>
         <button onclick="haltMotors()" class="btn-home" style="background-color: #d32f2f; border-color: #d32f2f; font-weight: 800; letter-spacing: 1px;">STOP</button>
         <button onclick="setFloor()" class="btn-home" style="background-color: #4CAF50; border-color: #4CAF50;">Set Floor</button>
         <button onclick="setCeiling()" class="btn-home" style="background-color: #2196F3; border-color: #2196F3;">Set Ceiling</button>
