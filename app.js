@@ -1,6 +1,5 @@
 import { 
     VBOX_CONFIG, 
-    PHYSICAL_Z_OFFSET, 
     AXIS_NAMES 
 } from './config.js';
 
@@ -64,19 +63,25 @@ const uiCallbacks = {
 
 // --- Helper Functions ---
 function initVirtualBox() {
-  const corners = calculateCorners({ z: PHYSICAL_Z_OFFSET, roll: 0, pitch: 0 });
+  const corners = calculateCorners({ z: -VBOX_CONFIG.maxHeight, roll: 0, pitch: 0 });
   const motors = getMotorPositions();
   for (let i = 0; i < 4; i++) {
     state.homeLengths[i] = calculateDistance(motors[i], corners[i]);
   }
 }
 
+
 function applyMapping(logicalSteps) {
   const physicalSteps = [0, 0, 0, 0];
+  const debugMap = [];
   for (let i = 0; i < 4; i++) {
     const driverIndex = state.motorMapping[i];
-    physicalSteps[driverIndex] = logicalSteps[i];
+    let s = logicalSteps[i];
+    if (state.reverseFlags[i]) s = -s;
+    physicalSteps[driverIndex] = s;
+    debugMap.push(`M${i}->Dr${driverIndex} (Rev:${state.reverseFlags[i]}): ${logicalSteps[i]}->${s}`);
   }
+  console.log("Mapping:", debugMap.join(', '));
   return physicalSteps;
 }
 
@@ -223,7 +228,6 @@ function updatePositionDisplay(motorIndex) {
   const physicalAxisIndex = state.motorMapping[motorIndex];
   const displayId = `pos${AXIS_NAMES[physicalAxisIndex]}`;
   let displayValue = Math.round(state.visualPositions[motorIndex]);
-  if (state.reverseFlags[physicalAxisIndex]) displayValue = -displayValue;
   
   const displayEl = document.getElementById(displayId);
   if(displayEl) displayEl.textContent = displayValue;
@@ -243,9 +247,9 @@ window.quickMove = (axisName, axisIndex, distanceMm) => {
   const steps = Math.round(distanceMm * VBOX_CONFIG.stepsPerMm);
   state.currentPositions[axisIndex] += steps;
   const physRel = [0,0,0,0];
-  const relative = [0,0,0,0];
-  relative[axisIndex] = steps;
-  for(let i=0; i<4; i++) physRel[state.motorMapping[i]] = relative[i];
+  let relSteps = steps;
+  if(state.reverseFlags[axisIndex]) relSteps = -relSteps;
+  physRel[state.motorMapping[axisIndex]] = relSteps;
   Comms.sendCommand(`R ${physRel.join(' ')}`);
   updatePositionDisplay(axisIndex);
 };
@@ -253,10 +257,8 @@ window.quickMove = (axisName, axisIndex, distanceMm) => {
 window.moveToSlider = (axisName, axisIndex, value) => {
     let target = parseInt(value);
     const phys = state.motorMapping[axisIndex];
-    if (state.reverseFlags[phys]) target = -target;
     state.currentPositions[axisIndex] = target;
-    const physicalSteps = [0,0,0,0];
-    for(let i=0; i<4; i++) physicalSteps[state.motorMapping[i]] = state.currentPositions[i];
+    const physicalSteps = applyMapping(state.currentPositions);
     Comms.sendCommand(`M ${physicalSteps.join(' ')}`);
     updatePositionDisplay(axisIndex);
 };
@@ -265,7 +267,11 @@ window.moveAllMotors = (dist) => {
     const steps = Math.round(dist * VBOX_CONFIG.stepsPerMm);
     for(let i=0; i<4; i++) state.currentPositions[i] += steps;
     const physRel = [0,0,0,0];
-    for(let i=0; i<4; i++) physRel[state.motorMapping[i]] = steps;
+    for(let i=0; i<4; i++) {
+        let s = steps;
+        if(state.reverseFlags[i]) s = -s;
+        physRel[state.motorMapping[i]] = s;
+    }
     Comms.sendCommand(`R ${physRel.join(' ')}`);
     for(let i=0; i<4; i++) updatePositionDisplay(i);
 };
@@ -279,8 +285,7 @@ window.moveAllToZero = () => {
 window.toggleReverse = (logicalIndex, checked) => {
     state.reverseFlags[logicalIndex] = checked;
     localStorage.setItem('reverseFlags', JSON.stringify(state.reverseFlags));
-    const phys = state.motorMapping[logicalIndex];
-    Comms.sendCommand(`V ${phys} ${checked ? 1 : 0}`);
+    // Software inversion only. No Hardware command sent.
 };
 
 window.toggleMotors = (checked) => {
@@ -305,10 +310,24 @@ window.setFloor = () => {
 
 window.setCeiling = () => {
     const maxSteps = Math.max(...state.currentPositions);
-    state.maxCeiling = Math.max(100, maxSteps / VBOX_CONFIG.stepsPerMm);
-    document.getElementById('boxZ').max = Math.ceil(state.maxCeiling);
-    document.getElementById('editBoxZ').max = Math.ceil(state.maxCeiling);
+    state.maxCeiling = Math.round(Math.max(100, maxSteps / VBOX_CONFIG.stepsPerMm));
+    localStorage.setItem('maxCeiling', state.maxCeiling);
+    document.getElementById('boxZ').max = state.maxCeiling;
+    document.getElementById('editBoxZ').max = state.maxCeiling;
+    const manualIn = document.getElementById('manualCeiling');
+    if(manualIn) manualIn.value = state.maxCeiling;
     for(let i=0; i<4; i++) updatePositionDisplay(i);
+};
+
+window.updateCeilingFromInput = () => {
+    const val = parseInt(document.getElementById('manualCeiling').value);
+    if(!isNaN(val) && val > 0) {
+        state.maxCeiling = val;
+        localStorage.setItem('maxCeiling', state.maxCeiling);
+        document.getElementById('boxZ').max = state.maxCeiling;
+        document.getElementById('editBoxZ').max = state.maxCeiling;
+        for(let i=0; i<4; i++) updatePositionDisplay(i);
+    }
 };
 
 window.haltMotors = () => {
@@ -420,6 +439,159 @@ window.handleFileLoad = (e) => {
     e.target.value = '';
 };
 
+window.saveConfig = () => {
+    const config = {
+        motorMapping: state.motorMapping,
+        reverseFlags: state.reverseFlags,
+        frameWidth: VBOX_CONFIG.frameWidth,
+        frameLength: VBOX_CONFIG.frameLength,
+        maxHeight: VBOX_CONFIG.maxHeight,
+        driverType: localStorage.getItem('driverType') || 'A4988',
+        microsteps: VBOX_CONFIG.microsteps,
+        uiMaxSpeed: state.uiMaxSpeed,
+        uiAcceleration: state.uiAcceleration,
+        restEnabled: state.restEnabled,
+        restDuration: state.restDuration,
+        timelineDuration: state.timelineDuration,
+        maxCeiling: state.maxCeiling,
+        smoothAnimation: document.getElementById('smoothAnimation')?.checked
+    };
+    
+    const blob = new Blob([JSON.stringify(config, null, 2)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'rts-config.json';
+    a.click();
+};
+
+window.loadConfig = () => {
+    document.getElementById('configFileInput').click();
+};
+
+window.handleConfigLoad = (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+        try {
+            const config = JSON.parse(evt.target.result);
+            
+            // Apply Settings
+            if(config.motorMapping) {
+                state.motorMapping = config.motorMapping;
+                localStorage.setItem('motorMapping', JSON.stringify(state.motorMapping));
+            }
+            if(config.reverseFlags) {
+                state.reverseFlags = config.reverseFlags;
+                localStorage.setItem('reverseFlags', JSON.stringify(state.reverseFlags));
+            }
+            
+            // Frame
+            if(config.frameWidth) VBOX_CONFIG.frameWidth = parseFloat(config.frameWidth);
+            if(config.frameLength) VBOX_CONFIG.frameLength = parseFloat(config.frameLength);
+            if(config.maxHeight) VBOX_CONFIG.maxHeight = parseFloat(config.maxHeight);
+            
+            localStorage.setItem('frameWidth', VBOX_CONFIG.frameWidth);
+            localStorage.setItem('frameLength', VBOX_CONFIG.frameLength);
+            localStorage.setItem('frameHeight', VBOX_CONFIG.maxHeight);
+            
+            // Driver & Microsteps
+            if(config.driverType) localStorage.setItem('driverType', config.driverType);
+            if(config.microsteps) {
+                VBOX_CONFIG.microsteps = parseInt(config.microsteps);
+                localStorage.setItem('microsteps', VBOX_CONFIG.microsteps);
+            }
+            
+            // Speed & Accel
+            if(config.uiMaxSpeed) {
+                state.uiMaxSpeed = config.uiMaxSpeed;
+                const val = state.uiMaxSpeed / 1000;
+                document.getElementById('speed').value = val;
+                document.getElementById('speedSlider').value = val;
+                Comms.sendCommand(`S ${state.uiMaxSpeed}`);
+            }
+             if(config.uiAcceleration) {
+                state.uiAcceleration = config.uiAcceleration;
+                const val = state.uiAcceleration / 1000;
+                document.getElementById('accel').value = val;
+                document.getElementById('accelSlider').value = val;
+                Comms.sendCommand(`A ${state.uiAcceleration}`);
+            }
+            
+            // Rest
+            if(config.restEnabled !== undefined) state.restEnabled = config.restEnabled;
+            if(config.restDuration !== undefined) state.restDuration = parseFloat(config.restDuration);
+            localStorage.setItem('restEnabled', state.restEnabled);
+            localStorage.setItem('restDuration', state.restDuration);
+            
+            // Timeline
+            if(config.timelineDuration !== undefined) state.timelineDuration = parseFloat(config.timelineDuration);
+            localStorage.setItem('timelineDuration', state.timelineDuration);
+            
+            // Ceiling
+             if(config.maxCeiling !== undefined) {
+                state.maxCeiling = parseFloat(config.maxCeiling);
+                localStorage.setItem('maxCeiling', state.maxCeiling);
+             }
+             
+             // Smooth
+             if(config.smoothAnimation !== undefined) {
+                 const el = document.getElementById('smoothAnimation');
+                 if(el) el.checked = config.smoothAnimation;
+             }
+
+            // --- REFRESH UI ---
+            // Mapping UI
+            for(let i=0; i<4; i++) {
+                const el = document.getElementById(`mapM${i}`);
+                if(el) el.value = state.motorMapping[i];
+            }
+            const uniqueDrivers = new Set(state.motorMapping);
+            const warning = document.getElementById('mappingWarning');
+            if (warning) warning.style.display = uniqueDrivers.size < 4 ? 'inline' : 'none';
+
+            // Reverse Flags UI
+            const reverseIds = ['reverseX', 'reverseY', 'reverseZ', 'reverseA'];
+            for(let i=0; i<4; i++) {
+                const el = document.getElementById(reverseIds[i]);
+                if(el) el.checked = state.reverseFlags[i];
+            }
+
+            // Frame UI
+            document.getElementById('frameWidth').value = VBOX_CONFIG.frameWidth;
+            document.getElementById('frameLength').value = VBOX_CONFIG.frameLength;
+            document.getElementById('frameHeight').value = VBOX_CONFIG.maxHeight;
+            
+            // Update Slider Max
+            document.getElementById('boxZ').max = VBOX_CONFIG.maxHeight;
+            document.getElementById('editBoxZ').max = VBOX_CONFIG.maxHeight;
+
+            // Driver & Microsteps UI
+            const driverSelect = document.getElementById('driverType');
+            if(driverSelect && config.driverType) driverSelect.value = config.driverType;
+            
+            window.updateMicrosteppingOptions(); 
+
+            // Rest UI
+            document.getElementById('restEnabled').checked = state.restEnabled;
+            document.getElementById('restDuration').value = state.restDuration;
+            
+            // Timeline UI
+            document.getElementById('timelineDuration').value = state.timelineDuration;
+            
+            // Recalc
+            initVirtualBox();
+            refreshUI();
+            
+            alert("Config loaded successfully");
+
+        } catch(e) { console.error('Error loading config:', e); alert('Invalid config file'); }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+};
+
 window.handleAudioLoad = (e) => {
     const file = e.target.files[0];
     if(file) {
@@ -442,7 +614,7 @@ function goToKeyframe(index) {
     document.getElementById('editSpeed').value = (kf.speed || state.uiMaxSpeed)/1000;
     document.getElementById('editAccel').value = (kf.accel || state.uiAcceleration)/1000;
     for(let i=0; i<4; i++) document.getElementById(`editM${i}`).value = kf.positions[i];
-    const z = kf.boxPose ? kf.boxPose.z - PHYSICAL_Z_OFFSET : 0;
+    const z = kf.boxPose ? kf.boxPose.z + VBOX_CONFIG.maxHeight : 0;
     document.getElementById('editBoxZ').value = z;
     document.getElementById('editBoxRoll').value = kf.boxPose?.roll || 0;
     document.getElementById('editBoxPitch').value = kf.boxPose?.pitch || 0;
@@ -458,7 +630,7 @@ window.updateEditorFromBox = (skipApply) => {
     document.getElementById('dispEditBoxRoll').textContent = r + '°';
     document.getElementById('dispEditBoxPitch').textContent = p + '°';
     if (!skipApply) {
-        const steps = calculateTargetSteps({z: parseInt(z) + PHYSICAL_Z_OFFSET, roll: parseInt(r), pitch: parseInt(p)}, state.homeLengths);
+        const steps = calculateTargetSteps({z: parseInt(z) - VBOX_CONFIG.maxHeight, roll: parseInt(r), pitch: parseInt(p)}, state.homeLengths);
         for(let i=0; i<4; i++) document.getElementById(`editM${i}`).value = steps[i];
         window.saveKeyframeChanges();
     }
@@ -472,7 +644,7 @@ window.saveKeyframeChanges = () => {
     kf.speed = parseFloat(document.getElementById('editSpeed').value) * 1000;
     kf.accel = parseFloat(document.getElementById('editAccel').value) * 1000;
     kf.positions = [parseInt(document.getElementById('editM0').value),parseInt(document.getElementById('editM1').value),parseInt(document.getElementById('editM2').value),parseInt(document.getElementById('editM3').value)];
-    kf.boxPose = { z: parseInt(document.getElementById('editBoxZ').value) + PHYSICAL_Z_OFFSET, roll: parseInt(document.getElementById('editBoxRoll').value), pitch: parseInt(document.getElementById('editBoxPitch').value) };
+    kf.boxPose = { z: parseInt(document.getElementById('editBoxZ').value) - VBOX_CONFIG.maxHeight, roll: parseInt(document.getElementById('editBoxRoll').value), pitch: parseInt(document.getElementById('editBoxPitch').value) };
     state.choreography.sort((a,b) => a.time - b.time);
     Storage.saveChoreographyToLocal();
     refreshUI();
@@ -489,6 +661,17 @@ window.getCurrentForEditor = () => {
     window.saveKeyframeChanges();
 };
 
+window.updateBoxFromInput = (axis) => {
+    const inputId = axis === 'roll' ? 'valBoxRollInput' : 'valBoxPitchInput';
+    const sliderId = axis === 'roll' ? 'boxRoll' : 'boxPitch';
+    
+    const val = parseInt(document.getElementById(inputId).value);
+    if (!isNaN(val)) {
+        document.getElementById(sliderId).value = val;
+        window.updateBox();
+    }
+};
+
 window.updateBoxDisplay = () => {
     const z = document.getElementById('boxZ').value;
     const r = document.getElementById('boxRoll').value;
@@ -499,22 +682,114 @@ window.updateBoxDisplay = () => {
 };
 
 window.updateBox = () => {
-    const z = parseInt(document.getElementById('boxZ').value);
-    const r = parseInt(document.getElementById('boxRoll').value);
-    const p = parseInt(document.getElementById('boxPitch').value);
-    state.boxState = { z: z + PHYSICAL_Z_OFFSET, roll: r, pitch: p };
-    const steps = calculateTargetSteps(state.boxState, state.homeLengths);
-    state.currentPositions = [...steps];
-    const phys = applyMapping(steps);
-    Comms.sendCommand(`M ${phys.join(' ')}`);
-    for(let i=0; i<4; i++) updatePositionDisplay(i);
-    window.updateBoxDisplay();
+    try {
+        const z = parseInt(document.getElementById('boxZ').value);
+        const r = parseInt(document.getElementById('boxRoll').value);
+        const p = parseInt(document.getElementById('boxPitch').value);
+        state.boxState = { z: z - VBOX_CONFIG.maxHeight, roll: r, pitch: p };
+        
+        // Ensure homeLengths are valid
+        if(!state.homeLengths || state.homeLengths.length !== 4 || isNaN(state.homeLengths[0])) {
+            initVirtualBox();
+            console.log("Re-initialized virtual box");
+        }
+
+        const steps = calculateTargetSteps(state.boxState, state.homeLengths);
+        
+        // Debug Logging
+        console.log("UpdateBox:", {
+            z, r, p,
+            logicalSteps: steps,
+            reverseFlags: state.reverseFlags,
+            motorMapping: state.motorMapping
+        });
+
+        if (steps.some(isNaN)) {
+             throw new Error("Calculated steps contain NaN. Check Config.");
+        }
+
+        state.currentPositions = [...steps];
+        const phys = applyMapping(steps);
+        
+        // Log to on-screen console for user visibility
+        const c = document.getElementById('console');
+        if(c) { 
+             const d = document.createElement('div'); 
+             d.textContent = `Cmd: M ${phys.join(' ')}`; 
+             c.appendChild(d); 
+             c.scrollTop = c.scrollHeight;
+        }
+
+        Comms.sendCommand(`M ${phys.join(' ')}`);
+        for(let i=0; i<4; i++) updatePositionDisplay(i);
+        window.updateBoxDisplay();
+        
+    } catch (e) {
+        console.error(e);
+        const c = document.getElementById('console');
+        if(c) { 
+            const d = document.createElement('div'); 
+            d.textContent = "Error: " + e.message; 
+            d.style.color = "red";
+            c.appendChild(d); 
+            c.scrollTop = c.scrollHeight;
+        }
+    }
 };
 
 window.resetBox = () => {
     document.getElementById('boxZ').value = 0; document.getElementById('boxRoll').value = 0; document.getElementById('boxPitch').value = 0;
     window.updateBox();
 };
+
+window.resetBoxRoll = () => {
+    document.getElementById('boxRoll').value = 0;
+    window.updateBox();
+};
+
+window.resetBoxPitch = () => {
+    document.getElementById('boxPitch').value = 0;
+    window.updateBox();
+};
+
+window.updateFrameDimensions = () => {
+    const w = parseFloat(document.getElementById('frameWidth').value);
+    const l = parseFloat(document.getElementById('frameLength').value);
+    const h = parseFloat(document.getElementById('frameHeight').value);
+    
+    if(!isNaN(w) && w > 0) VBOX_CONFIG.frameWidth = w;
+    if(!isNaN(l) && l > 0) VBOX_CONFIG.frameLength = l;
+    if(!isNaN(h) && h > 0) VBOX_CONFIG.maxHeight = h;
+    
+    localStorage.setItem('frameWidth', VBOX_CONFIG.frameWidth);
+    localStorage.setItem('frameLength', VBOX_CONFIG.frameLength);
+    localStorage.setItem('frameHeight', VBOX_CONFIG.maxHeight);
+
+    // Update slider max
+    document.getElementById('boxZ').max = VBOX_CONFIG.maxHeight;
+    document.getElementById('editBoxZ').max = VBOX_CONFIG.maxHeight;
+    
+    initVirtualBox(); // Recalculate home lengths
+};
+
+function loadFrameDimensions() {
+    const w = localStorage.getItem('frameWidth');
+    const l = localStorage.getItem('frameLength');
+    const h = localStorage.getItem('frameHeight');
+    
+    if(w) VBOX_CONFIG.frameWidth = parseFloat(w);
+    if(l) VBOX_CONFIG.frameLength = parseFloat(l);
+    if(h) VBOX_CONFIG.maxHeight = parseFloat(h);
+    
+    document.getElementById('frameWidth').value = VBOX_CONFIG.frameWidth;
+    document.getElementById('frameLength').value = VBOX_CONFIG.frameLength;
+    
+    const fh = document.getElementById('frameHeight');
+    if(fh) fh.value = VBOX_CONFIG.maxHeight;
+
+    document.getElementById('boxZ').max = VBOX_CONFIG.maxHeight;
+    document.getElementById('editBoxZ').max = VBOX_CONFIG.maxHeight;
+}
 
 window.returnToStart = () => {
     state.currentTime = 0;
@@ -567,8 +842,18 @@ function loadMapping() {
 function loadReverseFlags() {
     const f = localStorage.getItem('reverseFlags');
     if(f) {
-        state.reverseFlags = JSON.parse(f);
-        // Sync checkboxes
+        try {
+            const flags = JSON.parse(f);
+            state.reverseFlags = flags.map(x => !!x); // Ensure booleans
+            console.log("Loaded Reverse Flags:", state.reverseFlags);
+            const reverseIds = ['reverseX', 'reverseY', 'reverseZ', 'reverseA'];
+            for(let i=0; i<4; i++) {
+                const el = document.getElementById(reverseIds[i]);
+                if(el) el.checked = state.reverseFlags[i];
+            }
+        } catch(e) {
+            console.error("Error loading reverse flags:", e);
+        }
     }
 }
 
@@ -627,10 +912,13 @@ window.updateMapping = () => {
 
 window.toggleMappingPanel = () => {
     const panel = document.getElementById('mappingPanel');
+    const btn = document.getElementById('btnToggleMapping');
     if (panel.style.display === 'none') {
         panel.style.display = 'grid';
+        if(btn) btn.textContent = '▲';
     } else {
         panel.style.display = 'none';
+        if(btn) btn.textContent = '▼';
     }
 };
 
@@ -692,12 +980,37 @@ window.connectSerial = async () => {
     }
 };
 
+window.syncHardware = () => {
+    console.log("Syncing Hardware... Waiting 2s for boot...");
+    setTimeout(async () => {
+        const wait = (ms) => new Promise(r => setTimeout(r, ms));
+        
+        // Sync Speed/Accel
+        Comms.sendCommand(`S ${state.uiMaxSpeed}`);
+        await wait(100);
+        Comms.sendCommand(`A ${state.uiAcceleration}`);
+        console.log("Hardware Synced (Speed/Accel only)");
+    }, 2000);
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     window.fetchPorts();
     loadMapping();
     loadReverseFlags();
     loadMicrostepping();
+    loadFrameDimensions();
     initVirtualBox();
+
+    const savedCeiling = localStorage.getItem('maxCeiling');
+    if(savedCeiling) {
+        state.maxCeiling = Math.round(parseFloat(savedCeiling));
+        const boxZ = document.getElementById('boxZ');
+        if(boxZ) boxZ.max = state.maxCeiling;
+        const editBoxZ = document.getElementById('editBoxZ');
+        if(editBoxZ) editBoxZ.max = state.maxCeiling;
+        const manualIn = document.getElementById('manualCeiling');
+        if(manualIn) manualIn.value = state.maxCeiling;
+    }
     
     // Load rest settings from localStorage
     const savedRestEnabled = localStorage.getItem('restEnabled');
@@ -723,6 +1036,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ind.classList.add('connected'); 
             ind.classList.remove('connecting'); 
             txt.textContent = 'Connected to Arduino'; 
+            window.syncHardware();
         }
         else { 
             ind.classList.remove('connected'); 

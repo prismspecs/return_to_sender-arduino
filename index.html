@@ -37,54 +37,83 @@
         <!-- Motor Mapping -->
         <div class="mapping-section" style="padding: 10px; background: var(--bg-alt); border: 1px solid var(--border); border-radius: 4px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h3 style="margin: 0;">Motor Mapping</h3>
+            <h3 style="margin: 0;">Motor Configuration</h3>
             <span id="mappingWarning" style="display: none; color: #d32f2f; font-size: 11px; font-weight: 600;">⚠ Duplicate driver!</span>
-            <button onclick="toggleMappingPanel()" style="padding: 2px 8px; font-size: 12px;">Toggle</button>
+            <div style="display: flex; gap: 5px;">
+              <button onclick="saveConfig()" style="padding: 2px 8px; font-size: 11px;" title="Save Configuration">Save Config</button>
+              <button onclick="loadConfig()" style="padding: 2px 8px; font-size: 11px;" title="Load Configuration">Load Config</button>
+              <button id="btnToggleMapping" onclick="toggleMappingPanel()" style="padding: 2px 8px; font-size: 12px;">▼</button>
+            </div>
           </div>
-          <div id="mappingPanel" style="display: none; margin-top: 10px; grid-template-columns: repeat(4, 1fr); gap: 10px;">
-            <div>
-              <label style="display: block; font-size: 12px; margin-bottom: 4px;">Motor 1 (RL) &rarr;</label>
-              <select id="mapM0" onchange="updateMapping()" style="width: 100%;">
-                <option value="0">Driver X</option>
-                <option value="1">Driver Y</option>
-                <option value="2">Driver Z</option>
-                <option value="3">Driver A</option>
-              </select>
+          <div id="mappingPanel" style="display: none; margin-top: 10px; display: grid; gap: 10px;">
+            <!-- Frame Dimensions -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding-bottom: 10px; border-bottom: 1px dashed var(--border);">
+                 <div style="display: flex; flex-direction: column; justify-content: space-between;">
+                    <label style="display: block; font-size: 11px;">Frame Width (Left-Right)</label>
+                    <input type="number" id="frameWidth" style="width: 100%;" onchange="updateFrameDimensions()" title="Distance between Left and Right motor spools">
+                 </div>
+                 <div style="display: flex; flex-direction: column; justify-content: space-between;">
+                    <label style="display: block; font-size: 11px;">Frame Length (Front-Back)</label>
+                    <input type="number" id="frameLength" style="width: 100%;" onchange="updateFrameDimensions()" title="Distance between Front and Rear motor spools">
+                 </div>
+                 <div style="display: flex; flex-direction: column; justify-content: space-between;">
+                    <label style="display: block; font-size: 11px;">Rig Height (Floor-Ceiling)</label>
+                    <input type="number" id="frameHeight" style="width: 100%;" onchange="updateFrameDimensions()" title="Max vertical travel distance">
+                 </div>
             </div>
-            <div>
-              <label style="display: block; font-size: 12px; margin-bottom: 4px;">Motor 2 (RR) &rarr;</label>
-              <select id="mapM1" onchange="updateMapping()" style="width: 100%;">
-                <option value="0">Driver X</option>
-                <option value="1">Driver Y</option>
-                <option value="2">Driver Z</option>
-                <option value="3">Driver A</option>
-              </select>
-            </div>
-            <div>
-              <label style="display: block; font-size: 12px; margin-bottom: 4px;">Motor 3 (FR) &rarr;</label>
-              <select id="mapM2" onchange="updateMapping()" style="width: 100%;">
-                <option value="0">Driver X</option>
-                <option value="1">Driver Y</option>
-                <option value="2">Driver Z</option>
-                <option value="3">Driver A</option>
-              </select>
-            </div>
-            <div>
-              <label style="display: block; font-size: 12px; margin-bottom: 4px;">Motor 4 (FL) &rarr;</label>
-              <select id="mapM3" onchange="updateMapping()" style="width: 100%;">
-                <option value="0">Driver X</option>
-                <option value="1">Driver Y</option>
-                <option value="2">Driver Z</option>
-                <option value="3">Driver A</option>
-              </select>
+            
+            <!-- Mapping -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+              <div>
+                <label style="display: block; font-size: 12px; margin-bottom: 4px;">Motor 1 (RL) &rarr;</label>
+                <select id="mapM0" onchange="updateMapping()" style="width: 100%;">
+                  <option value="0">Driver X</option>
+                  <option value="1">Driver Y</option>
+                  <option value="2">Driver Z</option>
+                  <option value="3">Driver A</option>
+                </select>
+              </div>
+              <div>
+                <label style="display: block; font-size: 12px; margin-bottom: 4px;">Motor 2 (RR) &rarr;</label>
+                <select id="mapM1" onchange="updateMapping()" style="width: 100%;">
+                  <option value="0">Driver X</option>
+                  <option value="1">Driver Y</option>
+                  <option value="2">Driver Z</option>
+                  <option value="3">Driver A</option>
+                </select>
+              </div>
+              <div>
+                <label style="display: block; font-size: 12px; margin-bottom: 4px;">Motor 3 (FR) &rarr;</label>
+                <select id="mapM2" onchange="updateMapping()" style="width: 100%;">
+                  <option value="0">Driver X</option>
+                  <option value="1">Driver Y</option>
+                  <option value="2">Driver Z</option>
+                  <option value="3">Driver A</option>
+                </select>
+              </div>
+              <div>
+                <label style="display: block; font-size: 12px; margin-bottom: 4px;">Motor 4 (FL) &rarr;</label>
+                <select id="mapM3" onchange="updateMapping()" style="width: 100%;">
+                  <option value="0">Driver X</option>
+                  <option value="1">Driver Y</option>
+                  <option value="2">Driver Z</option>
+                  <option value="3">Driver A</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
 
         <!-- Limit Controls -->
-        <div class="limit-controls" style="display: flex; gap: 5px;">
-          <button onclick="setFloor()" class="btn-home" style="background-color: #eee; border-color: #ccc; color: #333; flex-grow: 1;">Set Floor</button>
-          <button onclick="setCeiling()" class="btn-home" style="background-color: #eee; border-color: #ccc; color: #333; flex-grow: 1;">Set Ceiling</button>
+        <div class="limit-controls" style="padding: 10px; background: var(--bg-alt); border: 1px solid var(--border); border-radius: 4px; display: flex; flex-direction: column; gap: 8px;">
+           <div style="display: flex; gap: 5px;">
+               <button onclick="setFloor()" class="btn-home" style="background-color: #eee; border-color: #ccc; color: #333; flex-grow: 1; font-size: 11px; padding: 4px;">Set Zero (Floor)</button>
+               <button onclick="setCeiling()" class="btn-home" style="background-color: #eee; border-color: #ccc; color: #333; flex-grow: 1; font-size: 11px; padding: 4px;">Set Max (Ceiling)</button>
+           </div>
+           <div style="display: flex; gap: 5px; align-items: center; justify-content: space-between;">
+               <label style="font-size: 11px;">Max Height (mm):</label>
+               <input type="number" id="manualCeiling" value="2050" step="1" onchange="updateCeilingFromInput()" style="flex-grow: 1; font-size: 11px; padding: 3px;">
+           </div>
         </div>
 
         <!-- Settings (Speed/Accel) -->
@@ -202,9 +231,34 @@
         <div class="virtual-box-controls">
           <h2>Virtual Box Control</h2>
           <div class="box-sliders">
-            <div class="control-group"><label>Height (Z)</label><input type="range" id="boxZ" min="0" max="900" value="0" step="1" oninput="updateBoxDisplay()" onchange="updateBox()"><span id="valBoxZ">0</span></div>
-            <div class="control-group"><label>Roll (X-Tilt)</label><input type="range" id="boxRoll" min="-45" max="45" value="0" step="1" oninput="updateBoxDisplay()" onchange="updateBox()"><span id="valBoxRoll">0°</span></div>
-            <div class="control-group"><label>Pitch (Y-Tilt)</label><input type="range" id="boxPitch" min="-45" max="45" value="0" step="1" oninput="updateBoxDisplay()" onchange="updateBox()"><span id="valBoxPitch">0°</span></div>
+            <div class="control-group"><label>Height (Z)</label><input type="range" id="boxZ" min="0" max="2050" value="0" step="1" oninput="updateBoxDisplay()" onchange="updateBox()"><span id="valBoxZ">0</span></div>
+                <div class="control-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <label>Roll (Left/Right Bank)</label>
+                        <input type="number" id="valBoxRollInput" value="0" style="width: 40px; text-align: right;" onchange="updateBoxFromInput('roll')">
+                    </div>
+                    <div style="display: flex; align-items: center;">
+                        <input type="range" id="boxRoll" min="-45" max="45" value="0" step="1" oninput="updateBoxDisplay()" onchange="updateBox()" style="flex-grow: 1;">
+                        <button onclick="resetBoxRoll()" style="padding: 2px 6px; font-size: 10px;">0</button>
+                    </div>
+                    <div style="text-align: right; font-size: 10px; color: #888;">
+                        <span id="valBoxRoll">0°</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <label>Pitch (Front/Back Tilt)</label>
+                        <input type="number" id="valBoxPitchInput" value="0" style="width: 40px; text-align: right;" onchange="updateBoxFromInput('pitch')">
+                    </div>
+                    <div style="display: flex; align-items: center;">
+                        <input type="range" id="boxPitch" min="-45" max="45" value="0" step="1" oninput="updateBoxDisplay()" onchange="updateBox()" style="flex-grow: 1;">
+                        <button onclick="resetBoxPitch()" style="padding: 2px 6px; font-size: 10px;">0</button>
+                    </div>
+                    <div style="text-align: right; font-size: 10px; color: #888;">
+                        <span id="valBoxPitch">0°</span>
+                    </div>
+                </div>
           </div>
           <div class="box-actions">
               <button onclick="resetBox()">Reset Box</button>
@@ -212,10 +266,10 @@
         </div>
 
         <div class="altitude-display">
-          <div class="altitude-strip"><div class="altitude-title">M1 (RL)</div><div class="altitude-meter-container"><div class="meter-scale"><span class="scale-label">900</span><span class="scale-label">0</span></div><div class="altitude-bar" id="altM0"></div></div></div>
-          <div class="altitude-strip"><div class="altitude-title">M2 (RR)</div><div class="altitude-meter-container"><div class="meter-scale"><span class="scale-label">900</span><span class="scale-label">0</span></div><div class="altitude-bar" id="altM1"></div></div></div>
-          <div class="altitude-strip"><div class="altitude-title">M3 (FR)</div><div class="altitude-meter-container"><div class="meter-scale"><span class="scale-label">900</span><span class="scale-label">0</span></div><div class="altitude-bar" id="altM2"></div></div></div>
-          <div class="altitude-strip"><div class="altitude-title">M4 (FL)</div><div class="altitude-meter-container"><div class="meter-scale"><span class="scale-label">900</span><span class="scale-label">0</span></div><div class="altitude-bar" id="altM3"></div></div></div>
+          <div class="altitude-strip"><div class="altitude-title">M1 (RL)</div><div class="altitude-meter-container"><div class="meter-scale"><span class="scale-label">2050</span><span class="scale-label">0</span></div><div class="altitude-bar" id="altM0"></div></div></div>
+          <div class="altitude-strip"><div class="altitude-title">M2 (RR)</div><div class="altitude-meter-container"><div class="meter-scale"><span class="scale-label">2050</span><span class="scale-label">0</span></div><div class="altitude-bar" id="altM1"></div></div></div>
+          <div class="altitude-strip"><div class="altitude-title">M3 (FR)</div><div class="altitude-meter-container"><div class="meter-scale"><span class="scale-label">2050</span><span class="scale-label">0</span></div><div class="altitude-bar" id="altM2"></div></div></div>
+          <div class="altitude-strip"><div class="altitude-title">M4 (FL)</div><div class="altitude-meter-container"><div class="meter-scale"><span class="scale-label">2050</span><span class="scale-label">0</span></div><div class="altitude-bar" id="altM3"></div></div></div>
         </div>
 
         <div class="choreography-section">
@@ -297,7 +351,7 @@
             <div style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border);">
               <div style="font-size: 12px; font-weight: 600; margin-bottom: 5px;">Virtual Box Pose</div>
               <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
-                 <div><label style="display: block; font-size: 11px;">Height (Z)</label><input type="range" id="editBoxZ" min="0" max="900" step="1" oninput="updateEditorFromBox()" style="width: 100%;"><span id="dispEditBoxZ" style="font-size: 10px;">0</span></div>
+                 <div><label style="display: block; font-size: 11px;">Height (Z)</label><input type="range" id="editBoxZ" min="0" max="2050" step="1" oninput="updateEditorFromBox()" style="width: 100%;"><span id="dispEditBoxZ" style="font-size: 10px;">0</span></div>
                  <div><label style="display: block; font-size: 11px;">Roll</label><input type="range" id="editBoxRoll" min="-45" max="45" step="1" oninput="updateEditorFromBox()" style="width: 100%;"><span id="dispEditBoxRoll" style="font-size: 10px;">0</span></div>
                  <div><label style="display: block; font-size: 11px;">Pitch</label><input type="range" id="editBoxPitch" min="-45" max="45" step="1" oninput="updateEditorFromBox()" style="width: 100%;"><span id="dispEditBoxPitch" style="font-size: 10px;">0</span></div>
               </div>
@@ -326,6 +380,7 @@
     </div>
 
     <input type="file" id="fileInput" accept=".json" style="display: none;" onchange="handleFileLoad(event)">
+    <input type="file" id="configFileInput" accept=".json" style="display: none;" onchange="handleConfigLoad(event)">
   </div>
 
   <script type="module" src="app.js"></script>

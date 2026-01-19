@@ -29,21 +29,23 @@ export function calculateCorners(state) {
   const radPitch = state.pitch * Math.PI / 180;
   
   return localCorners.map(p => {
-    // Apply Roll (X-axis rotation)
-    let y1 = p.y * Math.cos(radRoll) - p.z * Math.sin(radRoll);
-    let z1 = p.y * Math.sin(radRoll) + p.z * Math.cos(radRoll);
-    let x1 = p.x;
+    // Decoupled Tilt Calculation (Linearized)
+    // We calculate the Z-height change required for Pitch and Roll independently
+    // and sum them. We ignore the lateral (X/Y) shift of the corners caused by rotation
+    // to keep the behavior predictable and stable for this type of rig.
     
-    // Apply Pitch (Y-axis rotation)
-    let x2 = x1 * Math.cos(radPitch) + z1 * Math.sin(radPitch);
-    let z2 = -x1 * Math.sin(radPitch) + z1 * Math.cos(radPitch);
-    let y2 = y1;
+    // Pitch: Rotation around X-axis. Y-distance determines Z-change.
+    // Positive Pitch (Nose Down): Front (Y-) drops, Rear (Y+) rises.
+    const zPitch = p.y * Math.sin(radPitch);
     
-    // Translate to Box Center
+    // Roll: Rotation around Y-axis. X-distance determines Z-change.
+    // Positive Roll (Bank Right): Right (X+) drops, Left (X-) rises.
+    const zRoll = -p.x * Math.sin(radRoll);
+    
     return {
-      x: x2,
-      y: y2,
-      z: z2 + state.z
+      x: p.x,
+      y: p.y,
+      z: state.z + zPitch + zRoll
     };
   });
 }

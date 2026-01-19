@@ -76,7 +76,7 @@ const char* AXIS_NAMES[] = { "X", "Y", "Z", "A" };
 // State Tracking
 unsigned long lastCommandTime = 0;
 bool motorsEnabled = false; 
-bool inverted[4] = {false, false, false, false}; 
+bool inverted[4] = {true, false, true, false}; // Default: X and Z Inverted 
 
 // Stepper Objects
 AccelStepper steppers[NUM_STEPPERS] = {
@@ -117,6 +117,8 @@ void setup() {
   for (int i = 0; i < NUM_STEPPERS; i++) {
     steppers[i].setMaxSpeed(SPEED_DEFAULT);
     steppers[i].setAcceleration(ACCEL_DEFAULT);
+    // Apply default inversion
+    steppers[i].setPinsInverted(inverted[i], false, false);
   }
 
   // Reset State

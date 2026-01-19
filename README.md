@@ -50,7 +50,7 @@ The 4th motor (A-axis) on CNC Shield v3 requires special attention:
 2. **Check the enable jumper** - Some CNC Shield v3 boards require you to jumper the enable pin for the A-axis driver. Look for an "EN" jumper near the A-axis driver socket.
 3. **Verify driver orientation** - The driver chip should face the same direction as the other drivers
 4. **Set microstepping** - Use the same jumper configuration (M0, M1, M2) as your other axes
-5. **Test individually** - Use the `T 3` command to test just the A-axis motor
+5. **Test individually** - Use the manual controls in the web interface to test just the A-axis motor
 
 ## Serial Commands
 
@@ -59,18 +59,19 @@ M <s1> <s2> <s3> <s4>  Move to absolute positions
 R <s1> <s2> <s3> <s4>  Move relative to current positions
 S <speed>              Set max speed (steps/sec)
 A <accel>              Set acceleration (steps/sec²)
+V <axis> <0/1>         Invert Axis (0=Normal, 1=Inverted)
 H                      Home (zero all positions)
-T <axis>               Test individual axis (0=X, 1=Y, 2=Z, 3=A)
 I                      Show system info and positions
+P                      Ping (Keep-alive)
+Q                      Quick Stop
 ```
 
 Examples:
 ```
 H              # Home all axes
-T 3            # Test A-axis motor (200 steps forward and back)
 M 100 0 0 0    # Move X-axis to position 100
 R 0 50 0 0     # Move Y-axis 50 steps relative to current position
-M 0 0 0 500    # Move A-axis to position 500
+V 0 1          # Invert X-axis
 ```
 
 ## Web Interface
@@ -115,7 +116,7 @@ If the A-axis motor is not working:
    - Bridge this jumper if present
 
 3. **Test the motor directly**
-   - Use command `T 3` to test only the A-axis
+   - Use the manual controls to move only the A-axis
    - If other axes work but A doesn't, it's likely a hardware issue
 
 4. **Check wiring**

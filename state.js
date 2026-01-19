@@ -26,7 +26,7 @@ export const state = {
     // Settings
     uiMaxSpeed: 24000,
     uiAcceleration: 24000,
-    maxCeiling: 900,
+    maxCeiling: 2050,
     
     // Drag State
     isDraggingPlayhead: false,

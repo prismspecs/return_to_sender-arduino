@@ -43,6 +43,7 @@ A web-based interface for controlling a 4-axis CNC Shield v3 stepper motor setup
 - [x] **Project Management:** Quick Save/Load slots in LocalStorage.
 - [x] **Visual Editor:** Drag-and-drop keyframes, virtual box pose editing.
 - [x] **Infinite Recording:** Playback continues past end for extending sequences.
+- [x] **Configuration Export/Import:** Save and load full hardware configuration (Mappings, Limits, Drivers) to JSON.
 
 ## Architecture Notes
 - **Modular JS:** The frontend is now split into ES6 modules to manage complexity.

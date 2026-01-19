@@ -8,7 +8,9 @@ function applyMapping(logicalSteps) {
   const physicalSteps = [0, 0, 0, 0];
   for (let i = 0; i < 4; i++) {
     const driverIndex = state.motorMapping[i];
-    physicalSteps[driverIndex] = logicalSteps[i];
+    let s = logicalSteps[i];
+    if (state.reverseFlags[i]) s = -s;
+    physicalSteps[driverIndex] = s;
   }
   return physicalSteps;
 }
