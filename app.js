@@ -167,60 +167,11 @@ function updateQuickSaveDropdown(projects) {
 }
 
 // --- Animation Loop ---
-let lastFrameTime = 0;
 function animateDisplay(timestamp) {
-  if (!lastFrameTime) lastFrameTime = timestamp;
-  const dt = (timestamp - lastFrameTime) / 1000;
-  lastFrameTime = timestamp;
-
-  const isSmooth = document.getElementById('smoothAnimation')?.checked;
-
-  if (!isSmooth) {
-    for (let i = 0; i < 4; i++) {
-        state.visualPositions[i] = state.currentPositions[i];
-    }
-    for (let i = 0; i < 4; i++) updatePositionDisplay(i);
-    requestAnimationFrame(animateDisplay);
-    return;
-  }
-
-  let changed = false;
   for (let i = 0; i < 4; i++) {
-    const target = state.currentPositions[i];
-    const current = state.visualPositions[i];
-    const diff = target - current;
-    
-    if (Math.abs(diff) < 0.5 && Math.abs(state.motorVelocities[i]) < 10) {
-      if (state.visualPositions[i] !== target) {
-        state.visualPositions[i] = target;
-        state.motorVelocities[i] = 0;
-        changed = true;
-      }
-      continue;
-    }
-
-    const maxSpeed = state.uiMaxSpeed;
-    const acceleration = state.uiAcceleration;
-    const safeSpeed = Math.sqrt(2 * acceleration * Math.abs(diff));
-    let targetVel = Math.sign(diff) * Math.min(maxSpeed, safeSpeed);
-
-    const velDiff = targetVel - state.motorVelocities[i];
-    const maxVelChange = acceleration * dt;
-    
-    if (Math.abs(velDiff) < maxVelChange) {
-      state.motorVelocities[i] = targetVel;
-    } else {
-      state.motorVelocities[i] += Math.sign(velDiff) * maxVelChange;
-    }
-
-    state.visualPositions[i] += state.motorVelocities[i] * dt;
-    changed = true;
+    state.visualPositions[i] = state.currentPositions[i];
+    updatePositionDisplay(i);
   }
-
-  if (changed) {
-    for (let i = 0; i < 4; i++) updatePositionDisplay(i);
-  }
-
   requestAnimationFrame(animateDisplay);
 }
 
@@ -292,8 +243,11 @@ window.toggleMotors = (checked) => {
     if (checked) {
         Comms.sendCommand('E 1');
     } else {
-        Comms.sendCommand('E 0');
-        window.setFloor();
+        window.haltMotors(); // Stop gracefully first
+        setTimeout(() => {
+             Comms.sendCommand('E 0');
+             window.setFloor(); // Reset positions after disable
+        }, 500);
     }
 };
 
@@ -453,8 +407,7 @@ window.saveConfig = () => {
         restEnabled: state.restEnabled,
         restDuration: state.restDuration,
         timelineDuration: state.timelineDuration,
-        maxCeiling: state.maxCeiling,
-        smoothAnimation: document.getElementById('smoothAnimation')?.checked
+        maxCeiling: state.maxCeiling
     };
     
     const blob = new Blob([JSON.stringify(config, null, 2)], {type: 'application/json'});
@@ -533,12 +486,6 @@ window.handleConfigLoad = (e) => {
              if(config.maxCeiling !== undefined) {
                 state.maxCeiling = parseFloat(config.maxCeiling);
                 localStorage.setItem('maxCeiling', state.maxCeiling);
-             }
-             
-             // Smooth
-             if(config.smoothAnimation !== undefined) {
-                 const el = document.getElementById('smoothAnimation');
-                 if(el) el.checked = config.smoothAnimation;
              }
 
             // --- REFRESH UI ---
@@ -826,8 +773,13 @@ function loadMapping() {
     const m = localStorage.getItem('motorMapping');
     if(m) {
         state.motorMapping = JSON.parse(m);
+    } else {
+        // Fallback to default if no local storage exists
+        // This ensures the new config.js default is used
+        state.motorMapping = [...state.motorMapping]; 
     }
-    // Always sync dropdowns to state (whether from localStorage or defaults)
+    
+    // Always sync dropdowns to state
     for(let i=0; i<4; i++) {
         const el = document.getElementById(`mapM${i}`);
         if(el) el.value = state.motorMapping[i];
@@ -1055,3 +1007,66 @@ document.addEventListener('DOMContentLoaded', () => {
     }});
     requestAnimationFrame(animateDisplay);
 });
+
+// --- Calibration Logic ---
+let calibrationStep = 0;
+// Sequence: 0:RL(M0), 1:RR(M1), 2:FR(M2), 3:FL(M3) (Logical Indices)
+const CALIBRATION_SEQUENCE = [
+    { index: 0, name: "Motor 1 (Rear Left)" },
+    { index: 1, name: "Motor 2 (Rear Right)" },
+    { index: 2, name: "Motor 3 (Front Right)" },
+    { index: 3, name: "Motor 4 (Front Left)" }
+];
+
+window.startCalibration = () => {
+    // 1. Enable Motors
+    document.getElementById('motorToggle').checked = true;
+    Comms.sendCommand('E 1');
+    
+    // 2. Initialize State
+    calibrationStep = 0;
+    updateCalibrationUI();
+    
+    // 3. Show Modal
+    document.getElementById('calibrationModal').style.display = 'flex';
+};
+
+window.nextCalibrationStep = () => {
+    calibrationStep++;
+    if (calibrationStep >= 4) {
+        finishCalibration();
+    } else {
+        updateCalibrationUI();
+    }
+};
+
+window.cancelCalibration = () => {
+    document.getElementById('calibrationModal').style.display = 'none';
+    alert("Calibration Cancelled. Motors left enabled.");
+};
+
+window.finishCalibration = () => {
+    // Set Zero
+    window.setFloor();
+    document.getElementById('calibrationModal').style.display = 'none';
+    alert("Calibration Complete! Current position set as Floor (Zero).");
+};
+
+window.calibrationMove = (dist) => {
+    const motorInfo = CALIBRATION_SEQUENCE[calibrationStep];
+    if (!motorInfo) return;
+    
+    // Move ONLY the active motor
+    const logicalIndex = motorInfo.index;
+    
+    // Reuse quickMove logic but for specific index
+    // quickMove(axisName, axisIndex, distanceMm)
+    // We don't need axisName for logic, just index
+    window.quickMove('CAL', logicalIndex, dist);
+};
+
+function updateCalibrationUI() {
+    const stepInfo = CALIBRATION_SEQUENCE[calibrationStep];
+    document.getElementById('calStepTitle').textContent = `Calibration Step ${calibrationStep + 1} of 4`;
+    document.getElementById('calMotorName').textContent = `Adjust ${stepInfo.name}`;
+}

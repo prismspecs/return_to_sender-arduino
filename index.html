@@ -19,7 +19,6 @@
             <select id="portSelector" style="max-width: 150px; font-size: 11px; padding: 2px;"></select>
             <button onclick="connectSerial()" id="btnConnect" class="btn-home" style="background-color: #555; border-color: #555; padding: 2px 8px;">Connect</button>
         </div>
-        <button onclick="haltMotors()" class="btn-home" style="background-color: #d32f2f; border-color: #d32f2f; font-weight: 800; letter-spacing: 1px;">Emergency Stop Motors</button>
         <div class="toggle-switch-container">
           <label for="motorToggle" class="toggle-switch-label">Motors:</label>
           <label class="toggle-switch">
@@ -101,18 +100,30 @@
                 </select>
               </div>
             </div>
+
+            <!-- Hardware Config (Moved from More Options) -->
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; padding-top: 10px; border-top: 1px dashed var(--border);">
+              <label style="font-size: 13px;">Driver: 
+                <select id="driverType" onchange="updateMicrosteppingOptions()" style="padding: 3px 6px; border-radius: 3px; border: 1px solid var(--border);">
+                  <option value="A4988">A4988</option>
+                  <option value="DRV8825">DRV8825</option>
+                </select>
+              </label>
+              <label style="font-size: 13px;">Steps: 
+                <select id="microstepping" onchange="updateMicrostepping()" style="padding: 3px 6px; border-radius: 3px; border: 1px solid var(--border);">
+                </select>
+              </label>
+            </div>
           </div>
         </div>
 
         <!-- Limit Controls -->
         <div class="limit-controls" style="padding: 10px; background: var(--bg-alt); border: 1px solid var(--border); border-radius: 4px; display: flex; flex-direction: column; gap: 8px;">
-           <div style="display: flex; gap: 5px;">
+           <button onclick="startCalibration()" class="btn-home" style="background-color: var(--accent); color: white; border-color: var(--accent); font-weight: bold; padding: 6px;">Begin Calibration Sequence</button>
+           <div style="display: flex; gap: 5px; align-items: center;">
                <button onclick="setFloor()" class="btn-home" style="background-color: #eee; border-color: #ccc; color: #333; flex-grow: 1; font-size: 11px; padding: 4px;">Set Zero (Floor)</button>
                <button onclick="setCeiling()" class="btn-home" style="background-color: #eee; border-color: #ccc; color: #333; flex-grow: 1; font-size: 11px; padding: 4px;">Set Max (Ceiling)</button>
-           </div>
-           <div style="display: flex; gap: 5px; align-items: center; justify-content: space-between;">
-               <label style="font-size: 11px;">Max Height (mm):</label>
-               <input type="number" id="manualCeiling" value="2050" step="1" onchange="updateCeilingFromInput()" style="flex-grow: 1; font-size: 11px; padding: 3px;">
+               <input type="number" id="manualCeiling" value="2050" step="1" onchange="updateCeilingFromInput()" style="width: 60px; font-size: 11px; padding: 3px;" title="Max Height (mm)">
            </div>
         </div>
 
@@ -133,27 +144,6 @@
                <input type="range" id="accelSlider" value="24" min="1" max="30" step="1" oninput="updateAccelUI(true)" onchange="setAcceleration()" style="width: 100%;">
             </div>
           </div>
-          
-          <details style="margin-top: 10px;">
-            <summary style="font-size: 12px; cursor: pointer; color: var(--text-light);">More Options</summary>
-            <div style="margin-top: 8px; padding-left: 10px; display: flex; flex-direction: column; gap: 8px;">
-              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <label style="font-size: 13px;">Driver: 
-                  <select id="driverType" onchange="updateMicrosteppingOptions()" style="padding: 3px 6px; border-radius: 3px; border: 1px solid var(--border);">
-                    <option value="A4988">A4988</option>
-                    <option value="DRV8825">DRV8825</option>
-                  </select>
-                </label>
-                <label style="font-size: 13px;">Steps: 
-                  <select id="microstepping" onchange="updateMicrostepping()" style="padding: 3px 6px; border-radius: 3px; border: 1px solid var(--border);">
-                  </select>
-                </label>
-              </div>
-              <label class="toggle-switch-label" style="font-size: 13px; display: flex; align-items: center;">
-                <input type="checkbox" id="smoothAnimation" style="margin-right: 5px;"> Smooth Animation
-              </label>
-            </div>
-          </details>
         </div>
 
         <!-- Motor Controls -->
@@ -376,6 +366,30 @@
         <label style="display: block; margin-bottom: 5px; font-size: 13px;">Filename:</label>
         <input type="text" id="saveFileName" style="width: 100%; margin-bottom: 15px; padding: 5px;" placeholder="Enter filename...">
         <div style="display: flex; justify-content: flex-end; gap: 10px;"><button onclick="closeSaveDialog()">Cancel</button><button onclick="confirmSave()" style="background-color: var(--success); color: white; border-color: var(--success);">Save</button></div>
+      </div>
+    </div>
+
+    <!-- Calibration Modal -->
+    <div id="calibrationModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; align-items: center; justify-content: center;">
+      <div style="background: white; padding: 20px; border-radius: 8px; width: 90%; max-width: 500px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); text-align: center;">
+        <h2 id="calStepTitle" style="margin-top: 0; color: var(--accent);">Calibration Step 1 of 4</h2>
+        <h3 id="calMotorName" style="margin: 10px 0; font-size: 1.2em;">Adjust Motor 1 (Rear Left)</h3>
+        <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Use the buttons below to lower/raise this corner until it is exactly <strong>1cm off the floor</strong>.</p>
+        
+        <div style="display: flex; justify-content: center; gap: 5px; margin-bottom: 25px; flex-wrap: wrap;">
+            <button onclick="calibrationMove(-100)" style="min-width: 50px; padding: 10px;">-100</button>
+            <button onclick="calibrationMove(-10)" style="min-width: 50px; padding: 10px;">-10</button>
+            <button onclick="calibrationMove(-1)" style="min-width: 50px; padding: 10px;">-1</button>
+            <div style="width: 10px;"></div>
+            <button onclick="calibrationMove(1)" style="min-width: 50px; padding: 10px;">+1</button>
+            <button onclick="calibrationMove(10)" style="min-width: 50px; padding: 10px;">+10</button>
+            <button onclick="calibrationMove(100)" style="min-width: 50px; padding: 10px;">+100</button>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; border-top: 1px solid #eee; padding-top: 20px;">
+            <button onclick="cancelCalibration()" style="background-color: #f44336; border-color: #f44336; color: white;">Cancel</button>
+            <button onclick="nextCalibrationStep()" style="background-color: var(--success); border-color: var(--success); color: white; padding: 8px 24px; font-weight: bold; font-size: 14px;">Next Corner &rarr;</button>
+        </div>
       </div>
     </div>
 
