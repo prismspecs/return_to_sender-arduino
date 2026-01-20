@@ -47,5 +47,8 @@ export const state = {
     serverAudioLoaded: false,
     serverAudioPlaying: false,
     serverAudioTime: 0,
-    serverAudioFileName: null
+    serverAudioFileName: null,
+
+    // Clipboard for copy/paste keyframes
+    copiedKeyframe: null
 };

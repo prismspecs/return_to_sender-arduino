@@ -711,6 +711,42 @@ window.closeKeyframeEditor = () => {
     refreshUI();
 };
 
+window.duplicateKeyframe = () => {
+    if (state.selectedKeyframeIndex < 0) return;
+    const kf = state.choreography[state.selectedKeyframeIndex];
+    if (!kf) return;
+    
+    // Create a copy with time offset
+    const newKf = JSON.parse(JSON.stringify(kf));
+    newKf.time = kf.time + 0.5; // Offset by 0.5 seconds
+    
+    state.choreography.push(newKf);
+    state.choreography.sort((a, b) => a.time - b.time);
+    Storage.saveChoreographyToLocal();
+    
+    // Select the new keyframe
+    const newIndex = state.choreography.findIndex(k => k === newKf);
+    goToKeyframe(newIndex);
+    debugLog('[Keyframe] Duplicated keyframe to time ' + newKf.time.toFixed(2));
+};
+
+function pasteKeyframe() {
+    if (!state.copiedKeyframe) return;
+    
+    // Paste at current playhead time
+    const newKf = JSON.parse(JSON.stringify(state.copiedKeyframe));
+    newKf.time = state.currentTime;
+    
+    state.choreography.push(newKf);
+    state.choreography.sort((a, b) => a.time - b.time);
+    Storage.saveChoreographyToLocal();
+    
+    // Select the new keyframe
+    const newIndex = state.choreography.findIndex(k => k === newKf);
+    goToKeyframe(newIndex);
+    debugLog('[Keyframe] Pasted keyframe at time ' + newKf.time.toFixed(2));
+}
+
 window.getCurrentForEditor = () => {
     for (let i = 0; i < 4; i++) document.getElementById(`editM${i}`).value = state.currentPositions[i];
     window.saveKeyframeChanges();
@@ -927,6 +963,30 @@ function loadReverseFlags() {
 // Drag Handlers
 document.addEventListener('mousedown', (e) => {
     if (e.target.classList.contains('playhead')) state.isDraggingPlayhead = true;
+});
+
+// Keyboard shortcuts for copy/paste keyframes
+document.addEventListener('keydown', (e) => {
+    // Ignore if typing in an input
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const modKey = isMac ? e.metaKey : e.ctrlKey;
+    
+    if (modKey && e.key === 'c') {
+        // Copy selected keyframe
+        if (state.selectedKeyframeIndex >= 0 && state.choreography[state.selectedKeyframeIndex]) {
+            state.copiedKeyframe = JSON.parse(JSON.stringify(state.choreography[state.selectedKeyframeIndex]));
+            debugLog('[Keyframe] Copied keyframe at index ' + state.selectedKeyframeIndex);
+            e.preventDefault();
+        }
+    } else if (modKey && e.key === 'v') {
+        // Paste copied keyframe
+        if (state.copiedKeyframe) {
+            pasteKeyframe();
+            e.preventDefault();
+        }
+    }
 });
 
 document.addEventListener('mousemove', (e) => {
