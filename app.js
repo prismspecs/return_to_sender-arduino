@@ -612,7 +612,7 @@ window.handleAudioLoad = async (e) => {
 
             // Read the response body once
             const responseText = await response.text();
-            
+
             if (response.ok) {
                 try {
                     const result = JSON.parse(responseText);
@@ -1123,10 +1123,10 @@ document.addEventListener('DOMContentLoaded', () => {
 let calibrationStep = 0;
 // Sequence: 0:RL(M0), 1:RR(M1), 2:FR(M2), 3:FL(M3) (Logical Indices)
 const CALIBRATION_SEQUENCE = [
-    { index: 0, name: "Motor 1 (Rear Left)" },
-    { index: 1, name: "Motor 2 (Rear Right)" },
-    { index: 2, name: "Motor 3 (Front Right)" },
-    { index: 3, name: "Motor 4 (Front Left)" }
+    { index: 0, name: "Motor 1 (Rear Left)", abbr: "RL", cx: 65, cy: 70 },
+    { index: 1, name: "Motor 2 (Rear Right)", abbr: "RR", cx: 215, cy: 70 },
+    { index: 2, name: "Motor 3 (Front Right)", abbr: "FR", cx: 215, cy: 170 },
+    { index: 3, name: "Motor 4 (Front Left)", abbr: "FL", cx: 65, cy: 170 }
 ];
 
 window.startCalibration = () => {
@@ -1180,4 +1180,14 @@ function updateCalibrationUI() {
     const stepInfo = CALIBRATION_SEQUENCE[calibrationStep];
     document.getElementById('calStepTitle').textContent = `Calibration Step ${calibrationStep + 1} of 4`;
     document.getElementById('calMotorName').textContent = `Adjust ${stepInfo.name}`;
+
+    // Update visual corner indicator position
+    const indicator = document.getElementById('calCornerIndicator');
+    const dot = document.getElementById('calCornerDot');
+    if (indicator && dot) {
+        indicator.setAttribute('cx', stepInfo.cx);
+        indicator.setAttribute('cy', stepInfo.cy);
+        dot.setAttribute('cx', stepInfo.cx);
+        dot.setAttribute('cy', stepInfo.cy);
+    }
 }
