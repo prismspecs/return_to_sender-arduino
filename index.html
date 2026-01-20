@@ -29,6 +29,13 @@
             <span class="toggle-slider"></span>
           </label>
         </div>
+        <div class="toggle-switch-container" style="margin-left: 10px;">
+          <label for="debugToggle" class="toggle-switch-label" style="font-size: 10px; color: #888;">Debug:</label>
+          <label class="toggle-switch" style="transform: scale(0.8);">
+            <input type="checkbox" id="debugToggle" onchange="toggleDebug(this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
       </div>
     </header>
 
@@ -534,9 +541,14 @@
         <div style="display: flex; justify-content: space-between; border-top: 1px solid #eee; padding-top: 20px;">
           <button onclick="cancelCalibration()"
             style="background-color: #f44336; border-color: #f44336; color: white;">Cancel</button>
-          <button onclick="nextCalibrationStep()"
-            style="background-color: var(--success); border-color: var(--success); color: white; padding: 8px 24px; font-weight: bold; font-size: 14px;">Next
-            Corner &rarr;</button>
+          <div style="display: flex; gap: 10px;">
+            <button id="calPrevBtn" onclick="prevCalibrationStep()"
+              style="background-color: #888; border-color: #888; color: white; padding: 8px 16px; font-size: 14px;">&larr;
+              Previous</button>
+            <button id="calNextBtn" onclick="nextCalibrationStep()"
+              style="background-color: var(--success); border-color: var(--success); color: white; padding: 8px 24px; font-weight: bold; font-size: 14px;">Next
+              Corner &rarr;</button>
+          </div>
         </div>
       </div>
     </div>

@@ -15,6 +15,18 @@ import {
     calculateTargetSteps
 } from './kinematics.js';
 
+// --- Debug Logging ---
+window.debugLog = (...args) => {
+    if (state.debugMode) {
+        console.log(...args);
+    }
+};
+
+window.toggleDebug = (enabled) => {
+    state.debugMode = enabled;
+    console.log(`[Debug] Debug mode ${enabled ? 'ENABLED' : 'DISABLED'}`);
+};
+
 // --- Callbacks ---
 const choreoCallbacks = {
     onTimeUpdate: (t) => UI.updatePlayhead(t),
@@ -1151,6 +1163,13 @@ window.nextCalibrationStep = () => {
     }
 };
 
+window.prevCalibrationStep = () => {
+    if (calibrationStep > 0) {
+        calibrationStep--;
+        updateCalibrationUI();
+    }
+};
+
 window.cancelCalibration = () => {
     document.getElementById('calibrationModal').style.display = 'none';
     alert("Calibration Cancelled. Motors left enabled.");
@@ -1189,5 +1208,21 @@ function updateCalibrationUI() {
         indicator.setAttribute('cy', stepInfo.cy);
         dot.setAttribute('cx', stepInfo.cx);
         dot.setAttribute('cy', stepInfo.cy);
+    }
+
+    // Update prev button visibility
+    const prevBtn = document.getElementById('calPrevBtn');
+    if (prevBtn) {
+        prevBtn.style.display = calibrationStep === 0 ? 'none' : 'inline-block';
+    }
+
+    // Update next button text for final step
+    const nextBtn = document.getElementById('calNextBtn');
+    if (nextBtn) {
+        if (calibrationStep === 3) {
+            nextBtn.textContent = '✓ Finish Calibration';
+        } else {
+            nextBtn.innerHTML = 'Next Corner &rarr;';
+        }
     }
 }

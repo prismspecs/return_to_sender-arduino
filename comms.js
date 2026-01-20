@@ -3,6 +3,9 @@ import { state } from './state.js';
 
 let ws = null;
 
+// Helper for conditional debug logging
+const debugLog = (...args) => { if (state.debugMode) console.log(...args); };
+
 // Callbacks to update UI
 let onLog = (msg) => console.log(msg);
 let onStatus = (connected, msg) => { };
@@ -18,7 +21,7 @@ export function setupComms(callbacks) {
 
 // Audio control commands (play on server/Pi)
 export function sendAudioCommand(action, options = {}) {
-  console.log('[Comms] sendAudioCommand:', action, options);
+  debugLog('[Comms] sendAudioCommand:', action, options);
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({
       type: 'audio',
@@ -26,12 +29,12 @@ export function sendAudioCommand(action, options = {}) {
       ...options
     }));
   } else {
-    console.warn('[Comms] WebSocket not open, cannot send audio command');
+    debugLog('[Comms] WebSocket not open, cannot send audio command');
   }
 }
 
 export function playServerAudio(time = 0, speed = 1.0) {
-  console.log('[Comms] playServerAudio called:', { time, speed });
+  debugLog('[Comms] playServerAudio called:', { time, speed });
   sendAudioCommand('play', { time, speed });
 }
 
@@ -102,7 +105,7 @@ export function connectWebSocket() {
         }
       } else if (data.type === 'audioState') {
         // Update state with server audio info
-        console.log('[Comms] audioState received:', data);
+        debugLog('[Comms] audioState received:', data);
         state.serverAudioLoaded = data.hasAudio || !!data.fileName;
         state.serverAudioPlaying = data.isPlaying;
         state.serverAudioTime = data.currentTime;

@@ -4,6 +4,9 @@ import { VBOX_CONFIG } from './config.js';
 
 let playbackInterval = null;
 
+// Helper for conditional debug logging
+const debugLog = (...args) => { if (state.debugMode) console.log(...args); };
+
 function applyMapping(logicalSteps) {
   const physicalSteps = [0, 0, 0, 0];
   for (let i = 0; i < 4; i++) {
@@ -16,7 +19,7 @@ function applyMapping(logicalSteps) {
 }
 
 export function playChoreography(callbacks) {
-  console.log('[Choreo] playChoreography called', {
+  debugLog('[Choreo] playChoreography called', {
     hasKeyframes: state.choreography.length,
     isPlaying: state.isPlaying,
     serverAudioLoaded: state.serverAudioLoaded,
@@ -25,12 +28,12 @@ export function playChoreography(callbacks) {
 
   // Allow playback with just audio (no keyframes required for scrubbing/preview)
   if (state.choreography.length === 0 && !state.serverAudioLoaded) {
-    console.log('[Choreo] No keyframes and no audio - nothing to play');
+    debugLog('[Choreo] No keyframes and no audio - nothing to play');
     return;
   }
 
   if (state.isPlaying) {
-    console.log('[Choreo] Already playing, stopping...');
+    debugLog('[Choreo] Already playing, stopping...');
     stopChoreography(callbacks);
     return;
   }
@@ -43,19 +46,19 @@ export function playChoreography(callbacks) {
   const audio = document.getElementById('choreoAudio');
   const hasLocalAudio = audio && audio.src && !hasServerAudio;
 
-  console.log('[Choreo] Audio state:', { hasServerAudio, hasLocalAudio });
+  debugLog('[Choreo] Audio state:', { hasServerAudio, hasLocalAudio });
 
   // Always set playbackStartTime for local time tracking (fallback)
   state.playbackStartTime = Date.now() - (state.currentTime * 1000 / state.playbackSpeed);
 
   if (hasServerAudio) {
-    console.log('[Choreo] Playing server audio at time:', state.currentTime, 'speed:', state.playbackSpeed);
+    debugLog('[Choreo] Playing server audio at time:', state.currentTime, 'speed:', state.playbackSpeed);
     playServerAudio(state.currentTime, state.playbackSpeed);
   } else if (hasLocalAudio) {
     audio.currentTime = state.currentTime;
     audio.play().catch(e => console.error("Audio play error", e));
   } else {
-    console.log('[Choreo] No audio, using manual time tracking');
+    debugLog('[Choreo] No audio, using manual time tracking');
   }
 
   // Find next keyframe

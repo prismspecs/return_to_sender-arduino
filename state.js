@@ -1,6 +1,9 @@
 import { DEFAULT_MOTOR_MAPPING } from './config.js';
 
 export const state = {
+    // Debug mode
+    debugMode: false,
+
     choreography: [],
     currentFileName: "Untitled",
     currentPositions: [0, 0, 0, 0],
