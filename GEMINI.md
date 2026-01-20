@@ -70,3 +70,46 @@ A web-based interface for controlling a 4-axis CNC Shield v3 stepper motor setup
 ## Maintenance Rules
 - **Update Context:** Every time a significant feature is implemented, an architectural change is made, or a major bug is fixed, this file (`GEMINI.md`) MUST be updated to reflect the new technical state of the project. This ensures AI agents and developers always have an accurate source of truth.
 
+## Raspberry Pi Deployment
+
+### Auto-Start Service
+The Node.js server runs as a systemd service on the Pi:
+
+**Service file:** `/etc/systemd/system/return-to-sender.service`
+```ini
+[Unit]
+Description=Return to Sender Node.js Server
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/return_to_sender
+ExecStart=/usr/bin/npm start
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**Useful commands:**
+```bash
+# Check status
+systemctl status return-to-sender.service
+
+# View logs
+journalctl -u return-to-sender.service -n 50
+
+# Restart the service
+sudo systemctl restart return-to-sender.service
+
+# Stop/Start
+sudo systemctl stop return-to-sender.service
+sudo systemctl start return-to-sender.service
+```
+
+### Audio Playback
+- Audio is played server-side using `mpv` (or `ffplay` as fallback)
+- Uploaded audio files are stored in `~/return_to_sender/uploads/`
+- Audio config persisted in `uploads/audio-config.json`
+
