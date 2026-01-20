@@ -109,16 +109,11 @@ export function playChoreography(callbacks) {
     // Update Time
     let timeUpdated = false;
     if (hasServerAudio) {
-      // Server audio time is synced via WebSocket (state.serverAudioTime)
-      // But we also track locally for smoother updates
-      if (state.serverAudioPlaying) {
-        state.currentTime = state.serverAudioTime;
-        timeUpdated = true;
-      } else {
-        // Server audio loaded but not playing - calculate locally
-        state.currentTime = ((Date.now() - state.playbackStartTime) / 1000) * state.playbackSpeed;
-        timeUpdated = true;
-      }
+      // Always use local time calculation for smooth playhead movement
+      // Server audio time is only used for occasional sync corrections
+      state.currentTime = ((Date.now() - state.playbackStartTime) / 1000) * state.playbackSpeed;
+      timeUpdated = true;
+      
       // Only send speed update if it changed
       if (lastSentSpeed !== state.playbackSpeed) {
         setServerAudioSpeed(state.playbackSpeed);

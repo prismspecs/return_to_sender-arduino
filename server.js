@@ -549,6 +549,13 @@ setInterval(() => {
   }
 }, 1000);
 
+// Periodic audio state broadcast (every 500ms when playing)
+setInterval(() => {
+  if (audioState.isPlaying) {
+    broadcastAudioState();
+  }
+}, 500);
+
 // Graceful shutdown
 process.on('SIGINT', () => {
   console.log('Shutting down...');
