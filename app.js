@@ -167,6 +167,8 @@ function updateQuickSaveDropdown(projects) {
 }
 
 // --- Animation Loop ---
+let lastFrameTime = null;
+
 function animateDisplay(timestamp) {
     if (!lastFrameTime) lastFrameTime = timestamp;
     const dt = (timestamp - lastFrameTime) / 1000;
@@ -221,7 +223,6 @@ function animateDisplay(timestamp) {
     }
 
     requestAnimationFrame(animateDisplay);
->>>>>>> Stashed changes
 }
 
 function updatePositionDisplay(motorIndex) {
@@ -294,8 +295,8 @@ window.toggleMotors = (checked) => {
     } else {
         window.haltMotors(); // Stop gracefully first
         setTimeout(() => {
-             Comms.sendCommand('E 0');
-             window.setFloor(); // Reset positions after disable
+            Comms.sendCommand('E 0');
+            window.setFloor(); // Reset positions after disable
         }, 500);
     }
 };
@@ -852,7 +853,7 @@ function loadMapping() {
     } else {
         // Fallback to default if no local storage exists
         // This ensures the new config.js default is used
-        state.motorMapping = [...state.motorMapping]; 
+        state.motorMapping = [...state.motorMapping];
     }
     // Always sync dropdowns to state
     for (let i = 0; i < 4; i++) {
@@ -1117,11 +1118,11 @@ window.startCalibration = () => {
     // 1. Enable Motors
     document.getElementById('motorToggle').checked = true;
     Comms.sendCommand('E 1');
-    
+
     // 2. Initialize State
     calibrationStep = 0;
     updateCalibrationUI();
-    
+
     // 3. Show Modal
     document.getElementById('calibrationModal').style.display = 'flex';
 };
@@ -1150,10 +1151,10 @@ window.finishCalibration = () => {
 window.calibrationMove = (dist) => {
     const motorInfo = CALIBRATION_SEQUENCE[calibrationStep];
     if (!motorInfo) return;
-    
+
     // Move ONLY the active motor
     const logicalIndex = motorInfo.index;
-    
+
     // Reuse quickMove logic but for specific index
     // quickMove(axisName, axisIndex, distanceMm)
     // We don't need axisName for logic, just index
