@@ -19,7 +19,8 @@ let audioState = {
   currentTime: 0,
   duration: 0,
   fileName: null,
-  playbackSpeed: 1.0
+  playbackSpeed: 1.0,
+  volume: 100
 };
 let audioStartTime = 0;
 let audioStartOffset = 0;
@@ -121,6 +122,7 @@ function playAudio(startTime = 0, speed = 1.0) {
     '--ao=alsa',
     `--start=${startTime}`,
     `--speed=${speed}`,
+    `--volume=${audioState.volume}`,
     audioFilePath
   ];
 
@@ -234,7 +236,8 @@ function broadcastAudioState() {
     currentTime: getCurrentAudioTime(),
     fileName: audioState.fileName,
     duration: audioState.duration,
-    playbackSpeed: audioState.playbackSpeed
+    playbackSpeed: audioState.playbackSpeed,
+    volume: audioState.volume
   };
   wsClients.forEach(client => {
     if (client.readyState === 1) {
@@ -515,6 +518,14 @@ wss.on('connection', (ws) => {
             if (audioState.isPlaying) {
               playAudio(getCurrentAudioTime(), audioState.playbackSpeed);
             }
+            break;
+          case 'setVolume':
+            audioState.volume = Math.max(0, Math.min(150, data.volume || 100));
+            if (audioState.isPlaying) {
+              // Restart with new volume
+              playAudio(getCurrentAudioTime(), audioState.playbackSpeed);
+            }
+            broadcastAudioState();
             break;
           case 'getStatus':
             ws.send(JSON.stringify({

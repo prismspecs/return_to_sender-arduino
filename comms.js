@@ -109,13 +109,23 @@ export function connectWebSocket() {
           hasAudio: data.hasAudio,
           fileName: data.fileName,
           isPlaying: data.isPlaying,
-          currentTime: data.currentTime
+          currentTime: data.currentTime,
+          volume: data.volume
         });
         state.serverAudioLoaded = data.hasAudio || !!data.fileName;
         state.serverAudioPlaying = data.isPlaying;
         state.serverAudioTime = data.currentTime;
         state.serverAudioFileName = data.fileName;
         console.log('[Comms] state.serverAudioLoaded is now:', state.serverAudioLoaded);
+        
+        // Update volume slider if present
+        if (data.volume !== undefined) {
+          const volumeSlider = document.getElementById('volumeSlider');
+          const volumeDisplay = document.getElementById('volumeDisplay');
+          if (volumeSlider) volumeSlider.value = data.volume;
+          if (volumeDisplay) volumeDisplay.textContent = data.volume + '%';
+        }
+        
         onAudioStateUpdate(data);
       }
     } catch (error) {
@@ -166,12 +176,18 @@ function parseArduinoMessage(message) {
 
   if (message.includes("Motors: ENABLED")) {
     const toggle = document.getElementById('motorToggle');
-    if (toggle) toggle.checked = true;
-    // We should update state but areMotorsEnabled is local to app.js usually.
-    // Let's assume UI update handles it.
+    if (toggle && !toggle.checked) {
+      toggle._updatingFromArduino = true;
+      toggle.checked = true;
+      toggle._updatingFromArduino = false;
+    }
   } else if (message.includes("Motors: DISABLED")) {
     const toggle = document.getElementById('motorToggle');
-    if (toggle) toggle.checked = false;
+    if (toggle && toggle.checked) {
+      toggle._updatingFromArduino = true;
+      toggle.checked = false;
+      toggle._updatingFromArduino = false;
+    }
   }
 
   if (message.includes("Inverted:")) {

@@ -302,6 +302,10 @@ window.toggleReverse = (logicalIndex, checked) => {
 };
 
 window.toggleMotors = (checked) => {
+    const toggle = document.getElementById('motorToggle');
+    // Skip if this was triggered by Arduino status update
+    if (toggle && toggle._updatingFromArduino) return;
+    
     if (checked) {
         Comms.sendCommand('E 1');
     } else {
@@ -856,6 +860,13 @@ window.returnToStart = () => {
 window.updatePlaybackSpeed = (val) => {
     state.playbackSpeed = parseFloat(val);
     document.getElementById('speedDisplay').textContent = val + 'x';
+};
+
+window.updateVolume = (val) => {
+    const volume = parseInt(val);
+    document.getElementById('volumeDisplay').textContent = volume + '%';
+    // Send volume to server
+    Comms.sendAudioCommand('setVolume', { volume });
 };
 
 window.updateRestSettings = () => {
