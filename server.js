@@ -349,7 +349,7 @@ app.post('/api/audio/upload', (req, res, next) => {
       console.error('Multer error:', err);
       return res.status(500).json({ error: 'Upload failed: ' + err.message });
     }
-    
+
     if (!req.file) {
       return res.status(400).json({ error: 'No audio file provided' });
     }

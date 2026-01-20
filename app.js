@@ -610,21 +610,28 @@ window.handleAudioLoad = async (e) => {
                 body: formData
             });
 
+            // Read the response body once
+            const responseText = await response.text();
+            
             if (response.ok) {
-                const result = await response.json();
-                document.getElementById('audioStatus').textContent = result.fileName + ' (Pi)';
-                state.serverAudioLoaded = true;
-                state.currentTime = 0;
-                UI.updatePlayhead(0);
-                console.log('Audio uploaded to server:', result.fileName);
-            } else {
-                // Try to parse as JSON, fallback to text
-                let errMsg = 'Upload failed';
                 try {
-                    const err = await response.json();
+                    const result = JSON.parse(responseText);
+                    document.getElementById('audioStatus').textContent = result.fileName + ' (Pi)';
+                    state.serverAudioLoaded = true;
+                    state.currentTime = 0;
+                    UI.updatePlayhead(0);
+                    console.log('Audio uploaded to server:', result.fileName);
+                } catch {
+                    console.error('Invalid JSON response:', responseText);
+                    document.getElementById('audioStatus').textContent = 'Upload error';
+                }
+            } else {
+                let errMsg = `HTTP ${response.status}`;
+                try {
+                    const err = JSON.parse(responseText);
                     errMsg = err.error || errMsg;
                 } catch {
-                    errMsg = await response.text() || `HTTP ${response.status}`;
+                    errMsg = responseText || errMsg;
                 }
                 document.getElementById('audioStatus').textContent = 'Upload failed';
                 console.error('Audio upload failed:', errMsg);
