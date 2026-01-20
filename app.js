@@ -305,7 +305,7 @@ window.toggleMotors = (checked) => {
     const toggle = document.getElementById('motorToggle');
     // Skip if this was triggered by Arduino status update
     if (toggle && toggle._updatingFromArduino) return;
-    
+
     if (checked) {
         Comms.sendCommand('E 1');
     } else {

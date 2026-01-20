@@ -115,11 +115,10 @@ function playAudio(startTime = 0, speed = 1.0) {
   audioStartTime = Date.now();
 
   // Try mpv first (common on Pi), fallback to ffplay
-  // Use --ao=alsa to bypass PulseAudio (fixes systemd startup issues)
+  // User service has access to PulseAudio/PipeWire for Bluetooth audio
   const mpvArgs = [
     '--no-video',
     '--no-terminal',
-    '--ao=alsa',
     `--start=${startTime}`,
     `--speed=${speed}`,
     `--volume=${audioState.volume}`,

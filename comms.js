@@ -117,7 +117,7 @@ export function connectWebSocket() {
         state.serverAudioTime = data.currentTime;
         state.serverAudioFileName = data.fileName;
         console.log('[Comms] state.serverAudioLoaded is now:', state.serverAudioLoaded);
-        
+
         // Update volume slider if present
         if (data.volume !== undefined) {
           const volumeSlider = document.getElementById('volumeSlider');
@@ -125,7 +125,7 @@ export function connectWebSocket() {
           if (volumeSlider) volumeSlider.value = data.volume;
           if (volumeDisplay) volumeDisplay.textContent = data.volume + '%';
         }
-        
+
         onAudioStateUpdate(data);
       }
     } catch (error) {
