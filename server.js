@@ -125,9 +125,17 @@ function playAudio(startTime = 0, speed = 1.0) {
   ];
 
   console.log('[Audio] Attempting to spawn mpv with args:', mpvArgs.join(' '));
+  console.log('[Audio] Audio file path:', audioFilePath);
 
-  // Try mpv first
-  audioProcess = spawn('mpv', mpvArgs, { stdio: 'ignore' });
+  // Try mpv first - use pipe to capture any errors
+  audioProcess = spawn('mpv', mpvArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
+  
+  // Capture stderr for debugging
+  if (audioProcess.stderr) {
+    audioProcess.stderr.on('data', (data) => {
+      console.error('[Audio] mpv stderr:', data.toString());
+    });
+  }
 
   audioProcess.on('error', (err) => {
     if (err.code === 'ENOENT') {

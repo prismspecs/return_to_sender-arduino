@@ -137,6 +137,10 @@ export function playChoreography(callbacks) {
 
     if (timeUpdated) {
       callbacks.onTimeUpdate(state.currentTime);
+      // Debug log every second (not every 20ms)
+      if (Math.floor(state.currentTime) !== Math.floor(state.currentTime - 0.02)) {
+        debugLog('[Choreo] Time update:', state.currentTime.toFixed(2), 'serverAudioPlaying:', state.serverAudioPlaying);
+      }
     }
 
     // Execute Keyframes
@@ -192,15 +196,18 @@ export function playChoreography(callbacks) {
       return;
     }
 
-    // Check if playback ended
-    if (hasServerAudio && !state.serverAudioPlaying && state.currentTime > 1 && !shouldLoop) {
+    // Check if playback ended - only stop if we're past the last keyframe AND audio isn't playing
+    // Don't auto-stop just because server audio stopped - we can still play keyframes based on local time
+    const lastKfTime = state.choreography.length > 0 ? state.choreography[state.choreography.length - 1].time : 0;
+    const pastAllKeyframes = state.currentTime > lastKfTime + 1;
+    
+    if (hasLocalAudio && audio.ended && pastAllKeyframes && !shouldLoop) {
+      debugLog('[Choreo] Stopping: local audio ended and past all keyframes');
       stopChoreography(callbacks);
       return;
     }
-    if (hasLocalAudio && audio.ended && !shouldLoop) {
-      stopChoreography(callbacks);
-      return;
-    }
+    // For server audio or no audio - don't auto-stop, let it keep running for recording
+    // User can stop manually with Stop button
   }, 20);
 }
 
