@@ -6,10 +6,14 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { spawn } from 'child_process';
 import fs from 'fs';
+import net from 'net';
 import multer from 'multer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// mpv IPC socket path
+const MPV_SOCKET = '/tmp/mpv-socket';
 
 // Audio playback state
 let audioProcess = null;
@@ -92,6 +96,32 @@ function stopAudioProcess() {
     audioProcess = null;
   }
   audioState.isPlaying = false;
+  // Clean up socket file
+  if (fs.existsSync(MPV_SOCKET)) {
+    try { fs.unlinkSync(MPV_SOCKET); } catch (e) {}
+  }
+}
+
+// Send command to mpv via IPC socket
+function sendMpvCommand(command) {
+  return new Promise((resolve, reject) => {
+    if (!fs.existsSync(MPV_SOCKET)) {
+      return reject(new Error('mpv socket not found'));
+    }
+    const client = net.createConnection(MPV_SOCKET);
+    client.on('connect', () => {
+      client.write(JSON.stringify(command) + '\n');
+      client.end();
+      resolve();
+    });
+    client.on('error', reject);
+  });
+}
+
+function setMpvVolume(volume) {
+  sendMpvCommand({ command: ['set_property', 'volume', volume] })
+    .then(() => console.log(`[Audio] Volume set to ${volume}`))
+    .catch(err => console.log('[Audio] Could not set volume via IPC:', err.message));
 }
 
 function playAudio(startTime = 0, speed = 1.0) {
@@ -116,9 +146,15 @@ function playAudio(startTime = 0, speed = 1.0) {
 
   // Try mpv first (common on Pi), fallback to ffplay
   // User service has access to PulseAudio/PipeWire for Bluetooth audio
+  // Clean up old socket if exists
+  if (fs.existsSync(MPV_SOCKET)) {
+    try { fs.unlinkSync(MPV_SOCKET); } catch (e) {}
+  }
+  
   const mpvArgs = [
     '--no-video',
     '--no-terminal',
+    `--input-ipc-server=${MPV_SOCKET}`,
     `--start=${startTime}`,
     `--speed=${speed}`,
     `--volume=${audioState.volume}`,
@@ -521,8 +557,8 @@ wss.on('connection', (ws) => {
           case 'setVolume':
             audioState.volume = Math.max(0, Math.min(150, data.volume || 100));
             if (audioState.isPlaying) {
-              // Restart with new volume
-              playAudio(getCurrentAudioTime(), audioState.playbackSpeed);
+              // Use IPC for live volume control
+              setMpvVolume(audioState.volume);
             }
             broadcastAudioState();
             break;
