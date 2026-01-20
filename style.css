@@ -399,16 +399,15 @@ button:active {
 
 .timeline {
   background: white;
-  padding: 8px;
-  /* Reduced from 10px */
+  padding: 10px 8px 8px 8px;
   border-radius: 3px;
   min-height: 40px;
-  /* Reduced from 50px */
   position: relative;
   border: 1px solid var(--border);
   overflow-x: auto;
   width: 100%;
   min-width: 0;
+  cursor: pointer;
 }
 
 .timeline-track {

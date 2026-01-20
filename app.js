@@ -962,7 +962,23 @@ function loadReverseFlags() {
 
 // Drag Handlers
 document.addEventListener('mousedown', (e) => {
-    if (e.target.classList.contains('playhead')) state.isDraggingPlayhead = true;
+    // Allow clicking anywhere in the timeline area (white space or track) to move playhead
+    const timeline = e.target.closest('.timeline');
+    if (timeline && !e.target.classList.contains('keyframe-marker')) {
+        state.isDraggingPlayhead = true;
+        // Immediately move playhead to click position
+        const track = timeline.querySelector('.timeline-track');
+        if (track) {
+            const rect = track.getBoundingClientRect();
+            const PPS = 20;
+            let t = (e.clientX - rect.left) / PPS;
+            if (t < 0) t = 0;
+            state.currentTime = t;
+            const audio = document.getElementById('choreoAudio');
+            if (audio && audio.src) audio.currentTime = t;
+            UI.updatePlayhead(t);
+        }
+    }
 });
 
 // Keyboard shortcuts for copy/paste keyframes
