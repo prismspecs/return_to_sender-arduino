@@ -20,7 +20,8 @@ body {
   background: var(--bg);
   color: var(--text);
   line-height: 1.4;
-  padding: 5px; /* Reduced from 10px */
+  padding: 5px;
+  /* Reduced from 10px */
   font-size: 14px;
 }
 
@@ -58,7 +59,8 @@ h3 {
 .main-layout {
   display: grid;
   grid-template-columns: 400px 1fr;
-  gap: 10px; /* Reduced gap from 20px */
+  gap: 10px;
+  /* Reduced gap from 20px */
   align-items: start;
   width: 100%;
 }
@@ -66,14 +68,16 @@ h3 {
 .left-column {
   display: flex;
   flex-direction: column;
-  gap: 8px; /* Reduced gap from 10px */
+  gap: 8px;
+  /* Reduced gap from 10px */
   min-width: 0;
 }
 
 .right-column {
   display: flex;
   flex-direction: column;
-  gap: 8px; /* Reduced gap from 10px */
+  gap: 8px;
+  /* Reduced gap from 10px */
   min-width: 0;
 }
 
@@ -90,77 +94,149 @@ h3 {
     padding: 3px;
     font-size: 13px;
   }
-  
+
   header {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
   }
-  
+
   h1 {
     font-size: 16px;
   }
-  
+
   .header-controls {
     flex-wrap: wrap;
     gap: 6px;
     width: 100%;
   }
-  
+
   .main-layout {
     grid-template-columns: 1fr;
     gap: 8px;
   }
-  
+
   .left-column,
   .right-column {
     width: 100%;
   }
-  
+
   .choreo-row {
     flex-direction: column !important;
     align-items: flex-start !important;
     gap: 8px !important;
   }
-  
-  .choreo-row > div {
+
+  .choreo-row>div {
     flex-wrap: wrap;
     border-left: none !important;
     padding-left: 0 !important;
   }
-  
+
+  /* Touch-friendly button sizing (44px minimum touch target) */
   button {
-    padding: 6px 10px;
-    font-size: 12px;
+    padding: 10px 12px;
+    font-size: 14px;
+    min-height: 44px;
   }
-  
+
+  /* Motor controls - single row on mobile */
+  .motor-controls {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .motor-strip {
+    padding: 10px;
+  }
+
+  .motor-buttons {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 4px;
+  }
+
+  .motor-buttons button {
+    padding: 8px 4px;
+    font-size: 12px;
+    min-height: 44px;
+  }
+
+  /* Global controls - maintain single row */
+  .global-buttons {
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+  }
+
+  .global-buttons button {
+    padding: 8px 2px;
+    font-size: 11px;
+    min-height: 44px;
+  }
+
+  /* Larger touch targets for toggles and labels */
+  .reverse-toggle {
+    font-size: 13px;
+    padding: 4px 8px;
+  }
+
+  .reverse-toggle input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+  }
+
+  .toggle-switch {
+    width: 50px;
+    height: 28px;
+  }
+
+  .toggle-slider:before {
+    height: 22px;
+    width: 22px;
+    left: 3px;
+    bottom: 3px;
+  }
+
+  input:checked+.toggle-slider:before {
+    transform: translateX(22px);
+  }
+
   input[type="range"] {
     width: 100px !important;
+    height: 32px;
   }
-  
+
   .timeline {
     min-height: 50px;
   }
-  
+
   .motor-sliders {
     grid-template-columns: 1fr !important;
   }
-  
+
   .keyframes-list {
     max-height: 150px;
   }
-  
+
   #console {
     max-height: 100px;
   }
-}
 
-.connection-status {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 8px;
-  background: var(--bg-alt);
+  /* Larger axis labels */
+  .axis-label {
+    font-size: 18px;
+  }
+
+  .position-value {
+    font-size: 18px;
+  }
+  
+  /* Expand toggle button - larger for mobile */
+  #btnToggleMapping {
+    padding: 8px 16px !important;
+    font-size: 20px !important;
+    min-width: 44px;
+    min-height: 44px;
+  }
   border-radius: 3px;
   font-size: 13px;
   border: 1px solid var(--border);
@@ -199,7 +275,8 @@ h3 {
 
 .motor-strip {
   background: white;
-  padding: 6px; /* Reduced from 10px */
+  padding: 6px;
+  /* Reduced from 10px */
   border-radius: 3px;
   border: 1px solid var(--border);
   display: flex;
@@ -238,19 +315,21 @@ h3 {
 
 .motor-buttons {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 3px;
   width: 100%;
 }
 
 .motor-buttons button {
-  padding: 4px 2px; /* Reduced padding */
+  padding: 6px 2px;
   font-size: 11px;
+  min-height: 32px;
 }
 
 .global-controls {
   background: white;
-  padding: 8px; /* Reduced from 10px */
+  padding: 8px;
+  /* Reduced from 10px */
   border-radius: 3px;
   border: 1px solid var(--border);
 }
@@ -262,7 +341,8 @@ h3 {
 }
 
 button {
-  padding: 4px 10px; /* Reduced from 6px 12px */
+  padding: 4px 10px;
+  /* Reduced from 6px 12px */
   background: white;
   border: 1px solid var(--border);
   border-radius: 3px;
@@ -282,7 +362,8 @@ button:active {
 
 .choreography-section {
   background: var(--bg-alt);
-  padding: 6px; /* Reduced from 10px */
+  padding: 6px;
+  /* Reduced from 10px */
   border-radius: 4px;
   border: 1px solid var(--border);
   min-width: 0;
@@ -317,19 +398,22 @@ button:active {
 
 .timeline {
   background: white;
-  padding: 8px; /* Reduced from 10px */
+  padding: 8px;
+  /* Reduced from 10px */
   border-radius: 3px;
-  min-height: 40px; /* Reduced from 50px */
+  min-height: 40px;
+  /* Reduced from 50px */
   position: relative;
   border: 1px solid var(--border);
-  overflow-x: auto; 
+  overflow-x: auto;
   width: 100%;
   min-width: 0;
 }
 
 .timeline-track {
   position: relative;
-  height: 20px; /* Reduced from 24px */
+  height: 20px;
+  /* Reduced from 24px */
   background: var(--bg-alt);
   border-radius: 2px;
   border: 1px solid var(--border);
@@ -377,8 +461,8 @@ button:active {
   position: absolute;
   top: -8px;
   left: -6px;
-  width: 0; 
-  height: 0; 
+  width: 0;
+  height: 0;
   border-left: 7px solid transparent;
   border-right: 7px solid transparent;
   border-top: 8px solid var(--success);
@@ -386,7 +470,8 @@ button:active {
 
 .keyframes-list {
   background: white;
-  padding: 6px; /* Reduced from 8px */
+  padding: 6px;
+  /* Reduced from 8px */
   border-radius: 3px;
   max-height: 120px;
   overflow-y: auto;
@@ -397,7 +482,8 @@ button:active {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 3px 6px; /* Reduced from 4px 8px */
+  padding: 3px 6px;
+  /* Reduced from 4px 8px */
   margin-bottom: 2px;
   background: var(--bg-alt);
   border-radius: 2px;
@@ -406,7 +492,8 @@ button:active {
 }
 
 .keyframe-item button {
-  padding: 1px 5px; /* Reduced padding */
+  padding: 1px 5px;
+  /* Reduced padding */
   font-size: 11px;
   background: var(--danger);
   color: white;
@@ -415,7 +502,8 @@ button:active {
 
 .console-section {
   background: var(--bg-alt);
-  padding: 8px; /* Reduced from 10px */
+  padding: 8px;
+  /* Reduced from 10px */
   border-radius: 4px;
   border: 1px solid var(--border);
 }
@@ -425,9 +513,11 @@ button:active {
   color: #0f0;
   font-family: monospace;
   font-size: 11px;
-  padding: 6px; /* Reduced from 8px */
+  padding: 6px;
+  /* Reduced from 8px */
   border-radius: 3px;
-  height: 120px; /* Reduced from 150px */
+  height: 120px;
+  /* Reduced from 150px */
   overflow-y: auto;
 }
 
@@ -454,7 +544,10 @@ button:active {
 .toggle-slider {
   position: absolute;
   cursor: pointer;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background-color: var(--danger);
   transition: .4s;
   border-radius: 24px;
@@ -463,25 +556,28 @@ button:active {
 .toggle-slider:before {
   position: absolute;
   content: "";
-  height: 18px; width: 18px;
-  left: 3px; bottom: 3px;
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
   background-color: white;
   transition: .4s;
   border-radius: 50%;
 }
 
-input:checked + .toggle-slider {
+input:checked+.toggle-slider {
   background-color: var(--success);
 }
 
-input:checked + .toggle-slider:before {
+input:checked+.toggle-slider:before {
   transform: translateX(20px);
 }
 
 /* Virtual Box */
 .virtual-box-controls {
   background: #fff;
-  padding: 8px; /* Reduced from 15px */
+  padding: 8px;
+  /* Reduced from 15px */
   border-radius: 4px;
   border: 1px solid var(--border);
 }
@@ -489,20 +585,24 @@ input:checked + .toggle-slider:before {
 .box-sliders {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 10px; /* Reduced gap from 15px */
+  gap: 10px;
+  /* Reduced gap from 15px */
 }
 
 .control-group {
   display: flex;
   flex-direction: column;
-  gap: 3px; /* Reduced from 5px */
+  gap: 3px;
+  /* Reduced from 5px */
 }
 
 .altitude-display {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px; /* Reduced gap from 10px */
-  padding: 5px; /* Reduced from 10px */
+  gap: 8px;
+  /* Reduced gap from 10px */
+  padding: 5px;
+  /* Reduced from 10px */
   background: var(--bg-alt);
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -516,7 +616,8 @@ input:checked + .toggle-slider:before {
 
 .altitude-meter-container {
   width: 30px;
-  height: 100px; /* Slightly shorter from 120px */
+  height: 100px;
+  /* Slightly shorter from 120px */
   background: #e0e0e0;
   border: 1px solid #ccc;
   border-radius: 2px;
@@ -533,7 +634,8 @@ input:checked + .toggle-slider:before {
 
 .meter-scale {
   position: absolute;
-  width: 100%; height: 100%;
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -544,7 +646,7 @@ input:checked + .toggle-slider:before {
 .scale-label {
   font-size: 9px;
   color: #555;
-  background: rgba(255,255,255,0.7);
+  background: rgba(255, 255, 255, 0.7);
   text-align: center;
 }
 
@@ -555,6 +657,13 @@ input:checked + .toggle-slider:before {
 }
 
 @keyframes rest-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }

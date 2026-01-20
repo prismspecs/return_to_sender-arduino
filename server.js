@@ -98,7 +98,7 @@ function stopAudioProcess() {
   audioState.isPlaying = false;
   // Clean up socket file
   if (fs.existsSync(MPV_SOCKET)) {
-    try { fs.unlinkSync(MPV_SOCKET); } catch (e) {}
+    try { fs.unlinkSync(MPV_SOCKET); } catch (e) { }
   }
 }
 
@@ -148,9 +148,9 @@ function playAudio(startTime = 0, speed = 1.0) {
   // User service has access to PulseAudio/PipeWire for Bluetooth audio
   // Clean up old socket if exists
   if (fs.existsSync(MPV_SOCKET)) {
-    try { fs.unlinkSync(MPV_SOCKET); } catch (e) {}
+    try { fs.unlinkSync(MPV_SOCKET); } catch (e) { }
   }
-  
+
   const mpvArgs = [
     '--no-video',
     '--no-terminal',

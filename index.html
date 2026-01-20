@@ -55,7 +55,7 @@
               <button onclick="loadConfig()" style="padding: 2px 8px; font-size: 11px;" title="Load Configuration">Load
                 Config</button>
               <button id="btnToggleMapping" onclick="toggleMappingPanel()"
-                style="padding: 2px 8px; font-size: 12px;">▼</button>
+                style="padding: 4px 12px; font-size: 16px; min-width: 36px;">▼</button>
             </div>
           </div>
           <div id="mappingPanel" style="display: none; margin-top: 10px; display: grid; gap: 10px;">
@@ -189,7 +189,8 @@
             <div class="motor-buttons">
               <button onclick="quickMove('X', 0, -100)">-100</button>
               <button onclick="quickMove('X', 0, -10)">-10</button>
-              <button onclick="moveToSlider('X', 0, 0)">0</button>
+              <button onclick="quickMove('X', 0, -2)">-2</button>
+              <button onclick="quickMove('X', 0, 2)">+2</button>
               <button onclick="quickMove('X', 0, 10)">+10</button>
               <button onclick="quickMove('X', 0, 100)">+100</button>
             </div>
@@ -201,7 +202,8 @@
             <div class="motor-buttons">
               <button onclick="quickMove('Y', 1, -100)">-100</button>
               <button onclick="quickMove('Y', 1, -10)">-10</button>
-              <button onclick="moveToSlider('Y', 1, 0)">0</button>
+              <button onclick="quickMove('Y', 1, -2)">-2</button>
+              <button onclick="quickMove('Y', 1, 2)">+2</button>
               <button onclick="quickMove('Y', 1, 10)">+10</button>
               <button onclick="quickMove('Y', 1, 100)">+100</button>
             </div>
@@ -213,7 +215,8 @@
             <div class="motor-buttons">
               <button onclick="quickMove('A', 3, -100)">-100</button>
               <button onclick="quickMove('A', 3, -10)">-10</button>
-              <button onclick="moveToSlider('A', 3, 0)">0</button>
+              <button onclick="quickMove('A', 3, -2)">-2</button>
+              <button onclick="quickMove('A', 3, 2)">+2</button>
               <button onclick="quickMove('A', 3, 10)">+10</button>
               <button onclick="quickMove('A', 3, 100)">+100</button>
             </div>
@@ -225,7 +228,8 @@
             <div class="motor-buttons">
               <button onclick="quickMove('Z', 2, -100)">-100</button>
               <button onclick="quickMove('Z', 2, -10)">-10</button>
-              <button onclick="moveToSlider('Z', 2, 0)">0</button>
+              <button onclick="quickMove('Z', 2, -2)">-2</button>
+              <button onclick="quickMove('Z', 2, 2)">+2</button>
               <button onclick="quickMove('Z', 2, 10)">+10</button>
               <button onclick="quickMove('Z', 2, 100)">+100</button>
             </div>
@@ -417,7 +421,8 @@
             </div>
           </div>
           <div style="text-align: center; margin-bottom: 8px;">
-            <span id="timeDisplay" class="time-display" style="font-size: 11px; color: #999; font-family: monospace;">0.00s</span>
+            <span id="timeDisplay" class="time-display"
+              style="font-size: 11px; color: #999; font-family: monospace;">0.00s</span>
           </div>
           <div class="keyframes-list" id="keyframesList"></div>
 
@@ -553,14 +558,14 @@
         <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Use the buttons below to lower/raise this corner
           until it is exactly <strong>1cm off the floor</strong>.</p>
 
-        <div style="display: flex; justify-content: center; gap: 5px; margin-bottom: 25px; flex-wrap: wrap;">
-          <button onclick="calibrationMove(-100)" style="min-width: 50px; padding: 10px;">-100</button>
-          <button onclick="calibrationMove(-10)" style="min-width: 50px; padding: 10px;">-10</button>
-          <button onclick="calibrationMove(-1)" style="min-width: 50px; padding: 10px;">-1</button>
+        <div style="display: flex; justify-content: center; gap: 5px; margin-bottom: 25px; flex-wrap: nowrap;">
+          <button onclick="calibrationMove(-20)" style="min-width: 44px; padding: 10px;">-20</button>
+          <button onclick="calibrationMove(-5)" style="min-width: 44px; padding: 10px;">-5</button>
+          <button onclick="calibrationMove(-1)" style="min-width: 44px; padding: 10px;">-1</button>
           <div style="width: 10px;"></div>
-          <button onclick="calibrationMove(1)" style="min-width: 50px; padding: 10px;">+1</button>
-          <button onclick="calibrationMove(10)" style="min-width: 50px; padding: 10px;">+10</button>
-          <button onclick="calibrationMove(100)" style="min-width: 50px; padding: 10px;">+100</button>
+          <button onclick="calibrationMove(1)" style="min-width: 44px; padding: 10px;">+1</button>
+          <button onclick="calibrationMove(5)" style="min-width: 44px; padding: 10px;">+5</button>
+          <button onclick="calibrationMove(20)" style="min-width: 44px; padding: 10px;">+20</button>
         </div>
 
         <div style="display: flex; justify-content: space-between; border-top: 1px solid #eee; padding-top: 20px;">
