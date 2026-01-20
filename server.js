@@ -4,9 +4,197 @@ import { ReadlineParser } from '@serialport/parser-readline';
 import { WebSocketServer } from 'ws';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { spawn } from 'child_process';
+import fs from 'fs';
+import multer from 'multer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// Audio playback state
+let audioProcess = null;
+let audioFilePath = null;
+let audioState = {
+  isPlaying: false,
+  currentTime: 0,
+  duration: 0,
+  fileName: null,
+  playbackSpeed: 1.0
+};
+let audioStartTime = 0;
+let audioStartOffset = 0;
+
+// Configure multer for audio uploads
+const audioStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = join(__dirname, 'uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, 'current-audio' + getExtension(file.originalname));
+  }
+});
+
+function getExtension(filename) {
+  const ext = filename.split('.').pop();
+  return ext ? '.' + ext : '.mp3';
+}
+
+const upload = multer({ storage: audioStorage });
+
+const AUDIO_CONFIG_PATH = join(__dirname, 'uploads', 'audio-config.json');
+
+// Load persisted audio config on startup
+function loadAudioConfig() {
+  try {
+    if (fs.existsSync(AUDIO_CONFIG_PATH)) {
+      const config = JSON.parse(fs.readFileSync(AUDIO_CONFIG_PATH, 'utf8'));
+      if (config.filePath && fs.existsSync(config.filePath)) {
+        audioFilePath = config.filePath;
+        audioState.fileName = config.fileName;
+        audioState.duration = config.duration || 0;
+        console.log(`✓ Loaded persisted audio: ${config.fileName}`);
+        return true;
+      }
+    }
+  } catch (e) {
+    console.error('Error loading audio config:', e.message);
+  }
+  return false;
+}
+
+function saveAudioConfig() {
+  try {
+    const uploadDir = join(__dirname, 'uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    fs.writeFileSync(AUDIO_CONFIG_PATH, JSON.stringify({
+      filePath: audioFilePath,
+      fileName: audioState.fileName,
+      duration: audioState.duration
+    }, null, 2));
+  } catch (e) {
+    console.error('Error saving audio config:', e.message);
+  }
+}
+
+// Audio playback control functions
+function stopAudioProcess() {
+  if (audioProcess) {
+    audioProcess.kill('SIGTERM');
+    audioProcess = null;
+  }
+  audioState.isPlaying = false;
+}
+
+function playAudio(startTime = 0, speed = 1.0) {
+  if (!audioFilePath || !fs.existsSync(audioFilePath)) {
+    console.error('No audio file loaded');
+    return false;
+  }
+
+  stopAudioProcess();
+
+  audioState.playbackSpeed = speed;
+  audioStartOffset = startTime;
+  audioStartTime = Date.now();
+
+  // Try mpv first (common on Pi), fallback to ffplay
+  const mpvArgs = [
+    '--no-video',
+    `--start=${startTime}`,
+    `--speed=${speed}`,
+    '--really-quiet',
+    audioFilePath
+  ];
+
+  const ffplayArgs = [
+    '-nodisp',
+    '-autoexit',
+    '-ss', String(startTime),
+    '-af', `atempo=${speed}`,
+    audioFilePath
+  ];
+
+  // Try mpv first
+  audioProcess = spawn('mpv', mpvArgs, { stdio: 'ignore' });
+
+  audioProcess.on('error', (err) => {
+    if (err.code === 'ENOENT') {
+      // mpv not found, try ffplay
+      console.log('mpv not found, trying ffplay...');
+      audioProcess = spawn('ffplay', ffplayArgs, { stdio: 'ignore' });
+
+      audioProcess.on('error', (err2) => {
+        if (err2.code === 'ENOENT') {
+          console.error('Neither mpv nor ffplay found. Install one: sudo apt install mpv');
+        }
+      });
+
+      audioProcess.on('exit', () => {
+        audioState.isPlaying = false;
+        broadcastAudioState();
+      });
+    }
+  });
+
+  audioProcess.on('exit', () => {
+    audioState.isPlaying = false;
+    broadcastAudioState();
+  });
+
+  audioState.isPlaying = true;
+  broadcastAudioState();
+  return true;
+}
+
+function pauseAudio() {
+  if (audioProcess) {
+    // Calculate current time before stopping
+    const elapsed = (Date.now() - audioStartTime) / 1000 * audioState.playbackSpeed;
+    audioState.currentTime = audioStartOffset + elapsed;
+    stopAudioProcess();
+    broadcastAudioState();
+  }
+}
+
+function seekAudio(time) {
+  audioState.currentTime = time;
+  if (audioState.isPlaying) {
+    playAudio(time, audioState.playbackSpeed);
+  } else {
+    audioStartOffset = time;
+    broadcastAudioState();
+  }
+}
+
+function getCurrentAudioTime() {
+  if (audioState.isPlaying) {
+    const elapsed = (Date.now() - audioStartTime) / 1000 * audioState.playbackSpeed;
+    return audioStartOffset + elapsed;
+  }
+  return audioState.currentTime;
+}
+
+function broadcastAudioState() {
+  const state = {
+    type: 'audioState',
+    isPlaying: audioState.isPlaying,
+    currentTime: getCurrentAudioTime(),
+    fileName: audioState.fileName,
+    duration: audioState.duration,
+    playbackSpeed: audioState.playbackSpeed
+  };
+  wsClients.forEach(client => {
+    if (client.readyState === 1) {
+      client.send(JSON.stringify(state));
+    }
+  });
+}
 
 const app = express();
 const PORT = 3000;
@@ -28,13 +216,13 @@ function initSerial(portPath) {
   if (serialPort) {
     // If we are already connected to this port, do nothing
     if (serialPort.path === portPath && serialPort.isOpen) {
-        console.log(`Already connected to ${portPath}`);
-        return;
+      console.log(`Already connected to ${portPath}`);
+      return;
     }
-    
+
     console.log('Closing existing connection...');
     if (serialPort.isOpen) {
-        serialPort.close();
+      serialPort.close();
     }
     serialPort.removeAllListeners();
     if (parser) parser.removeAllListeners();
@@ -60,7 +248,7 @@ function initSerial(portPath) {
         broadcastStatus(false);
         return;
       }
-      
+
       console.log(`\n✓ Connected to Arduino on ${portPath}`);
       isSerialConnected = true;
       broadcastStatus(true);
@@ -70,7 +258,7 @@ function initSerial(portPath) {
     parser.on('data', (data) => {
       const message = data.trim();
       // console.log('Arduino:', message);
-      
+
       wsClients.forEach(client => {
         if (client.readyState === 1) { // WebSocket.OPEN
           client.send(JSON.stringify({
@@ -101,14 +289,14 @@ function initSerial(portPath) {
 }
 
 function broadcastStatus(connected) {
-    wsClients.forEach(client => {
-        if (client.readyState === 1) {
-            client.send(JSON.stringify({
-                type: 'status',
-                connected: connected
-            }));
-        }
-    });
+  wsClients.forEach(client => {
+    if (client.readyState === 1) {
+      client.send(JSON.stringify({
+        type: 'status',
+        connected: connected
+      }));
+    }
+  });
 }
 
 // Serve static files
@@ -117,28 +305,28 @@ app.use(express.json());
 
 // API endpoint to list ports
 app.get('/api/ports', async (req, res) => {
-    try {
-        const ports = await SerialPort.list();
-        res.json(ports);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+  try {
+    const ports = await SerialPort.list();
+    res.json(ports);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // API endpoint to connect to a port
 app.post('/api/connect', (req, res) => {
-    const { port } = req.body;
-    if (!port) {
-        return res.status(400).json({ error: 'Port is required' });
-    }
-    initSerial(port);
-    res.json({ success: true, message: `Connecting to ${port}...` });
+  const { port } = req.body;
+  if (!port) {
+    return res.status(400).json({ error: 'Port is required' });
+  }
+  initSerial(port);
+  res.json({ success: true, message: `Connecting to ${port}...` });
 });
 
 // API endpoint to send commands
 app.post('/api/command', (req, res) => {
   const { command } = req.body;
-  
+
   if (!serialPort || !serialPort.isOpen) {
     return res.status(503).json({ error: 'Serial port not connected' });
   }
@@ -149,6 +337,47 @@ app.post('/api/command', (req, res) => {
       return res.status(500).json({ error: err.message });
     }
     res.json({ success: true });
+  });
+});
+
+// Audio upload endpoint
+app.post('/api/audio/upload', upload.single('audio'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No audio file provided' });
+  }
+
+  // Clean up old audio files with different extensions
+  const uploadDir = join(__dirname, 'uploads');
+  const files = fs.readdirSync(uploadDir);
+  files.forEach(f => {
+    if (f.startsWith('current-audio') && f !== req.file.filename) {
+      fs.unlinkSync(join(uploadDir, f));
+    }
+  });
+
+  audioFilePath = req.file.path;
+  audioState.fileName = req.file.originalname;
+  audioState.currentTime = 0;
+  audioState.isPlaying = false;
+
+  // Save config for persistence
+  saveAudioConfig();
+
+  // Broadcast to all clients
+  broadcastAudioState();
+
+  console.log(`✓ Audio uploaded: ${req.file.originalname}`);
+  res.json({ success: true, fileName: req.file.originalname });
+});
+
+// Audio status endpoint
+app.get('/api/audio/status', (req, res) => {
+  res.json({
+    fileName: audioState.fileName,
+    isPlaying: audioState.isPlaying,
+    currentTime: getCurrentAudioTime(),
+    duration: audioState.duration,
+    hasAudio: !!audioFilePath && fs.existsSync(audioFilePath)
   });
 });
 
@@ -167,6 +396,9 @@ SerialPort.list().then(ports => {
   console.error('Error listing ports:', err.message);
 });
 
+// Load persisted audio config
+loadAudioConfig();
+
 // Start HTTP server
 const server = app.listen(PORT, () => {
   console.log(`\n✓ Server running at http://localhost:${PORT}`);
@@ -179,18 +411,65 @@ const wss = new WebSocketServer({ server });
 wss.on('connection', (ws) => {
   console.log('WebSocket client connected');
   wsClients.add(ws);
-  
+
   // Send initial connection status
   ws.send(JSON.stringify({
     type: 'status',
     connected: isSerialConnected
   }));
 
+  // Send current audio state
+  ws.send(JSON.stringify({
+    type: 'audioState',
+    isPlaying: audioState.isPlaying,
+    currentTime: getCurrentAudioTime(),
+    fileName: audioState.fileName,
+    duration: audioState.duration,
+    playbackSpeed: audioState.playbackSpeed,
+    hasAudio: !!audioFilePath && fs.existsSync(audioFilePath)
+  }));
+
   ws.on('message', (message) => {
     try {
       const data = JSON.parse(message);
-      console.log('WebSocket received:', data);
-      
+      // Only log non-audio-sync messages to reduce noise
+      if (data.type !== 'audioSync') {
+        console.log('WebSocket received:', data);
+      }
+
+      // Audio control commands
+      if (data.type === 'audio') {
+        switch (data.action) {
+          case 'play':
+            playAudio(data.time || 0, data.speed || 1.0);
+            break;
+          case 'pause':
+            pauseAudio();
+            break;
+          case 'seek':
+            seekAudio(data.time || 0);
+            break;
+          case 'setSpeed':
+            audioState.playbackSpeed = data.speed || 1.0;
+            if (audioState.isPlaying) {
+              playAudio(getCurrentAudioTime(), audioState.playbackSpeed);
+            }
+            break;
+          case 'getStatus':
+            ws.send(JSON.stringify({
+              type: 'audioState',
+              isPlaying: audioState.isPlaying,
+              currentTime: getCurrentAudioTime(),
+              fileName: audioState.fileName,
+              duration: audioState.duration,
+              playbackSpeed: audioState.playbackSpeed,
+              hasAudio: !!audioFilePath && fs.existsSync(audioFilePath)
+            }));
+            break;
+        }
+        return;
+      }
+
       if (data.type === 'command') {
         if (!serialPort) {
           console.error('Serial port is null!');
@@ -200,7 +479,7 @@ wss.on('connection', (ws) => {
           console.error('Serial port is not open!');
           return;
         }
-        
+
         console.log(`Writing to serial: "${data.command}"`);
         serialPort.write(data.command + '\n', (err) => {
           if (err) {
@@ -241,6 +520,7 @@ setInterval(() => {
 // Graceful shutdown
 process.on('SIGINT', () => {
   console.log('Shutting down...');
+  stopAudioProcess();
   if (serialPort && serialPort.isOpen) {
     serialPort.close();
   }

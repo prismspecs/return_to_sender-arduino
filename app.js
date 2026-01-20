@@ -1,6 +1,6 @@
-import { 
-    VBOX_CONFIG, 
-    AXIS_NAMES 
+import {
+    VBOX_CONFIG,
+    AXIS_NAMES
 } from './config.js';
 
 import { state } from './state.js';
@@ -8,22 +8,22 @@ import * as Comms from './comms.js';
 import * as Storage from './storage.js';
 import * as Choreo from './choreography.js';
 import * as UI from './ui.js';
-import { 
-    getMotorPositions, 
-    calculateCorners, 
+import {
+    getMotorPositions,
+    calculateCorners,
     calculateDistance,
-    calculateTargetSteps 
+    calculateTargetSteps
 } from './kinematics.js';
 
 // --- Callbacks ---
 const choreoCallbacks = {
     onTimeUpdate: (t) => UI.updatePlayhead(t),
-    onPositionUpdate: () => { 
-        for(let i=0; i<4; i++) updatePositionDisplay(i); 
+    onPositionUpdate: () => {
+        for (let i = 0; i < 4; i++) updatePositionDisplay(i);
     },
     onPlayStateChange: (playing) => {
         const btn = document.getElementById('btnPlay');
-        if(playing) {
+        if (playing) {
             btn.textContent = 'Pause';
             btn.classList.add('playing');
         } else {
@@ -32,13 +32,13 @@ const choreoCallbacks = {
         }
     },
     onSettingsUpdate: (speed, accel) => {
-        if(speed) {
-            const val = speed/1000;
+        if (speed) {
+            const val = speed / 1000;
             document.getElementById('speed').value = val;
             document.getElementById('speedSlider').value = val;
         }
-        if(accel) {
-            const val = accel/1000;
+        if (accel) {
+            const val = accel / 1000;
             document.getElementById('accel').value = val;
             document.getElementById('accelSlider').value = val;
         }
@@ -57,93 +57,93 @@ const uiCallbacks = {
     onKeyframeDragStart: (index) => {
         state.isDraggingKeyframe = true;
         state.draggedKeyframeIndex = index;
-        goToKeyframe(index); 
+        goToKeyframe(index);
     }
 };
 
 // --- Helper Functions ---
 function initVirtualBox() {
-  const corners = calculateCorners({ z: -VBOX_CONFIG.maxHeight, roll: 0, pitch: 0 });
-  const motors = getMotorPositions();
-  for (let i = 0; i < 4; i++) {
-    state.homeLengths[i] = calculateDistance(motors[i], corners[i]);
-  }
+    const corners = calculateCorners({ z: -VBOX_CONFIG.maxHeight, roll: 0, pitch: 0 });
+    const motors = getMotorPositions();
+    for (let i = 0; i < 4; i++) {
+        state.homeLengths[i] = calculateDistance(motors[i], corners[i]);
+    }
 }
 
 
 function applyMapping(logicalSteps) {
-  const physicalSteps = [0, 0, 0, 0];
-  const debugMap = [];
-  for (let i = 0; i < 4; i++) {
-    const driverIndex = state.motorMapping[i];
-    let s = logicalSteps[i];
-    if (state.reverseFlags[i]) s = -s;
-    physicalSteps[driverIndex] = s;
-    debugMap.push(`M${i}->Dr${driverIndex} (Rev:${state.reverseFlags[i]}): ${logicalSteps[i]}->${s}`);
-  }
-  console.log("Mapping:", debugMap.join(', '));
-  return physicalSteps;
+    const physicalSteps = [0, 0, 0, 0];
+    const debugMap = [];
+    for (let i = 0; i < 4; i++) {
+        const driverIndex = state.motorMapping[i];
+        let s = logicalSteps[i];
+        if (state.reverseFlags[i]) s = -s;
+        physicalSteps[driverIndex] = s;
+        debugMap.push(`M${i}->Dr${driverIndex} (Rev:${state.reverseFlags[i]}): ${logicalSteps[i]}->${s}`);
+    }
+    console.log("Mapping:", debugMap.join(', '));
+    return physicalSteps;
 }
 
 const JUMPER_CONFIGS = {
-  A4988: [
-    { val: 1, label: '1 (Full Step - No Jumpers)', jumpers: '---' },
-    { val: 2, label: '1/2 (J1 only)', jumpers: 'H--' },
-    { val: 4, label: '1/4 (J2 only)', jumpers: '-H-' },
-    { val: 8, label: '1/8 (J1 & J2)', jumpers: 'HH-' },
-    { val: 16, label: '1/16 (All 3 Jumpers)', jumpers: 'HHH' }
-  ],
-  DRV8825: [
-    { val: 1, label: '1 (Full Step - No Jumpers)', jumpers: '---' },
-    { val: 2, label: '1/2 (J1 only)', jumpers: 'H--' },
-    { val: 4, label: '1/4 (J2 only)', jumpers: '-H-' },
-    { val: 8, label: '1/8 (J1 & J2)', jumpers: 'HH-' },
-    { val: 16, label: '1/16 (J3 only)', jumpers: '--H' },
-    { val: 32, label: '1/32 (All 3 Jumpers)', jumpers: 'HHH' }
-  ]
+    A4988: [
+        { val: 1, label: '1 (Full Step - No Jumpers)', jumpers: '---' },
+        { val: 2, label: '1/2 (J1 only)', jumpers: 'H--' },
+        { val: 4, label: '1/4 (J2 only)', jumpers: '-H-' },
+        { val: 8, label: '1/8 (J1 & J2)', jumpers: 'HH-' },
+        { val: 16, label: '1/16 (All 3 Jumpers)', jumpers: 'HHH' }
+    ],
+    DRV8825: [
+        { val: 1, label: '1 (Full Step - No Jumpers)', jumpers: '---' },
+        { val: 2, label: '1/2 (J1 only)', jumpers: 'H--' },
+        { val: 4, label: '1/4 (J2 only)', jumpers: '-H-' },
+        { val: 8, label: '1/8 (J1 & J2)', jumpers: 'HH-' },
+        { val: 16, label: '1/16 (J3 only)', jumpers: '--H' },
+        { val: 32, label: '1/32 (All 3 Jumpers)', jumpers: 'HHH' }
+    ]
 };
 
 function updateMicrosteppingOptions() {
-  const driverSelect = document.getElementById('driverType');
-  const msSelect = document.getElementById('microstepping');
-  const driver = driverSelect.value;
-  localStorage.setItem('driverType', driver);
-  const currentVal = parseInt(msSelect.value) || VBOX_CONFIG.microsteps;
-  msSelect.innerHTML = '';
-  JUMPER_CONFIGS[driver].forEach(cfg => {
-    const opt = document.createElement('option');
-    opt.value = cfg.val;
-    opt.textContent = cfg.label;
-    msSelect.appendChild(opt);
-  });
-  if ([...msSelect.options].some(o => parseInt(o.value) === currentVal)) {
-    msSelect.value = currentVal;
-  } else {
-    msSelect.value = JUMPER_CONFIGS[driver][JUMPER_CONFIGS[driver].length - 1].val;
-  }
-  updateMicrostepping();
+    const driverSelect = document.getElementById('driverType');
+    const msSelect = document.getElementById('microstepping');
+    const driver = driverSelect.value;
+    localStorage.setItem('driverType', driver);
+    const currentVal = parseInt(msSelect.value) || VBOX_CONFIG.microsteps;
+    msSelect.innerHTML = '';
+    JUMPER_CONFIGS[driver].forEach(cfg => {
+        const opt = document.createElement('option');
+        opt.value = cfg.val;
+        opt.textContent = cfg.label;
+        msSelect.appendChild(opt);
+    });
+    if ([...msSelect.options].some(o => parseInt(o.value) === currentVal)) {
+        msSelect.value = currentVal;
+    } else {
+        msSelect.value = JUMPER_CONFIGS[driver][JUMPER_CONFIGS[driver].length - 1].val;
+    }
+    updateMicrostepping();
 }
 
 function updateMicrostepping() {
-  const select = document.getElementById('microstepping');
-  const ms = parseInt(select.value);
-  VBOX_CONFIG.microsteps = ms;
-  localStorage.setItem('microsteps', ms);
+    const select = document.getElementById('microstepping');
+    const ms = parseInt(select.value);
+    VBOX_CONFIG.microsteps = ms;
+    localStorage.setItem('microsteps', ms);
 }
 
 function loadMicrostepping() {
-  const savedDriver = localStorage.getItem('driverType');
-  if (savedDriver) document.getElementById('driverType').value = savedDriver;
-  updateMicrosteppingOptions(); 
-  const savedMs = localStorage.getItem('microsteps');
-  if (savedMs) {
-    const ms = parseInt(savedMs);
-    const select = document.getElementById('microstepping');
-    if (select && [...select.options].some(o => parseInt(o.value) === ms)) {
-      select.value = ms;
-      VBOX_CONFIG.microsteps = ms;
+    const savedDriver = localStorage.getItem('driverType');
+    if (savedDriver) document.getElementById('driverType').value = savedDriver;
+    updateMicrosteppingOptions();
+    const savedMs = localStorage.getItem('microsteps');
+    if (savedMs) {
+        const ms = parseInt(savedMs);
+        const select = document.getElementById('microstepping');
+        if (select && [...select.options].some(o => parseInt(o.value) === ms)) {
+            select.value = ms;
+            VBOX_CONFIG.microsteps = ms;
+        }
     }
-  }
 }
 
 // --- Main UI Refresh ---
@@ -168,41 +168,90 @@ function updateQuickSaveDropdown(projects) {
 
 // --- Animation Loop ---
 function animateDisplay(timestamp) {
-  for (let i = 0; i < 4; i++) {
-    state.visualPositions[i] = state.currentPositions[i];
-    updatePositionDisplay(i);
-  }
-  requestAnimationFrame(animateDisplay);
+    if (!lastFrameTime) lastFrameTime = timestamp;
+    const dt = (timestamp - lastFrameTime) / 1000;
+    lastFrameTime = timestamp;
+
+    const isSmooth = document.getElementById('smoothAnimation')?.checked;
+
+    if (!isSmooth) {
+        for (let i = 0; i < 4; i++) {
+            state.visualPositions[i] = state.currentPositions[i];
+        }
+        for (let i = 0; i < 4; i++) updatePositionDisplay(i);
+        requestAnimationFrame(animateDisplay);
+        return;
+    }
+
+    let changed = false;
+    for (let i = 0; i < 4; i++) {
+        const target = state.currentPositions[i];
+        const current = state.visualPositions[i];
+        const diff = target - current;
+
+        if (Math.abs(diff) < 0.5 && Math.abs(state.motorVelocities[i]) < 10) {
+            if (state.visualPositions[i] !== target) {
+                state.visualPositions[i] = target;
+                state.motorVelocities[i] = 0;
+                changed = true;
+            }
+            continue;
+        }
+
+        const maxSpeed = state.uiMaxSpeed;
+        const acceleration = state.uiAcceleration;
+        const safeSpeed = Math.sqrt(2 * acceleration * Math.abs(diff));
+        let targetVel = Math.sign(diff) * Math.min(maxSpeed, safeSpeed);
+
+        const velDiff = targetVel - state.motorVelocities[i];
+        const maxVelChange = acceleration * dt;
+
+        if (Math.abs(velDiff) < maxVelChange) {
+            state.motorVelocities[i] = targetVel;
+        } else {
+            state.motorVelocities[i] += Math.sign(velDiff) * maxVelChange;
+        }
+
+        state.visualPositions[i] += state.motorVelocities[i] * dt;
+        changed = true;
+    }
+
+    if (changed) {
+        for (let i = 0; i < 4; i++) updatePositionDisplay(i);
+    }
+
+    requestAnimationFrame(animateDisplay);
+>>>>>>> Stashed changes
 }
 
 function updatePositionDisplay(motorIndex) {
-  const physicalAxisIndex = state.motorMapping[motorIndex];
-  const displayId = `pos${AXIS_NAMES[physicalAxisIndex]}`;
-  let displayValue = Math.round(state.visualPositions[motorIndex]);
-  
-  const displayEl = document.getElementById(displayId);
-  if(displayEl) displayEl.textContent = displayValue;
-  
-  const h = state.visualPositions[motorIndex] / VBOX_CONFIG.stepsPerMm;
-  const meter = document.getElementById(`altM${motorIndex}`);
-  if (meter) {
-      let val = h;
-      if (val < 0) val = 0;
-      if (val > state.maxCeiling) val = state.maxCeiling;
-      meter.style.height = `${(val / state.maxCeiling) * 100}%`;
-  }
+    const physicalAxisIndex = state.motorMapping[motorIndex];
+    const displayId = `pos${AXIS_NAMES[physicalAxisIndex]}`;
+    let displayValue = Math.round(state.visualPositions[motorIndex]);
+
+    const displayEl = document.getElementById(displayId);
+    if (displayEl) displayEl.textContent = displayValue;
+
+    const h = state.visualPositions[motorIndex] / VBOX_CONFIG.stepsPerMm;
+    const meter = document.getElementById(`altM${motorIndex}`);
+    if (meter) {
+        let val = h;
+        if (val < 0) val = 0;
+        if (val > state.maxCeiling) val = state.maxCeiling;
+        meter.style.height = `${(val / state.maxCeiling) * 100}%`;
+    }
 }
 
 // --- Global Functions ---
 window.quickMove = (axisName, axisIndex, distanceMm) => {
-  const steps = Math.round(distanceMm * VBOX_CONFIG.stepsPerMm);
-  state.currentPositions[axisIndex] += steps;
-  const physRel = [0,0,0,0];
-  let relSteps = steps;
-  if(state.reverseFlags[axisIndex]) relSteps = -relSteps;
-  physRel[state.motorMapping[axisIndex]] = relSteps;
-  Comms.sendCommand(`R ${physRel.join(' ')}`);
-  updatePositionDisplay(axisIndex);
+    const steps = Math.round(distanceMm * VBOX_CONFIG.stepsPerMm);
+    state.currentPositions[axisIndex] += steps;
+    const physRel = [0, 0, 0, 0];
+    let relSteps = steps;
+    if (state.reverseFlags[axisIndex]) relSteps = -relSteps;
+    physRel[state.motorMapping[axisIndex]] = relSteps;
+    Comms.sendCommand(`R ${physRel.join(' ')}`);
+    updatePositionDisplay(axisIndex);
 };
 
 window.moveToSlider = (axisName, axisIndex, value) => {
@@ -216,21 +265,21 @@ window.moveToSlider = (axisName, axisIndex, value) => {
 
 window.moveAllMotors = (dist) => {
     const steps = Math.round(dist * VBOX_CONFIG.stepsPerMm);
-    for(let i=0; i<4; i++) state.currentPositions[i] += steps;
-    const physRel = [0,0,0,0];
-    for(let i=0; i<4; i++) {
+    for (let i = 0; i < 4; i++) state.currentPositions[i] += steps;
+    const physRel = [0, 0, 0, 0];
+    for (let i = 0; i < 4; i++) {
         let s = steps;
-        if(state.reverseFlags[i]) s = -s;
+        if (state.reverseFlags[i]) s = -s;
         physRel[state.motorMapping[i]] = s;
     }
     Comms.sendCommand(`R ${physRel.join(' ')}`);
-    for(let i=0; i<4; i++) updatePositionDisplay(i);
+    for (let i = 0; i < 4; i++) updatePositionDisplay(i);
 };
 
 window.moveAllToZero = () => {
-    state.currentPositions = [0,0,0,0];
+    state.currentPositions = [0, 0, 0, 0];
     Comms.sendCommand(`M 0 0 0 0`);
-    for(let i=0; i<4; i++) updatePositionDisplay(i);
+    for (let i = 0; i < 4; i++) updatePositionDisplay(i);
 };
 
 window.toggleReverse = (logicalIndex, checked) => {
@@ -253,8 +302,8 @@ window.toggleMotors = (checked) => {
 
 window.setFloor = () => {
     Comms.sendCommand('H');
-    state.currentPositions = [0,0,0,0];
-    for(let i=0; i<4; i++) updatePositionDisplay(i);
+    state.currentPositions = [0, 0, 0, 0];
+    for (let i = 0; i < 4; i++) updatePositionDisplay(i);
     document.getElementById('boxZ').value = 0;
     document.getElementById('boxRoll').value = 0;
     document.getElementById('boxPitch').value = 0;
@@ -269,24 +318,24 @@ window.setCeiling = () => {
     document.getElementById('boxZ').max = state.maxCeiling;
     document.getElementById('editBoxZ').max = state.maxCeiling;
     const manualIn = document.getElementById('manualCeiling');
-    if(manualIn) manualIn.value = state.maxCeiling;
-    for(let i=0; i<4; i++) updatePositionDisplay(i);
+    if (manualIn) manualIn.value = state.maxCeiling;
+    for (let i = 0; i < 4; i++) updatePositionDisplay(i);
 };
 
 window.updateCeilingFromInput = () => {
     const val = parseInt(document.getElementById('manualCeiling').value);
-    if(!isNaN(val) && val > 0) {
+    if (!isNaN(val) && val > 0) {
         state.maxCeiling = val;
         localStorage.setItem('maxCeiling', state.maxCeiling);
         document.getElementById('boxZ').max = state.maxCeiling;
         document.getElementById('editBoxZ').max = state.maxCeiling;
-        for(let i=0; i<4; i++) updatePositionDisplay(i);
+        for (let i = 0; i < 4; i++) updatePositionDisplay(i);
     }
 };
 
 window.haltMotors = () => {
     Comms.sendCommand('Q');
-    if(state.isPlaying) Choreo.stopChoreography(choreoCallbacks);
+    if (state.isPlaying) Choreo.stopChoreography(choreoCallbacks);
     setTimeout(() => Comms.sendCommand('I'), 250);
 };
 
@@ -307,13 +356,13 @@ window.setAcceleration = () => {
 window.updateSpeedUI = (fromSlider) => {
     const s = document.getElementById('speedSlider');
     const i = document.getElementById('speed');
-    if(fromSlider) i.value = s.value; else s.value = i.value;
+    if (fromSlider) i.value = s.value; else s.value = i.value;
 };
 
 window.updateAccelUI = (fromSlider) => {
     const s = document.getElementById('accelSlider');
     const i = document.getElementById('accel');
-    if(fromSlider) i.value = s.value; else s.value = i.value;
+    if (fromSlider) i.value = s.value; else s.value = i.value;
 };
 
 window.recordKeyframe = () => {
@@ -325,7 +374,7 @@ window.recordKeyframe = () => {
         boxPose: { ...state.boxState }
     };
     state.choreography.push(kf);
-    state.choreography.sort((a,b) => a.time - b.time);
+    state.choreography.sort((a, b) => a.time - b.time);
     Storage.saveChoreographyToLocal();
     refreshUI();
 };
@@ -339,19 +388,19 @@ window.clearChoreography = () => {
 };
 
 window.quickSave = () => {
-    if(Storage.quickSave()) {
+    if (Storage.quickSave()) {
         Storage.refreshQuickSaveList(updateQuickSaveDropdown);
     }
 };
 window.quickLoad = () => {
     const name = document.getElementById('quickSaveSelect').value;
-    if(Storage.quickLoad(name, { onLoaded: refreshUI })) {
+    if (Storage.quickLoad(name, { onLoaded: refreshUI })) {
         refreshUI();
     }
 };
 window.quickDelete = () => {
     const name = document.getElementById('quickSaveSelect').value;
-    if(confirm(`Delete ${name}?`)) {
+    if (confirm(`Delete ${name}?`)) {
         Storage.quickDelete(name);
         Storage.refreshQuickSaveList(updateQuickSaveDropdown);
     }
@@ -364,11 +413,11 @@ window.openSaveDialog = () => {
 window.closeSaveDialog = () => document.getElementById('saveDialog').style.display = 'none';
 window.confirmSave = () => {
     const name = document.getElementById('saveFileName').value.trim();
-    if(name) {
+    if (name) {
         state.currentFileName = name;
         Storage.saveChoreographyToLocal();
         const data = localStorage.getItem('choreographyData');
-        const blob = new Blob([data], {type: 'application/json'});
+        const blob = new Blob([data], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url; a.download = `${name}.json`; a.click();
@@ -378,16 +427,16 @@ window.confirmSave = () => {
 window.loadChoreography = () => document.getElementById('fileInput').click();
 window.handleFileLoad = (e) => {
     const file = e.target.files[0];
-    if(!file) return;
+    if (!file) return;
     const reader = new FileReader();
     reader.onload = (evt) => {
         try {
             const data = JSON.parse(evt.target.result);
             state.choreography = data.choreography || [];
-            state.currentFileName = file.name.replace('.json','');
+            state.currentFileName = file.name.replace('.json', '');
             Storage.saveChoreographyToLocal();
             refreshUI();
-        } catch(e) { console.error(e); }
+        } catch (e) { console.error(e); }
     };
     reader.readAsText(file);
     e.target.value = '';
@@ -409,8 +458,8 @@ window.saveConfig = () => {
         timelineDuration: state.timelineDuration,
         maxCeiling: state.maxCeiling
     };
-    
-    const blob = new Blob([JSON.stringify(config, null, 2)], {type: 'application/json'});
+
+    const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -424,75 +473,81 @@ window.loadConfig = () => {
 
 window.handleConfigLoad = (e) => {
     const file = e.target.files[0];
-    if(!file) return;
+    if (!file) return;
     const reader = new FileReader();
     reader.onload = (evt) => {
         try {
             const config = JSON.parse(evt.target.result);
-            
+
             // Apply Settings
-            if(config.motorMapping) {
+            if (config.motorMapping) {
                 state.motorMapping = config.motorMapping;
                 localStorage.setItem('motorMapping', JSON.stringify(state.motorMapping));
             }
-            if(config.reverseFlags) {
+            if (config.reverseFlags) {
                 state.reverseFlags = config.reverseFlags;
                 localStorage.setItem('reverseFlags', JSON.stringify(state.reverseFlags));
             }
-            
+
             // Frame
-            if(config.frameWidth) VBOX_CONFIG.frameWidth = parseFloat(config.frameWidth);
-            if(config.frameLength) VBOX_CONFIG.frameLength = parseFloat(config.frameLength);
-            if(config.maxHeight) VBOX_CONFIG.maxHeight = parseFloat(config.maxHeight);
-            
+            if (config.frameWidth) VBOX_CONFIG.frameWidth = parseFloat(config.frameWidth);
+            if (config.frameLength) VBOX_CONFIG.frameLength = parseFloat(config.frameLength);
+            if (config.maxHeight) VBOX_CONFIG.maxHeight = parseFloat(config.maxHeight);
+
             localStorage.setItem('frameWidth', VBOX_CONFIG.frameWidth);
             localStorage.setItem('frameLength', VBOX_CONFIG.frameLength);
             localStorage.setItem('frameHeight', VBOX_CONFIG.maxHeight);
-            
+
             // Driver & Microsteps
-            if(config.driverType) localStorage.setItem('driverType', config.driverType);
-            if(config.microsteps) {
+            if (config.driverType) localStorage.setItem('driverType', config.driverType);
+            if (config.microsteps) {
                 VBOX_CONFIG.microsteps = parseInt(config.microsteps);
                 localStorage.setItem('microsteps', VBOX_CONFIG.microsteps);
             }
-            
+
             // Speed & Accel
-            if(config.uiMaxSpeed) {
+            if (config.uiMaxSpeed) {
                 state.uiMaxSpeed = config.uiMaxSpeed;
                 const val = state.uiMaxSpeed / 1000;
                 document.getElementById('speed').value = val;
                 document.getElementById('speedSlider').value = val;
                 Comms.sendCommand(`S ${state.uiMaxSpeed}`);
             }
-             if(config.uiAcceleration) {
+            if (config.uiAcceleration) {
                 state.uiAcceleration = config.uiAcceleration;
                 const val = state.uiAcceleration / 1000;
                 document.getElementById('accel').value = val;
                 document.getElementById('accelSlider').value = val;
                 Comms.sendCommand(`A ${state.uiAcceleration}`);
             }
-            
+
             // Rest
-            if(config.restEnabled !== undefined) state.restEnabled = config.restEnabled;
-            if(config.restDuration !== undefined) state.restDuration = parseFloat(config.restDuration);
+            if (config.restEnabled !== undefined) state.restEnabled = config.restEnabled;
+            if (config.restDuration !== undefined) state.restDuration = parseFloat(config.restDuration);
             localStorage.setItem('restEnabled', state.restEnabled);
             localStorage.setItem('restDuration', state.restDuration);
-            
+
             // Timeline
-            if(config.timelineDuration !== undefined) state.timelineDuration = parseFloat(config.timelineDuration);
+            if (config.timelineDuration !== undefined) state.timelineDuration = parseFloat(config.timelineDuration);
             localStorage.setItem('timelineDuration', state.timelineDuration);
-            
+
             // Ceiling
-             if(config.maxCeiling !== undefined) {
+            if (config.maxCeiling !== undefined) {
                 state.maxCeiling = parseFloat(config.maxCeiling);
                 localStorage.setItem('maxCeiling', state.maxCeiling);
-             }
+            }
+
+            // Smooth
+            if (config.smoothAnimation !== undefined) {
+                const el = document.getElementById('smoothAnimation');
+                if (el) el.checked = config.smoothAnimation;
+            }
 
             // --- REFRESH UI ---
             // Mapping UI
-            for(let i=0; i<4; i++) {
+            for (let i = 0; i < 4; i++) {
                 const el = document.getElementById(`mapM${i}`);
-                if(el) el.value = state.motorMapping[i];
+                if (el) el.value = state.motorMapping[i];
             }
             const uniqueDrivers = new Set(state.motorMapping);
             const warning = document.getElementById('mappingWarning');
@@ -500,72 +555,93 @@ window.handleConfigLoad = (e) => {
 
             // Reverse Flags UI
             const reverseIds = ['reverseX', 'reverseY', 'reverseZ', 'reverseA'];
-            for(let i=0; i<4; i++) {
+            for (let i = 0; i < 4; i++) {
                 const el = document.getElementById(reverseIds[i]);
-                if(el) el.checked = state.reverseFlags[i];
+                if (el) el.checked = state.reverseFlags[i];
             }
 
             // Frame UI
             document.getElementById('frameWidth').value = VBOX_CONFIG.frameWidth;
             document.getElementById('frameLength').value = VBOX_CONFIG.frameLength;
             document.getElementById('frameHeight').value = VBOX_CONFIG.maxHeight;
-            
+
             // Update Slider Max
             document.getElementById('boxZ').max = VBOX_CONFIG.maxHeight;
             document.getElementById('editBoxZ').max = VBOX_CONFIG.maxHeight;
 
             // Driver & Microsteps UI
             const driverSelect = document.getElementById('driverType');
-            if(driverSelect && config.driverType) driverSelect.value = config.driverType;
-            
-            window.updateMicrosteppingOptions(); 
+            if (driverSelect && config.driverType) driverSelect.value = config.driverType;
+
+            window.updateMicrosteppingOptions();
 
             // Rest UI
             document.getElementById('restEnabled').checked = state.restEnabled;
             document.getElementById('restDuration').value = state.restDuration;
-            
+
             // Timeline UI
             document.getElementById('timelineDuration').value = state.timelineDuration;
-            
+
             // Recalc
             initVirtualBox();
             refreshUI();
-            
+
             alert("Config loaded successfully");
 
-        } catch(e) { console.error('Error loading config:', e); alert('Invalid config file'); }
+        } catch (e) { console.error('Error loading config:', e); alert('Invalid config file'); }
     };
     reader.readAsText(file);
     e.target.value = '';
 };
 
-window.handleAudioLoad = (e) => {
+window.handleAudioLoad = async (e) => {
     const file = e.target.files[0];
-    if(file) {
-        state.audioFile = file;
-        const audio = document.getElementById('choreoAudio');
-        audio.src = URL.createObjectURL(file);
-        document.getElementById('audioStatus').textContent = file.name;
-        Storage.saveAudioToDB(file);
-        state.currentTime = 0;
-        UI.updatePlayhead(0);
+    if (file) {
+        document.getElementById('audioStatus').textContent = 'Uploading...';
+
+        // Upload to server for Pi-side playback
+        const formData = new FormData();
+        formData.append('audio', file);
+
+        try {
+            const response = await fetch('/api/audio/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                document.getElementById('audioStatus').textContent = result.fileName;
+                state.serverAudioLoaded = true;
+                state.currentTime = 0;
+                UI.updatePlayhead(0);
+                console.log('Audio uploaded to server:', result.fileName);
+            } else {
+                const err = await response.json();
+                document.getElementById('audioStatus').textContent = 'Upload failed';
+                console.error('Audio upload failed:', err);
+            }
+        } catch (err) {
+            document.getElementById('audioStatus').textContent = 'Upload error';
+            console.error('Audio upload error:', err);
+        }
     }
 };
 
 function goToKeyframe(index) {
     state.selectedKeyframeIndex = index;
     const kf = state.choreography[index];
-    if(!kf) return;
+    if (!kf) return;
     document.getElementById('keyframeEditor').style.display = 'block';
     document.getElementById('editTime').value = kf.time.toFixed(2);
-    document.getElementById('editSpeed').value = (kf.speed || state.uiMaxSpeed)/1000;
-    document.getElementById('editAccel').value = (kf.accel || state.uiAcceleration)/1000;
-    for(let i=0; i<4; i++) document.getElementById(`editM${i}`).value = kf.positions[i];
+    document.getElementById('editSpeed').value = (kf.speed || state.uiMaxSpeed) / 1000;
+    document.getElementById('editAccel').value = (kf.accel || state.uiAcceleration) / 1000;
+    for (let i = 0; i < 4; i++) document.getElementById(`editM${i}`).value = kf.positions[i];
     const z = kf.boxPose ? kf.boxPose.z + VBOX_CONFIG.maxHeight : 0;
     document.getElementById('editBoxZ').value = z;
     document.getElementById('editBoxRoll').value = kf.boxPose?.roll || 0;
     document.getElementById('editBoxPitch').value = kf.boxPose?.pitch || 0;
-    window.updateEditorFromBox(true); 
+    window.updateEditorFromBox(true);
     refreshUI();
 }
 
@@ -577,8 +653,8 @@ window.updateEditorFromBox = (skipApply) => {
     document.getElementById('dispEditBoxRoll').textContent = r + '°';
     document.getElementById('dispEditBoxPitch').textContent = p + '°';
     if (!skipApply) {
-        const steps = calculateTargetSteps({z: parseInt(z) - VBOX_CONFIG.maxHeight, roll: parseInt(r), pitch: parseInt(p)}, state.homeLengths);
-        for(let i=0; i<4; i++) document.getElementById(`editM${i}`).value = steps[i];
+        const steps = calculateTargetSteps({ z: parseInt(z) - VBOX_CONFIG.maxHeight, roll: parseInt(r), pitch: parseInt(p) }, state.homeLengths);
+        for (let i = 0; i < 4; i++) document.getElementById(`editM${i}`).value = steps[i];
         window.saveKeyframeChanges();
     }
 };
@@ -586,13 +662,13 @@ window.updateEditorFromBox = (skipApply) => {
 window.saveKeyframeChanges = () => {
     if (state.selectedKeyframeIndex === -1) return;
     const kf = state.choreography[state.selectedKeyframeIndex];
-    if(!kf) return;
+    if (!kf) return;
     kf.time = parseFloat(document.getElementById('editTime').value);
     kf.speed = parseFloat(document.getElementById('editSpeed').value) * 1000;
     kf.accel = parseFloat(document.getElementById('editAccel').value) * 1000;
-    kf.positions = [parseInt(document.getElementById('editM0').value),parseInt(document.getElementById('editM1').value),parseInt(document.getElementById('editM2').value),parseInt(document.getElementById('editM3').value)];
+    kf.positions = [parseInt(document.getElementById('editM0').value), parseInt(document.getElementById('editM1').value), parseInt(document.getElementById('editM2').value), parseInt(document.getElementById('editM3').value)];
     kf.boxPose = { z: parseInt(document.getElementById('editBoxZ').value) - VBOX_CONFIG.maxHeight, roll: parseInt(document.getElementById('editBoxRoll').value), pitch: parseInt(document.getElementById('editBoxPitch').value) };
-    state.choreography.sort((a,b) => a.time - b.time);
+    state.choreography.sort((a, b) => a.time - b.time);
     Storage.saveChoreographyToLocal();
     refreshUI();
 };
@@ -604,14 +680,14 @@ window.closeKeyframeEditor = () => {
 };
 
 window.getCurrentForEditor = () => {
-    for(let i=0; i<4; i++) document.getElementById(`editM${i}`).value = state.currentPositions[i];
+    for (let i = 0; i < 4; i++) document.getElementById(`editM${i}`).value = state.currentPositions[i];
     window.saveKeyframeChanges();
 };
 
 window.updateBoxFromInput = (axis) => {
     const inputId = axis === 'roll' ? 'valBoxRollInput' : 'valBoxPitchInput';
     const sliderId = axis === 'roll' ? 'boxRoll' : 'boxPitch';
-    
+
     const val = parseInt(document.getElementById(inputId).value);
     if (!isNaN(val)) {
         document.getElementById(sliderId).value = val;
@@ -634,15 +710,15 @@ window.updateBox = () => {
         const r = parseInt(document.getElementById('boxRoll').value);
         const p = parseInt(document.getElementById('boxPitch').value);
         state.boxState = { z: z - VBOX_CONFIG.maxHeight, roll: r, pitch: p };
-        
+
         // Ensure homeLengths are valid
-        if(!state.homeLengths || state.homeLengths.length !== 4 || isNaN(state.homeLengths[0])) {
+        if (!state.homeLengths || state.homeLengths.length !== 4 || isNaN(state.homeLengths[0])) {
             initVirtualBox();
             console.log("Re-initialized virtual box");
         }
 
         const steps = calculateTargetSteps(state.boxState, state.homeLengths);
-        
+
         // Debug Logging
         console.log("UpdateBox:", {
             z, r, p,
@@ -652,33 +728,33 @@ window.updateBox = () => {
         });
 
         if (steps.some(isNaN)) {
-             throw new Error("Calculated steps contain NaN. Check Config.");
+            throw new Error("Calculated steps contain NaN. Check Config.");
         }
 
         state.currentPositions = [...steps];
         const phys = applyMapping(steps);
-        
+
         // Log to on-screen console for user visibility
         const c = document.getElementById('console');
-        if(c) { 
-             const d = document.createElement('div'); 
-             d.textContent = `Cmd: M ${phys.join(' ')}`; 
-             c.appendChild(d); 
-             c.scrollTop = c.scrollHeight;
+        if (c) {
+            const d = document.createElement('div');
+            d.textContent = `Cmd: M ${phys.join(' ')}`;
+            c.appendChild(d);
+            c.scrollTop = c.scrollHeight;
         }
 
         Comms.sendCommand(`M ${phys.join(' ')}`);
-        for(let i=0; i<4; i++) updatePositionDisplay(i);
+        for (let i = 0; i < 4; i++) updatePositionDisplay(i);
         window.updateBoxDisplay();
-        
+
     } catch (e) {
         console.error(e);
         const c = document.getElementById('console');
-        if(c) { 
-            const d = document.createElement('div'); 
-            d.textContent = "Error: " + e.message; 
+        if (c) {
+            const d = document.createElement('div');
+            d.textContent = "Error: " + e.message;
             d.style.color = "red";
-            c.appendChild(d); 
+            c.appendChild(d);
             c.scrollTop = c.scrollHeight;
         }
     }
@@ -703,11 +779,11 @@ window.updateFrameDimensions = () => {
     const w = parseFloat(document.getElementById('frameWidth').value);
     const l = parseFloat(document.getElementById('frameLength').value);
     const h = parseFloat(document.getElementById('frameHeight').value);
-    
-    if(!isNaN(w) && w > 0) VBOX_CONFIG.frameWidth = w;
-    if(!isNaN(l) && l > 0) VBOX_CONFIG.frameLength = l;
-    if(!isNaN(h) && h > 0) VBOX_CONFIG.maxHeight = h;
-    
+
+    if (!isNaN(w) && w > 0) VBOX_CONFIG.frameWidth = w;
+    if (!isNaN(l) && l > 0) VBOX_CONFIG.frameLength = l;
+    if (!isNaN(h) && h > 0) VBOX_CONFIG.maxHeight = h;
+
     localStorage.setItem('frameWidth', VBOX_CONFIG.frameWidth);
     localStorage.setItem('frameLength', VBOX_CONFIG.frameLength);
     localStorage.setItem('frameHeight', VBOX_CONFIG.maxHeight);
@@ -715,7 +791,7 @@ window.updateFrameDimensions = () => {
     // Update slider max
     document.getElementById('boxZ').max = VBOX_CONFIG.maxHeight;
     document.getElementById('editBoxZ').max = VBOX_CONFIG.maxHeight;
-    
+
     initVirtualBox(); // Recalculate home lengths
 };
 
@@ -723,16 +799,16 @@ function loadFrameDimensions() {
     const w = localStorage.getItem('frameWidth');
     const l = localStorage.getItem('frameLength');
     const h = localStorage.getItem('frameHeight');
-    
-    if(w) VBOX_CONFIG.frameWidth = parseFloat(w);
-    if(l) VBOX_CONFIG.frameLength = parseFloat(l);
-    if(h) VBOX_CONFIG.maxHeight = parseFloat(h);
-    
+
+    if (w) VBOX_CONFIG.frameWidth = parseFloat(w);
+    if (l) VBOX_CONFIG.frameLength = parseFloat(l);
+    if (h) VBOX_CONFIG.maxHeight = parseFloat(h);
+
     document.getElementById('frameWidth').value = VBOX_CONFIG.frameWidth;
     document.getElementById('frameLength').value = VBOX_CONFIG.frameLength;
-    
+
     const fh = document.getElementById('frameHeight');
-    if(fh) fh.value = VBOX_CONFIG.maxHeight;
+    if (fh) fh.value = VBOX_CONFIG.maxHeight;
 
     document.getElementById('boxZ').max = VBOX_CONFIG.maxHeight;
     document.getElementById('editBoxZ').max = VBOX_CONFIG.maxHeight;
@@ -741,9 +817,9 @@ function loadFrameDimensions() {
 window.returnToStart = () => {
     state.currentTime = 0;
     const audio = document.getElementById('choreoAudio');
-    if(audio) audio.currentTime = 0;
+    if (audio) audio.currentTime = 0;
     UI.updatePlayhead(0);
-    
+
     // Scroll timeline to the left
     const timeline = document.getElementById('timeline');
     if (timeline) timeline.scrollLeft = 0;
@@ -771,18 +847,17 @@ window.clearConsole = () => document.getElementById('console').innerHTML = '';
 
 function loadMapping() {
     const m = localStorage.getItem('motorMapping');
-    if(m) {
+    if (m) {
         state.motorMapping = JSON.parse(m);
     } else {
         // Fallback to default if no local storage exists
         // This ensures the new config.js default is used
         state.motorMapping = [...state.motorMapping]; 
     }
-    
     // Always sync dropdowns to state
-    for(let i=0; i<4; i++) {
+    for (let i = 0; i < 4; i++) {
         const el = document.getElementById(`mapM${i}`);
-        if(el) el.value = state.motorMapping[i];
+        if (el) el.value = state.motorMapping[i];
     }
     // Check for duplicate mappings on load
     const uniqueDrivers = new Set(state.motorMapping);
@@ -793,17 +868,17 @@ function loadMapping() {
 }
 function loadReverseFlags() {
     const f = localStorage.getItem('reverseFlags');
-    if(f) {
+    if (f) {
         try {
             const flags = JSON.parse(f);
             state.reverseFlags = flags.map(x => !!x); // Ensure booleans
             console.log("Loaded Reverse Flags:", state.reverseFlags);
             const reverseIds = ['reverseX', 'reverseY', 'reverseZ', 'reverseA'];
-            for(let i=0; i<4; i++) {
+            for (let i = 0; i < 4; i++) {
                 const el = document.getElementById(reverseIds[i]);
-                if(el) el.checked = state.reverseFlags[i];
+                if (el) el.checked = state.reverseFlags[i];
             }
-        } catch(e) {
+        } catch (e) {
             console.error("Error loading reverse flags:", e);
         }
     }
@@ -811,28 +886,28 @@ function loadReverseFlags() {
 
 // Drag Handlers
 document.addEventListener('mousedown', (e) => {
-    if(e.target.classList.contains('playhead')) state.isDraggingPlayhead = true;
+    if (e.target.classList.contains('playhead')) state.isDraggingPlayhead = true;
 });
 
 document.addEventListener('mousemove', (e) => {
     const track = document.querySelector('.timeline-track');
-    if(!track) return;
+    if (!track) return;
     const rect = track.getBoundingClientRect();
     const PPS = 20;
     if (state.isDraggingPlayhead) {
         let t = (e.clientX - rect.left) / PPS;
-        if(t<0) t=0;
+        if (t < 0) t = 0;
         state.currentTime = t;
         const audio = document.getElementById('choreoAudio');
-        if(audio && audio.src) audio.currentTime = t;
+        if (audio && audio.src) audio.currentTime = t;
         UI.updatePlayhead(t);
     }
     if (state.isDraggingKeyframe && state.draggedKeyframeIndex !== -1) {
         let t = (e.clientX - rect.left) / PPS;
-        if(t<0) t=0;
+        if (t < 0) t = 0;
         state.choreography[state.draggedKeyframeIndex].time = t;
         UI.updateTimeline(uiCallbacks);
-        if(state.selectedKeyframeIndex === state.draggedKeyframeIndex) {
+        if (state.selectedKeyframeIndex === state.draggedKeyframeIndex) {
             document.getElementById('editTime').value = t.toFixed(2);
         }
     }
@@ -840,26 +915,26 @@ document.addEventListener('mousemove', (e) => {
 
 document.addEventListener('mouseup', () => {
     state.isDraggingPlayhead = false;
-    if(state.isDraggingKeyframe) {
+    if (state.isDraggingKeyframe) {
         state.isDraggingKeyframe = false;
-        state.choreography.sort((a,b) => a.time - b.time);
+        state.choreography.sort((a, b) => a.time - b.time);
         Storage.saveChoreographyToLocal();
         refreshUI();
     }
 });
 
 window.updateMapping = () => {
-    for(let i=0; i<4; i++) state.motorMapping[i] = parseInt(document.getElementById(`mapM${i}`).value);
+    for (let i = 0; i < 4; i++) state.motorMapping[i] = parseInt(document.getElementById(`mapM${i}`).value);
     localStorage.setItem('motorMapping', JSON.stringify(state.motorMapping));
-    
+
     // Check for duplicate mappings
     const uniqueDrivers = new Set(state.motorMapping);
     const warning = document.getElementById('mappingWarning');
     if (warning) {
         warning.style.display = uniqueDrivers.size < 4 ? 'inline' : 'none';
     }
-    
-    for(let i=0; i<4; i++) updatePositionDisplay(i);
+
+    for (let i = 0; i < 4; i++) updatePositionDisplay(i);
 };
 
 window.toggleMappingPanel = () => {
@@ -867,10 +942,10 @@ window.toggleMappingPanel = () => {
     const btn = document.getElementById('btnToggleMapping');
     if (panel.style.display === 'none') {
         panel.style.display = 'grid';
-        if(btn) btn.textContent = '▲';
+        if (btn) btn.textContent = '▲';
     } else {
         panel.style.display = 'none';
-        if(btn) btn.textContent = '▼';
+        if (btn) btn.textContent = '▼';
     }
 };
 
@@ -907,7 +982,7 @@ window.connectSerial = async () => {
     const port = document.getElementById('portSelector').value;
     if (!port) return;
     localStorage.setItem('lastSerialPort', port);
-    
+
     // Disable button temporarily
     const btn = document.getElementById('btnConnect');
     const originalText = btn.textContent;
@@ -936,7 +1011,7 @@ window.syncHardware = () => {
     console.log("Syncing Hardware... Waiting 2s for boot...");
     setTimeout(async () => {
         const wait = (ms) => new Promise(r => setTimeout(r, ms));
-        
+
         // Sync Speed/Accel
         Comms.sendCommand(`S ${state.uiMaxSpeed}`);
         await wait(100);
@@ -954,57 +1029,77 @@ document.addEventListener('DOMContentLoaded', () => {
     initVirtualBox();
 
     const savedCeiling = localStorage.getItem('maxCeiling');
-    if(savedCeiling) {
+    if (savedCeiling) {
         state.maxCeiling = Math.round(parseFloat(savedCeiling));
         const boxZ = document.getElementById('boxZ');
-        if(boxZ) boxZ.max = state.maxCeiling;
+        if (boxZ) boxZ.max = state.maxCeiling;
         const editBoxZ = document.getElementById('editBoxZ');
-        if(editBoxZ) editBoxZ.max = state.maxCeiling;
+        if (editBoxZ) editBoxZ.max = state.maxCeiling;
         const manualIn = document.getElementById('manualCeiling');
-        if(manualIn) manualIn.value = state.maxCeiling;
+        if (manualIn) manualIn.value = state.maxCeiling;
     }
-    
+
     // Load rest settings from localStorage
     const savedRestEnabled = localStorage.getItem('restEnabled');
     const savedRestDuration = localStorage.getItem('restDuration');
     if (savedRestEnabled !== null) state.restEnabled = savedRestEnabled === 'true';
     if (savedRestDuration !== null) state.restDuration = parseFloat(savedRestDuration);
-    
+
     document.getElementById('restEnabled').checked = state.restEnabled;
     document.getElementById('restDuration').value = state.restDuration;
-    
+
     // Load timeline duration from localStorage
     const savedTimelineDuration = localStorage.getItem('timelineDuration');
     if (savedTimelineDuration !== null) state.timelineDuration = parseFloat(savedTimelineDuration);
     document.getElementById('timelineDuration').value = state.timelineDuration;
-    
-    Comms.setupComms({ onLog: (msg) => {
-        const c = document.getElementById('console');
-        if(c) { const d = document.createElement('div'); d.textContent = msg; c.appendChild(d); c.scrollTop = c.scrollHeight; }
-    }, onStatus: (conn, msg) => {
-        const ind = document.getElementById('statusIndicator');
-        const txt = document.getElementById('statusText');
-        if(conn) { 
-            ind.classList.add('connected'); 
-            ind.classList.remove('connecting'); 
-            txt.textContent = 'Connected to Arduino'; 
-            window.syncHardware();
+
+    Comms.setupComms({
+        onLog: (msg) => {
+            const c = document.getElementById('console');
+            if (c) { const d = document.createElement('div'); d.textContent = msg; c.appendChild(d); c.scrollTop = c.scrollHeight; }
+        }, onStatus: (conn, msg) => {
+            const ind = document.getElementById('statusIndicator');
+            const txt = document.getElementById('statusText');
+            if (conn) {
+                ind.classList.add('connected');
+                ind.classList.remove('connecting');
+                txt.textContent = 'Connected to Arduino';
+                window.syncHardware();
+            }
+            else {
+                ind.classList.remove('connected');
+                txt.textContent = msg || 'Disconnected';
+            }
+        }, onPositionUpdate: () => { },
+        onAudioStateUpdate: (audioState) => {
+            // Update UI with server audio state
+            if (audioState.fileName) {
+                document.getElementById('audioStatus').textContent = audioState.fileName + ' (Pi)';
+            }
+            // Update current time from server if playing
+            if (audioState.isPlaying) {
+                state.serverAudioTime = audioState.currentTime;
+            }
         }
-        else { 
-            ind.classList.remove('connected'); 
-            txt.textContent = msg || 'Disconnected'; 
-        }
-    }, onPositionUpdate: () => {} });
+    });
     Comms.connectWebSocket();
     Storage.loadChoreographyFromLocal({ onLoaded: () => refreshUI() });
     Storage.refreshQuickSaveList(updateQuickSaveDropdown);
-    Storage.loadAudioFromDB({ onAudioLoaded: (file) => {
-        document.getElementById('audioStatus').textContent = file.name;
-        const audio = document.getElementById('choreoAudio');
-        audio.src = URL.createObjectURL(file);
-        state.currentTime = 0;
-        UI.updatePlayhead(0);
-    }});
+
+    // Note: Server audio is now synced via WebSocket onAudioStateUpdate callback
+    // Local IndexedDB audio is kept as fallback but server audio takes priority
+    Storage.loadAudioFromDB({
+        onAudioLoaded: (file) => {
+            // Only use local audio if server audio is not loaded
+            if (!state.serverAudioLoaded) {
+                document.getElementById('audioStatus').textContent = file.name + ' (local)';
+                const audio = document.getElementById('choreoAudio');
+                audio.src = URL.createObjectURL(file);
+                state.currentTime = 0;
+                UI.updatePlayhead(0);
+            }
+        }
+    });
     requestAnimationFrame(animateDisplay);
 });
 
