@@ -1123,10 +1123,10 @@ document.addEventListener('DOMContentLoaded', () => {
 let calibrationStep = 0;
 // Sequence: 0:RL(M0), 1:RR(M1), 2:FR(M2), 3:FL(M3) (Logical Indices)
 const CALIBRATION_SEQUENCE = [
-    { index: 0, name: "Motor 1 (Rear Left)", abbr: "RL", cx: 65, cy: 70 },
-    { index: 1, name: "Motor 2 (Rear Right)", abbr: "RR", cx: 215, cy: 70 },
-    { index: 2, name: "Motor 3 (Front Right)", abbr: "FR", cx: 215, cy: 170 },
-    { index: 3, name: "Motor 4 (Front Left)", abbr: "FL", cx: 65, cy: 170 }
+    { index: 0, name: "Motor 1 (Rear Left)", abbr: "RL", cx: 215, cy: 70 },
+    { index: 1, name: "Motor 2 (Rear Right)", abbr: "RR", cx: 65, cy: 70 },
+    { index: 2, name: "Motor 3 (Front Right)", abbr: "FR", cx: 65, cy: 170 },
+    { index: 3, name: "Motor 4 (Front Left)", abbr: "FL", cx: 215, cy: 170 }
 ];
 
 window.startCalibration = () => {
