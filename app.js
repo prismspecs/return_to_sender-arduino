@@ -1170,16 +1170,32 @@ window.prevCalibrationStep = () => {
     }
 };
 
+window.goToCalibrationStep = (step) => {
+    if (step >= 0 && step < 4) {
+        calibrationStep = step;
+        updateCalibrationUI();
+    }
+};
+
 window.cancelCalibration = () => {
     document.getElementById('calibrationModal').style.display = 'none';
-    alert("Calibration Cancelled. Motors left enabled.");
 };
 
 window.finishCalibration = () => {
     // Set Zero
     window.setFloor();
     document.getElementById('calibrationModal').style.display = 'none';
-    alert("Calibration Complete! Current position set as Floor (Zero).");
+    // Show brief success message in the UI instead of alert
+    const statusText = document.getElementById('statusText');
+    if (statusText) {
+        const original = statusText.textContent;
+        statusText.textContent = '✓ Calibration Complete!';
+        statusText.style.color = '#00aa00';
+        setTimeout(() => {
+            statusText.textContent = original;
+            statusText.style.color = '';
+        }, 3000);
+    }
 };
 
 window.calibrationMove = (dist) => {

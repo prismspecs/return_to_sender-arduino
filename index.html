@@ -506,14 +506,28 @@
             <!-- Box tape stripe -->
             <rect x="130" y="70" width="20" height="100" fill="#d4a574" opacity="0.6" />
 
+            <!-- Clickable corner areas (invisible hit areas) -->
+            <circle cx="215" cy="70" r="25" fill="transparent" style="cursor: pointer;" onclick="goToCalibrationStep(0)">
+              <title>Rear Left - Click to calibrate</title>
+            </circle>
+            <circle cx="65" cy="70" r="25" fill="transparent" style="cursor: pointer;" onclick="goToCalibrationStep(1)">
+              <title>Rear Right - Click to calibrate</title>
+            </circle>
+            <circle cx="65" cy="170" r="25" fill="transparent" style="cursor: pointer;" onclick="goToCalibrationStep(2)">
+              <title>Front Right - Click to calibrate</title>
+            </circle>
+            <circle cx="215" cy="170" r="25" fill="transparent" style="cursor: pointer;" onclick="goToCalibrationStep(3)">
+              <title>Front Left - Click to calibrate</title>
+            </circle>
+
             <!-- Corner labels -->
-            <text x="220" y="65" font-size="10" fill="#333" text-anchor="middle" font-weight="bold">RL</text>
-            <text x="60" y="65" font-size="10" fill="#333" text-anchor="middle" font-weight="bold">RR</text>
-            <text x="60" y="185" font-size="10" fill="#333" text-anchor="middle" font-weight="bold">FR</text>
-            <text x="220" y="185" font-size="10" fill="#333" text-anchor="middle" font-weight="bold">FL</text>
+            <text x="220" y="65" font-size="10" fill="#333" text-anchor="middle" font-weight="bold" style="pointer-events: none;">RL</text>
+            <text x="60" y="65" font-size="10" fill="#333" text-anchor="middle" font-weight="bold" style="pointer-events: none;">RR</text>
+            <text x="60" y="185" font-size="10" fill="#333" text-anchor="middle" font-weight="bold" style="pointer-events: none;">FR</text>
+            <text x="220" y="185" font-size="10" fill="#333" text-anchor="middle" font-weight="bold" style="pointer-events: none;">FL</text>
 
             <!-- Active corner indicator (positioned by JS) -->
-            <circle id="calCornerIndicator" cx="65" cy="70" r="16" fill="none" stroke="#ff4444" stroke-width="4">
+            <circle id="calCornerIndicator" cx="65" cy="70" r="16" fill="none" stroke="#ff4444" stroke-width="4" style="pointer-events: none;">
               <animate attributeName="r" values="14;18;14" dur="0.8s" repeatCount="indefinite" />
               <animate attributeName="stroke-opacity" values="1;0.5;1" dur="0.8s" repeatCount="indefinite" />
             </circle>
