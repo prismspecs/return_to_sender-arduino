@@ -963,20 +963,26 @@ function loadReverseFlags() {
 // Drag Handlers
 document.addEventListener('mousedown', (e) => {
     // Allow clicking anywhere in the timeline area (white space or track) to move playhead
-    const timeline = e.target.closest('.timeline');
-    if (timeline && !e.target.classList.contains('keyframe-marker')) {
-        state.isDraggingPlayhead = true;
-        // Immediately move playhead to click position
-        const track = timeline.querySelector('.timeline-track');
-        if (track) {
+    // Check for timeline by ID or class, including the playhead and track
+    const timeline = document.getElementById('timeline');
+    const track = document.querySelector('.timeline-track');
+
+    if (timeline && track) {
+        const timelineRect = timeline.getBoundingClientRect();
+        const isInTimeline = e.clientX >= timelineRect.left && e.clientX <= timelineRect.right &&
+            e.clientY >= timelineRect.top && e.clientY <= timelineRect.bottom;
+
+        if (isInTimeline && !e.target.classList.contains('keyframe-marker')) {
+            e.preventDefault(); // Prevent text selection while dragging
+            state.isDraggingPlayhead = true;
+
             const rect = track.getBoundingClientRect();
             const PPS = 20;
             let t = (e.clientX - rect.left) / PPS;
             if (t < 0) t = 0;
             state.currentTime = t;
-            const audio = document.getElementById('choreoAudio');
-            if (audio && audio.src) audio.currentTime = t;
             UI.updatePlayhead(t);
+            debugLog('[Timeline] Clicked at time:', t.toFixed(2));
         }
     }
 });
