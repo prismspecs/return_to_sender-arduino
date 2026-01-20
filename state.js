@@ -2,7 +2,7 @@ import { DEFAULT_MOTOR_MAPPING } from './config.js';
 
 export const state = {
     // Debug mode
-    debugMode: false,
+    debugMode: true,
 
     choreography: [],
     currentFileName: "Untitled",

@@ -14,13 +14,11 @@
     <header>
       <h1>Return to Sender interface</h1>
       <div class="header-controls">
-        <div class="toggle-switch-container" style="margin-right: 10px;">
-          <label for="debugToggle" class="toggle-switch-label" style="font-size: 10px; color: #888;">Debug:</label>
-          <label class="toggle-switch" style="transform: scale(0.8);">
-            <input type="checkbox" id="debugToggle" onchange="toggleDebug(this.checked)">
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
+        <label
+          style="display: flex; align-items: center; gap: 4px; font-size: 10px; color: #888; margin-right: 10px; cursor: pointer;">
+          <input type="checkbox" id="debugToggle" onchange="toggleDebug(this.checked)" style="cursor: pointer;" checked>
+          Debug
+        </label>
         <div class="connection-status" id="status">
           <span class="status-indicator" id="statusIndicator"></span>
           <span id="statusText">Connecting...</span>

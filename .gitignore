@@ -21,6 +21,9 @@ Thumbs.db
 # Choreography data (optional - remove if you want to track these)
 choreography_*.json
 
+# Audio uploads
+uploads/
+
 # Build files
 dist/
 build/
