@@ -865,6 +865,7 @@ window.updatePlaybackSpeed = (val) => {
 window.updateVolume = (val) => {
     const volume = parseInt(val);
     document.getElementById('volumeDisplay').textContent = volume + '%';
+    localStorage.setItem('audioVolume', volume);
     // Send volume to server
     Comms.sendAudioCommand('setVolume', { volume });
 };
@@ -1091,6 +1092,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedTimelineDuration = localStorage.getItem('timelineDuration');
     if (savedTimelineDuration !== null) state.timelineDuration = parseFloat(savedTimelineDuration);
     document.getElementById('timelineDuration').value = state.timelineDuration;
+
+    // Load volume from localStorage and sync with server
+    const savedVolume = localStorage.getItem('audioVolume');
+    if (savedVolume !== null) {
+        const vol = parseInt(savedVolume);
+        document.getElementById('volumeSlider').value = vol;
+        document.getElementById('volumeDisplay').textContent = vol + '%';
+        // Sync with server after a short delay to ensure connection is ready
+        setTimeout(() => Comms.sendAudioCommand('setVolume', { volume: vol }), 1000);
+    }
 
     Comms.setupComms({
         onLog: (msg) => {

@@ -400,15 +400,10 @@
                   <span style="font-size: 11px; color: var(--text-light);">min</span>
                 </div>
               </div>
-
-              <div style="margin-left: auto;">
-                <span id="timeDisplay" class="time-display"
-                  style="font-size: 16px; color: var(--accent); font-weight: 700;">0.00s</span>
-              </div>
             </div>
           </div>
 
-          <div style="display: flex; align-items: stretch; gap: 5px; margin-bottom: 8px;">
+          <div style="display: flex; align-items: stretch; gap: 5px; margin-bottom: 4px;">
             <button onclick="returnToStart()" title="Return to Start"
               style="padding: 0 10px; font-size: 16px;">⏮</button>
             <div class="timeline" id="timeline" style="flex-grow: 1; overflow-x: auto;">
@@ -420,6 +415,9 @@
                 title="Timeline duration (0 = auto)">
               <span style="font-size: 11px; color: var(--text-light);">s</span>
             </div>
+          </div>
+          <div style="text-align: center; margin-bottom: 8px;">
+            <span id="timeDisplay" class="time-display" style="font-size: 11px; color: #999; font-family: monospace;">0.00s</span>
           </div>
           <div class="keyframes-list" id="keyframesList"></div>
 
