@@ -94,8 +94,10 @@ function stopAudioProcess() {
 }
 
 function playAudio(startTime = 0, speed = 1.0) {
+  console.log(`[Audio] playAudio called: startTime=${startTime}, speed=${speed}, filePath=${audioFilePath}`);
+
   if (!audioFilePath || !fs.existsSync(audioFilePath)) {
-    console.error('No audio file loaded');
+    console.error('[Audio] No audio file loaded or file does not exist');
     return false;
   }
 
@@ -122,18 +124,22 @@ function playAudio(startTime = 0, speed = 1.0) {
     audioFilePath
   ];
 
+  console.log('[Audio] Attempting to spawn mpv with args:', mpvArgs.join(' '));
+
   // Try mpv first
   audioProcess = spawn('mpv', mpvArgs, { stdio: 'ignore' });
 
   audioProcess.on('error', (err) => {
     if (err.code === 'ENOENT') {
       // mpv not found, try ffplay
-      console.log('mpv not found, trying ffplay...');
+      console.log('[Audio] mpv not found, trying ffplay...');
       audioProcess = spawn('ffplay', ffplayArgs, { stdio: 'ignore' });
 
       audioProcess.on('error', (err2) => {
         if (err2.code === 'ENOENT') {
-          console.error('Neither mpv nor ffplay found. Install one: sudo apt install mpv');
+          console.error('[Audio] Neither mpv nor ffplay found. Install one: sudo apt install mpv');
+        } else {
+          console.error('[Audio] ffplay error:', err2.message);
         }
       });
 
@@ -144,12 +150,14 @@ function playAudio(startTime = 0, speed = 1.0) {
     }
   });
 
-  audioProcess.on('exit', () => {
+  audioProcess.on('exit', (code) => {
+    console.log(`[Audio] mpv process exited with code ${code}`);
     audioState.isPlaying = false;
     broadcastAudioState();
   });
 
   audioState.isPlaying = true;
+  console.log('[Audio] Audio playback started, broadcasting state');
   broadcastAudioState();
   return true;
 }
@@ -446,14 +454,17 @@ wss.on('connection', (ws) => {
     try {
       const data = JSON.parse(message);
       // Only log non-audio-sync messages to reduce noise
-      if (data.type !== 'audioSync') {
+      // Log all messages except spammy ones
+      if (data.type !== 'audioSync' && !(data.type === 'audio' && data.action === 'setSpeed')) {
         console.log('WebSocket received:', data);
       }
 
       // Audio control commands
       if (data.type === 'audio') {
+        console.log(`[Audio] Command received: ${data.action}`, data);
         switch (data.action) {
           case 'play':
+            console.log('[Audio] >>> PLAY command, calling playAudio()');
             playAudio(data.time || 0, data.speed || 1.0);
             break;
           case 'pause':

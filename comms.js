@@ -34,7 +34,7 @@ export function sendAudioCommand(action, options = {}) {
 }
 
 export function playServerAudio(time = 0, speed = 1.0) {
-  debugLog('[Comms] playServerAudio called:', { time, speed });
+  console.log('[Comms] >>> playServerAudio sending play command:', { time, speed });
   sendAudioCommand('play', { time, speed });
 }
 
@@ -105,11 +105,17 @@ export function connectWebSocket() {
         }
       } else if (data.type === 'audioState') {
         // Update state with server audio info
-        debugLog('[Comms] audioState received:', data);
+        console.log('[Comms] audioState received:', {
+          hasAudio: data.hasAudio,
+          fileName: data.fileName,
+          isPlaying: data.isPlaying,
+          currentTime: data.currentTime
+        });
         state.serverAudioLoaded = data.hasAudio || !!data.fileName;
         state.serverAudioPlaying = data.isPlaying;
         state.serverAudioTime = data.currentTime;
         state.serverAudioFileName = data.fileName;
+        console.log('[Comms] state.serverAudioLoaded is now:', state.serverAudioLoaded);
         onAudioStateUpdate(data);
       }
     } catch (error) {

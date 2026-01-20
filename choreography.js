@@ -3,6 +3,7 @@ import { sendCommand, playServerAudio, pauseServerAudio, seekServerAudio, setSer
 import { VBOX_CONFIG } from './config.js';
 
 let playbackInterval = null;
+let lastSentSpeed = null; // Track last speed to avoid spamming
 
 // Helper for conditional debug logging
 const debugLog = (...args) => { if (state.debugMode) console.log(...args); };
@@ -52,8 +53,9 @@ export function playChoreography(callbacks) {
   state.playbackStartTime = Date.now() - (state.currentTime * 1000 / state.playbackSpeed);
 
   if (hasServerAudio) {
-    debugLog('[Choreo] Playing server audio at time:', state.currentTime, 'speed:', state.playbackSpeed);
+    console.log('[Choreo] >>> SENDING PLAY COMMAND to server audio at time:', state.currentTime, 'speed:', state.playbackSpeed);
     playServerAudio(state.currentTime, state.playbackSpeed);
+    lastSentSpeed = state.playbackSpeed;
   } else if (hasLocalAudio) {
     audio.currentTime = state.currentTime;
     audio.play().catch(e => console.error("Audio play error", e));
@@ -117,7 +119,11 @@ export function playChoreography(callbacks) {
         state.currentTime = ((Date.now() - state.playbackStartTime) / 1000) * state.playbackSpeed;
         timeUpdated = true;
       }
-      setServerAudioSpeed(state.playbackSpeed);
+      // Only send speed update if it changed
+      if (lastSentSpeed !== state.playbackSpeed) {
+        setServerAudioSpeed(state.playbackSpeed);
+        lastSentSpeed = state.playbackSpeed;
+      }
     } else if (hasLocalAudio) {
       if (Math.abs(audio.playbackRate - state.playbackSpeed) > 0.01) {
         audio.playbackRate = state.playbackSpeed;
