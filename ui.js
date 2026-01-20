@@ -40,10 +40,14 @@ export function updateTimeline(callbacks) {
 
 export function updatePlayhead(time) {
   const track = document.querySelector('.timeline-track');
-  if(!track) return;
+  if(!track) {
+    console.warn('[UI] updatePlayhead: No timeline track found!');
+    return;
+  }
   
   let playhead = track.querySelector('.playhead');
   if (!playhead) {
+    console.log('[UI] Creating playhead element');
     playhead = document.createElement('div');
     playhead.className = 'playhead';
     track.appendChild(playhead);

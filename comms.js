@@ -18,16 +18,20 @@ export function setupComms(callbacks) {
 
 // Audio control commands (play on server/Pi)
 export function sendAudioCommand(action, options = {}) {
+  console.log('[Comms] sendAudioCommand:', action, options);
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({
       type: 'audio',
       action: action,
       ...options
     }));
+  } else {
+    console.warn('[Comms] WebSocket not open, cannot send audio command');
   }
 }
 
 export function playServerAudio(time = 0, speed = 1.0) {
+  console.log('[Comms] playServerAudio called:', { time, speed });
   sendAudioCommand('play', { time, speed });
 }
 
@@ -98,6 +102,7 @@ export function connectWebSocket() {
         }
       } else if (data.type === 'audioState') {
         // Update state with server audio info
+        console.log('[Comms] audioState received:', data);
         state.serverAudioLoaded = data.hasAudio || !!data.fileName;
         state.serverAudioPlaying = data.isPlaying;
         state.serverAudioTime = data.currentTime;
