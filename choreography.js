@@ -95,6 +95,7 @@ export function playChoreography(callbacks) {
           audio.play().catch(e => console.error("Audio play error", e));
         }
         callbacks.onTimeUpdate(0);
+        // Don't return - continue to normal playback
       } else {
         // Update UI with countdown
         const remaining = Math.ceil((totalRest - elapsedRest) / 1000);
@@ -102,8 +103,8 @@ export function playChoreography(callbacks) {
           timeDisp.textContent = `Rest: ${remaining}s`;
           timeDisp.classList.add('resting');
         }
+        return; // Only return while still resting
       }
-      return;
     }
 
     // Update Time

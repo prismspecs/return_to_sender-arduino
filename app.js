@@ -715,15 +715,15 @@ window.duplicateKeyframe = () => {
     if (state.selectedKeyframeIndex < 0) return;
     const kf = state.choreography[state.selectedKeyframeIndex];
     if (!kf) return;
-    
+
     // Create a copy with time offset
     const newKf = JSON.parse(JSON.stringify(kf));
     newKf.time = kf.time + 0.5; // Offset by 0.5 seconds
-    
+
     state.choreography.push(newKf);
     state.choreography.sort((a, b) => a.time - b.time);
     Storage.saveChoreographyToLocal();
-    
+
     // Select the new keyframe
     const newIndex = state.choreography.findIndex(k => k === newKf);
     goToKeyframe(newIndex);
@@ -732,15 +732,15 @@ window.duplicateKeyframe = () => {
 
 function pasteKeyframe() {
     if (!state.copiedKeyframe) return;
-    
+
     // Paste at current playhead time
     const newKf = JSON.parse(JSON.stringify(state.copiedKeyframe));
     newKf.time = state.currentTime;
-    
+
     state.choreography.push(newKf);
     state.choreography.sort((a, b) => a.time - b.time);
     Storage.saveChoreographyToLocal();
-    
+
     // Select the new keyframe
     const newIndex = state.choreography.findIndex(k => k === newKf);
     goToKeyframe(newIndex);
@@ -969,10 +969,10 @@ document.addEventListener('mousedown', (e) => {
 document.addEventListener('keydown', (e) => {
     // Ignore if typing in an input
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-    
+
     const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
     const modKey = isMac ? e.metaKey : e.ctrlKey;
-    
+
     if (modKey && e.key === 'c') {
         // Copy selected keyframe
         if (state.selectedKeyframeIndex >= 0 && state.choreography[state.selectedKeyframeIndex]) {

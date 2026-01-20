@@ -229,7 +229,7 @@ h3 {
   .position-value {
     font-size: 18px;
   }
-  
+
   /* Expand toggle button - larger for mobile */
   #btnToggleMapping {
     padding: 8px 16px !important;
@@ -237,6 +237,7 @@ h3 {
     min-width: 44px;
     min-height: 44px;
   }
+
   border-radius: 3px;
   font-size: 13px;
   border: 1px solid var(--border);
