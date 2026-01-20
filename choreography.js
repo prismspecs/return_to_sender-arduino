@@ -113,7 +113,7 @@ export function playChoreography(callbacks) {
       // Server audio time is only used for occasional sync corrections
       state.currentTime = ((Date.now() - state.playbackStartTime) / 1000) * state.playbackSpeed;
       timeUpdated = true;
-      
+
       // Only send speed update if it changed
       if (lastSentSpeed !== state.playbackSpeed) {
         setServerAudioSpeed(state.playbackSpeed);
@@ -195,7 +195,7 @@ export function playChoreography(callbacks) {
     // Don't auto-stop just because server audio stopped - we can still play keyframes based on local time
     const lastKfTime = state.choreography.length > 0 ? state.choreography[state.choreography.length - 1].time : 0;
     const pastAllKeyframes = state.currentTime > lastKfTime + 1;
-    
+
     if (hasLocalAudio && audio.ended && pastAllKeyframes && !shouldLoop) {
       debugLog('[Choreo] Stopping: local audio ended and past all keyframes');
       stopChoreography(callbacks);

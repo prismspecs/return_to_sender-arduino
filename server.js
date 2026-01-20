@@ -94,10 +94,16 @@ function stopAudioProcess() {
 }
 
 function playAudio(startTime = 0, speed = 1.0) {
-  console.log(`[Audio] playAudio called: startTime=${startTime}, speed=${speed}, filePath=${audioFilePath}`);
+  console.log(`[Audio] playAudio called: startTime=${startTime}, speed=${speed}`);
+  console.log(`[Audio] Audio file path: "${audioFilePath}"`);
 
-  if (!audioFilePath || !fs.existsSync(audioFilePath)) {
-    console.error('[Audio] No audio file loaded or file does not exist');
+  if (!audioFilePath) {
+    console.error('[Audio] No audio file path set');
+    return false;
+  }
+  
+  if (!fs.existsSync(audioFilePath)) {
+    console.error('[Audio] Audio file does not exist at path:', audioFilePath);
     return false;
   }
 
@@ -110,62 +116,83 @@ function playAudio(startTime = 0, speed = 1.0) {
   // Try mpv first (common on Pi), fallback to ffplay
   const mpvArgs = [
     '--no-video',
+    '--no-terminal',
     `--start=${startTime}`,
     `--speed=${speed}`,
-    '--really-quiet',
     audioFilePath
   ];
 
-  const ffplayArgs = [
-    '-nodisp',
-    '-autoexit',
-    '-ss', String(startTime),
-    '-af', `atempo=${speed}`,
-    audioFilePath
-  ];
-
-  console.log('[Audio] Attempting to spawn mpv with args:', mpvArgs.join(' '));
-  console.log('[Audio] Audio file path:', audioFilePath);
+  console.log('[Audio] Spawning mpv with args:', mpvArgs);
 
   // Try mpv first - use pipe to capture any errors
   audioProcess = spawn('mpv', mpvArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
-  
+
+  // Capture stdout for debugging
+  if (audioProcess.stdout) {
+    audioProcess.stdout.on('data', (data) => {
+      console.log('[Audio] mpv stdout:', data.toString().trim());
+    });
+  }
+
   // Capture stderr for debugging
   if (audioProcess.stderr) {
     audioProcess.stderr.on('data', (data) => {
-      console.error('[Audio] mpv stderr:', data.toString());
+      const msg = data.toString().trim();
+      if (msg) console.error('[Audio] mpv stderr:', msg);
     });
   }
 
   audioProcess.on('error', (err) => {
+    console.error('[Audio] mpv spawn error:', err.message);
     if (err.code === 'ENOENT') {
       // mpv not found, try ffplay
       console.log('[Audio] mpv not found, trying ffplay...');
-      audioProcess = spawn('ffplay', ffplayArgs, { stdio: 'ignore' });
+      
+      const ffplayArgs = [
+        '-nodisp',
+        '-autoexit',
+        '-ss', String(startTime),
+        '-af', `atempo=${speed}`,
+        '-loglevel', 'error',
+        audioFilePath
+      ];
+      
+      audioProcess = spawn('ffplay', ffplayArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
+
+      if (audioProcess.stderr) {
+        audioProcess.stderr.on('data', (data) => {
+          console.error('[Audio] ffplay stderr:', data.toString().trim());
+        });
+      }
 
       audioProcess.on('error', (err2) => {
+        console.error('[Audio] ffplay error:', err2.message);
         if (err2.code === 'ENOENT') {
-          console.error('[Audio] Neither mpv nor ffplay found. Install one: sudo apt install mpv');
-        } else {
-          console.error('[Audio] ffplay error:', err2.message);
+          console.error('[Audio] Neither mpv nor ffplay found. Install: sudo apt install mpv');
         }
-      });
-
-      audioProcess.on('exit', () => {
         audioState.isPlaying = false;
         broadcastAudioState();
       });
+
+      audioProcess.on('exit', (code) => {
+        console.log(`[Audio] ffplay process exited with code ${code}`);
+        audioState.isPlaying = false;
+        broadcastAudioState();
+      });
+    } else {
+      audioState.isPlaying = false;
+      broadcastAudioState();
     }
   });
 
-  audioProcess.on('exit', (code) => {
-    console.log(`[Audio] mpv process exited with code ${code}`);
+  audioProcess.on('exit', (code, signal) => {
+    console.log(`[Audio] mpv process exited with code ${code}, signal ${signal}`);
     audioState.isPlaying = false;
     broadcastAudioState();
   });
 
   audioState.isPlaying = true;
-  console.log('[Audio] Audio playback started, broadcasting state');
+  console.log('[Audio] Audio playback initiated, broadcasting state');
   broadcastAudioState();
   return true;
 }
