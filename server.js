@@ -101,7 +101,7 @@ function playAudio(startTime = 0, speed = 1.0) {
     console.error('[Audio] No audio file path set');
     return false;
   }
-  
+
   if (!fs.existsSync(audioFilePath)) {
     console.error('[Audio] Audio file does not exist at path:', audioFilePath);
     return false;
@@ -147,7 +147,7 @@ function playAudio(startTime = 0, speed = 1.0) {
     if (err.code === 'ENOENT') {
       // mpv not found, try ffplay
       console.log('[Audio] mpv not found, trying ffplay...');
-      
+
       const ffplayArgs = [
         '-nodisp',
         '-autoexit',
@@ -156,7 +156,7 @@ function playAudio(startTime = 0, speed = 1.0) {
         '-loglevel', 'error',
         audioFilePath
       ];
-      
+
       audioProcess = spawn('ffplay', ffplayArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
 
       if (audioProcess.stderr) {
