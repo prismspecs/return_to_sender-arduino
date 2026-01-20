@@ -24,14 +24,16 @@ let audioState = {
 let audioStartTime = 0;
 let audioStartOffset = 0;
 
+// Ensure uploads directory exists at startup
+const uploadsDir = join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 // Configure multer for audio uploads
 const audioStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = join(__dirname, 'uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
+    cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
     cb(null, 'current-audio' + getExtension(file.originalname));
@@ -341,33 +343,44 @@ app.post('/api/command', (req, res) => {
 });
 
 // Audio upload endpoint
-app.post('/api/audio/upload', upload.single('audio'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'No audio file provided' });
-  }
+app.post('/api/audio/upload', (req, res, next) => {
+  upload.single('audio')(req, res, (err) => {
+    if (err) {
+      console.error('Multer error:', err);
+      return res.status(500).json({ error: 'Upload failed: ' + err.message });
+    }
+    
+    if (!req.file) {
+      return res.status(400).json({ error: 'No audio file provided' });
+    }
 
-  // Clean up old audio files with different extensions
-  const uploadDir = join(__dirname, 'uploads');
-  const files = fs.readdirSync(uploadDir);
-  files.forEach(f => {
-    if (f.startsWith('current-audio') && f !== req.file.filename) {
-      fs.unlinkSync(join(uploadDir, f));
+    try {
+      // Clean up old audio files with different extensions
+      const files = fs.readdirSync(uploadsDir);
+      files.forEach(f => {
+        if (f.startsWith('current-audio') && f !== req.file.filename) {
+          fs.unlinkSync(join(uploadsDir, f));
+        }
+      });
+
+      audioFilePath = req.file.path;
+      audioState.fileName = req.file.originalname;
+      audioState.currentTime = 0;
+      audioState.isPlaying = false;
+
+      // Save config for persistence
+      saveAudioConfig();
+
+      // Broadcast to all clients
+      broadcastAudioState();
+
+      console.log(`✓ Audio uploaded: ${req.file.originalname}`);
+      res.json({ success: true, fileName: req.file.originalname });
+    } catch (e) {
+      console.error('Error processing upload:', e);
+      res.status(500).json({ error: 'Error processing upload: ' + e.message });
     }
   });
-
-  audioFilePath = req.file.path;
-  audioState.fileName = req.file.originalname;
-  audioState.currentTime = 0;
-  audioState.isPlaying = false;
-
-  // Save config for persistence
-  saveAudioConfig();
-
-  // Broadcast to all clients
-  broadcastAudioState();
-
-  console.log(`✓ Audio uploaded: ${req.file.originalname}`);
-  res.json({ success: true, fileName: req.file.originalname });
 });
 
 // Audio status endpoint
