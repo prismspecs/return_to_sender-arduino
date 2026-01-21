@@ -29,6 +29,44 @@ let audioState = {
 let audioStartTime = 0;
 let audioStartOffset = 0;
 
+// Shared choreography state (synced between all clients)
+let sharedChoreography = {
+  choreography: [],
+  fileName: 'Untitled',
+  reverseFlags: [false, false, false, false],
+  settings: {
+    speed: 24000,
+    accel: 24000
+  }
+};
+
+// Load choreography from file on startup
+const choreoPath = join(__dirname, 'uploads', 'choreography.json');
+if (fs.existsSync(choreoPath)) {
+  try {
+    sharedChoreography = JSON.parse(fs.readFileSync(choreoPath, 'utf8'));
+    console.log(`✓ Loaded shared choreography: ${sharedChoreography.fileName}`);
+  } catch (e) {
+    console.log('No saved choreography found, starting fresh');
+  }
+}
+
+function saveSharedChoreography() {
+  fs.writeFileSync(choreoPath, JSON.stringify(sharedChoreography, null, 2));
+}
+
+function broadcastChoreography(excludeClient = null) {
+  const msg = JSON.stringify({
+    type: 'choreographySync',
+    ...sharedChoreography
+  });
+  wsClients.forEach(client => {
+    if (client.readyState === 1 && client !== excludeClient) {
+      client.send(msg);
+    }
+  });
+}
+
 // Ensure uploads directory exists at startup
 const uploadsDir = join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -595,6 +633,25 @@ wss.on('connection', (ws) => {
             console.log('Serial write successful');
           }
         });
+      }
+
+      // Choreography sync from client
+      if (data.type === 'choreographyUpdate') {
+        if (data.choreography !== undefined) sharedChoreography.choreography = data.choreography;
+        if (data.fileName !== undefined) sharedChoreography.fileName = data.fileName;
+        if (data.reverseFlags !== undefined) sharedChoreography.reverseFlags = data.reverseFlags;
+        if (data.settings !== undefined) sharedChoreography.settings = data.settings;
+        saveSharedChoreography();
+        // Broadcast to other clients (exclude sender)
+        broadcastChoreography(ws);
+      }
+
+      // Request current choreography
+      if (data.type === 'getChoreography') {
+        ws.send(JSON.stringify({
+          type: 'choreographySync',
+          ...sharedChoreography
+        }));
       }
     } catch (error) {
       console.error('Error processing WebSocket message:', error.message);

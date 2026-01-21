@@ -1,5 +1,6 @@
 import { state } from './state.js';
 import { AXIS_NAMES } from './config.js';
+import { sendChoreographyUpdate } from './comms.js';
 
 // IndexedDB Helper
 const DB_NAME = 'ChoreoAudioDB';
@@ -25,7 +26,7 @@ export async function saveAudioToDB(file) {
     const db = await openAudioDB();
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
-    store.put(file, 'currentTrack'); 
+    store.put(file, 'currentTrack');
     console.log('Audio saved to local storage');
   } catch (e) {
     console.error("Error saving audio to DB", e);
@@ -38,12 +39,12 @@ export async function loadAudioFromDB(callbacks) {
     const tx = db.transaction(STORE_NAME, 'readonly');
     const store = tx.objectStore(STORE_NAME);
     const request = store.get('currentTrack');
-    
+
     request.onsuccess = () => {
       const file = request.result;
       if (file) {
         state.audioFile = file;
-        if(callbacks.onAudioLoaded) callbacks.onAudioLoaded(file);
+        if (callbacks.onAudioLoaded) callbacks.onAudioLoaded(file);
       }
     };
   } catch (e) {
@@ -53,11 +54,14 @@ export async function loadAudioFromDB(callbacks) {
 
 export function saveChoreographyToLocal() {
   const data = {
-      choreography: state.choreography,
-      fileName: state.currentFileName,
-      reverseFlags: state.reverseFlags // Save flags too
+    choreography: state.choreography,
+    fileName: state.currentFileName,
+    reverseFlags: state.reverseFlags // Save flags too
   };
   localStorage.setItem('choreographyData', JSON.stringify(data));
+
+  // Also sync to server for multi-client support
+  sendChoreographyUpdate();
 }
 
 export function loadChoreographyFromLocal(callbacks) {
@@ -66,14 +70,14 @@ export function loadChoreographyFromLocal(callbacks) {
     try {
       const data = JSON.parse(saved);
       if (Array.isArray(data)) {
-          state.choreography = data;
-          state.currentFileName = "Untitled";
+        state.choreography = data;
+        state.currentFileName = "Untitled";
       } else {
-          state.choreography = data.choreography || [];
-          state.currentFileName = data.fileName || "Untitled";
-          if (data.reverseFlags) state.reverseFlags = data.reverseFlags;
+        state.choreography = data.choreography || [];
+        state.currentFileName = data.fileName || "Untitled";
+        if (data.reverseFlags) state.reverseFlags = data.reverseFlags;
       }
-      
+
       if (callbacks.onLoaded) callbacks.onLoaded();
     } catch (e) {
       console.error("Error loading choreography", e);
@@ -96,28 +100,28 @@ export function refreshQuickSaveList(onUpdate) {
 export function quickSave() {
   let name = prompt("Enter project name:", state.currentFileName !== "Untitled" ? state.currentFileName : "");
   if (!name) return null;
-  
+
   name = name.trim();
   const key = `project_${name}`;
-  
+
   const data = {
     version: '1.0',
     choreography: state.choreography,
     reverseFlags: state.reverseFlags,
     fileName: name
   };
-  
+
   localStorage.setItem(key, JSON.stringify(data));
   state.currentFileName = name;
   saveChoreographyToLocal(); // Update working copy
-  
+
   return name;
 }
 
 export function quickLoad(name, callbacks) {
   const key = `project_${name}`;
   const saved = localStorage.getItem(key);
-  
+
   if (saved) {
     try {
       const data = JSON.parse(saved);
@@ -126,9 +130,9 @@ export function quickLoad(name, callbacks) {
         state.reverseFlags = data.reverseFlags;
       }
       state.currentFileName = name;
-      
+
       saveChoreographyToLocal();
-      if(callbacks.onLoaded) callbacks.onLoaded();
+      if (callbacks.onLoaded) callbacks.onLoaded();
       return true;
     } catch (e) {
       console.error(e);
@@ -139,5 +143,5 @@ export function quickLoad(name, callbacks) {
 }
 
 export function quickDelete(name) {
-    localStorage.removeItem(`project_${name}`);
+  localStorage.removeItem(`project_${name}`);
 }

@@ -11,12 +11,14 @@ let onLog = (msg) => console.log(msg);
 let onStatus = (connected, msg) => { };
 let onPositionUpdate = () => { };
 let onAudioStateUpdate = (audioState) => { };
+let onChoreographySync = (data) => { };
 
 export function setupComms(callbacks) {
   if (callbacks.onLog) onLog = callbacks.onLog;
   if (callbacks.onStatus) onStatus = callbacks.onStatus;
   if (callbacks.onPositionUpdate) onPositionUpdate = callbacks.onPositionUpdate;
   if (callbacks.onAudioStateUpdate) onAudioStateUpdate = callbacks.onAudioStateUpdate;
+  if (callbacks.onChoreographySync) onChoreographySync = callbacks.onChoreographySync;
 }
 
 // Audio control commands (play on server/Pi)
@@ -74,6 +76,9 @@ export function connectWebSocket() {
     // onStatus(true, 'Connected to Arduino'); // Wait for actual serial status
     onLog('Connected to server');
     // Status check 'I' will be sent when we receive connected: true from server
+
+    // Request shared choreography from server
+    requestChoreography();
   };
 
   ws.onclose = () => {
@@ -127,6 +132,10 @@ export function connectWebSocket() {
         }
 
         onAudioStateUpdate(data);
+      } else if (data.type === 'choreographySync') {
+        // Received choreography update from another client
+        debugLog('[Comms] Choreography sync received:', data.fileName, data.choreography?.length, 'keyframes');
+        onChoreographySync(data);
       }
     } catch (error) {
       onLog('Error parsing message');
@@ -141,6 +150,30 @@ export function sendCommand(command) {
       command: command
     }));
     onLog(`> ${command}`);
+  }
+}
+
+// Send choreography update to server for syncing with other clients
+export function sendChoreographyUpdate() {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
+      type: 'choreographyUpdate',
+      choreography: state.choreography,
+      fileName: state.currentFileName,
+      reverseFlags: state.reverseFlags,
+      settings: {
+        speed: state.uiMaxSpeed,
+        accel: state.uiAcceleration
+      }
+    }));
+    debugLog('[Comms] Sent choreography update to server');
+  }
+}
+
+// Request current choreography from server
+export function requestChoreography() {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'getChoreography' }));
   }
 }
 

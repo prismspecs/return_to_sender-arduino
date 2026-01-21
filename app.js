@@ -1212,6 +1212,30 @@ document.addEventListener('DOMContentLoaded', () => {
             if (audioState.isPlaying) {
                 state.serverAudioTime = audioState.currentTime;
             }
+        },
+        onChoreographySync: (data) => {
+            // Received choreography update from another client
+            debugLog('[App] Choreography sync received:', data.fileName);
+            state.choreography = data.choreography || [];
+            state.currentFileName = data.fileName || 'Untitled';
+            if (data.reverseFlags) state.reverseFlags = data.reverseFlags;
+            if (data.settings) {
+                state.uiMaxSpeed = data.settings.speed || state.uiMaxSpeed;
+                state.uiAcceleration = data.settings.accel || state.uiAcceleration;
+                // Update UI
+                document.getElementById('speed').value = state.uiMaxSpeed / 1000;
+                document.getElementById('speedSlider').value = state.uiMaxSpeed / 1000;
+                document.getElementById('accel').value = state.uiAcceleration / 1000;
+                document.getElementById('accelSlider').value = state.uiAcceleration / 1000;
+            }
+            // Update reverse toggles
+            for (let i = 0; i < 4; i++) {
+                const checkbox = document.getElementById(`reverse${['X', 'Y', 'A', 'Z'][i]}`);
+                if (checkbox) checkbox.checked = state.reverseFlags[i];
+            }
+            // Refresh the UI
+            refreshUI();
+            debugLog('[App] Choreography synced:', state.choreography.length, 'keyframes');
         }
     });
     Comms.connectWebSocket();
