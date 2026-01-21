@@ -232,14 +232,14 @@ function parseArduinoMessage(message) {
 
   if (message.includes("Motors: ENABLED")) {
     const toggle = document.getElementById('motorToggle');
-    if (toggle && !toggle.checked) {
+    if (toggle && !toggle.checked && !state.isTogglingMotors) {
       toggle._updatingFromArduino = true;
       toggle.checked = true;
       toggle._updatingFromArduino = false;
     }
   } else if (message.includes("Motors: DISABLED")) {
     const toggle = document.getElementById('motorToggle');
-    if (toggle && toggle.checked) {
+    if (toggle && toggle.checked && !state.isTogglingMotors) {
       toggle._updatingFromArduino = true;
       toggle.checked = false;
       toggle._updatingFromArduino = false;

@@ -218,13 +218,18 @@ window.toggleReverse = (logicalIndex, checked) => {
 window.toggleMotors = (checked) => {
     const toggle = document.getElementById('motorToggle');
     if (toggle && toggle._updatingFromArduino) return;
+    
+    state.isTogglingMotors = true;
+
     if (checked) {
         Comms.sendCommand('E 1');
+        setTimeout(() => { state.isTogglingMotors = false; }, 1000);
     } else {
         window.haltMotors();
         setTimeout(() => {
             Comms.sendCommand('E 0');
             window.setFloor();
+            state.isTogglingMotors = false;
         }, 500);
     }
 };

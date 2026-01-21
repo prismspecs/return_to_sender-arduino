@@ -51,5 +51,8 @@ export const state = {
     serverAudioFileName: null,
 
     // Clipboard for copy/paste keyframes
-    copiedKeyframe: null
+    copiedKeyframe: null,
+
+    // Toggling state to prevent feedback loops
+    isTogglingMotors: false
 };
