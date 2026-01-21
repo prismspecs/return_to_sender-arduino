@@ -172,4 +172,14 @@ export class ServerChoreography {
 
          this.callbacks.sendCommand(`M ${physicalSteps.join(' ')}`);
     }
+
+    getStatus() {
+        return {
+            type: 'playState',
+            isPlaying: this.isPlaying,
+            currentTime: this.currentTime,
+            speed: this.playbackSpeed,
+            startTime: this.playbackStartTime // roughly
+        };
+    }
 }
