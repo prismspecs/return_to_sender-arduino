@@ -430,13 +430,25 @@
             style="display: none; background: white; padding: 10px; border: 1px solid var(--border); border-radius: 3px; margin-top: 10px;">
             <h4 style="margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 5px;">Edit Keyframe
             </h4>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px;">
               <div><label style="display: block; font-size: 11px;">Time (s)</label><input type="number" id="editTime"
                   step="0.1" style="width: 100%;" oninput="saveKeyframeChanges()"></div>
-              <div><label style="display: block; font-size: 11px;">Speed (x1k)</label><input type="number"
-                  id="editSpeed" step="1" min="1" max="30" style="width: 100%;" oninput="saveKeyframeChanges()"></div>
-              <div><label style="display: block; font-size: 11px;">Accel (x1k)</label><input type="number"
-                  id="editAccel" step="1" min="1" max="30" style="width: 100%;" oninput="saveKeyframeChanges()"></div>
+              <div><label style="display: block; font-size: 11px;">Speed (x1k)</label>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <input type="range" id="editSpeedSlider" min="1" max="30" step="1" style="flex: 1;"
+                    oninput="document.getElementById('editSpeed').value=this.value; saveKeyframeChanges()">
+                  <input type="number" id="editSpeed" step="1" min="1" max="30" style="width: 45px;"
+                    oninput="document.getElementById('editSpeedSlider').value=this.value; saveKeyframeChanges()">
+                </div>
+              </div>
+              <div><label style="display: block; font-size: 11px;">Accel (x1k)</label>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <input type="range" id="editAccelSlider" min="1" max="30" step="1" style="flex: 1;"
+                    oninput="document.getElementById('editAccel').value=this.value; saveKeyframeChanges()">
+                  <input type="number" id="editAccel" step="1" min="1" max="30" style="width: 45px;"
+                    oninput="document.getElementById('editAccelSlider').value=this.value; saveKeyframeChanges()">
+                </div>
+              </div>
             </div>
             <div style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border);">
               <div style="font-size: 12px; font-weight: 600; margin-bottom: 5px;">Virtual Box Pose</div>
@@ -444,12 +456,24 @@
                 <div><label style="display: block; font-size: 11px;">Height (Z)</label><input type="range" id="editBoxZ"
                     min="0" max="2050" step="1" oninput="updateEditorFromBox()" style="width: 100%;"><span
                     id="dispEditBoxZ" style="font-size: 10px;">0</span></div>
-                <div><label style="display: block; font-size: 11px;">Roll</label><input type="range" id="editBoxRoll"
-                    min="-45" max="45" step="1" oninput="updateEditorFromBox()" style="width: 100%;"><span
-                    id="dispEditBoxRoll" style="font-size: 10px;">0</span></div>
-                <div><label style="display: block; font-size: 11px;">Pitch</label><input type="range" id="editBoxPitch"
-                    min="-45" max="45" step="1" oninput="updateEditorFromBox()" style="width: 100%;"><span
-                    id="dispEditBoxPitch" style="font-size: 10px;">0</span></div>
+                <div><label style="display: block; font-size: 11px;">Roll</label>
+                  <div style="display: flex; align-items: center; gap: 4px;">
+                    <input type="range" id="editBoxRoll" min="-45" max="45" step="1" oninput="updateEditorFromBox()"
+                      style="flex: 1;">
+                    <button onclick="document.getElementById('editBoxRoll').value=0; updateEditorFromBox()"
+                      style="padding: 2px 6px; font-size: 10px;">0</button>
+                  </div>
+                  <span id="dispEditBoxRoll" style="font-size: 10px;">0</span>
+                </div>
+                <div><label style="display: block; font-size: 11px;">Pitch</label>
+                  <div style="display: flex; align-items: center; gap: 4px;">
+                    <input type="range" id="editBoxPitch" min="-45" max="45" step="1" oninput="updateEditorFromBox()"
+                      style="flex: 1;">
+                    <button onclick="document.getElementById('editBoxPitch').value=0; updateEditorFromBox()"
+                      style="padding: 2px 6px; font-size: 10px;">0</button>
+                  </div>
+                  <span id="dispEditBoxPitch" style="font-size: 10px;">0</span>
+                </div>
               </div>
             </div>
             <div style="margin-bottom: 5px; font-size: 12px; font-weight: 600;">Motor Positions</div>
@@ -559,7 +583,7 @@
         <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Use the buttons below to lower/raise this corner
           until it is exactly <strong>1cm off the floor</strong>.</p>
 
-        <div style="display: flex; justify-content: center; gap: 5px; margin-bottom: 25px; flex-wrap: nowrap;">
+        <div style="display: flex; justify-content: center; gap: 5px; margin-bottom: 15px; flex-wrap: nowrap;">
           <button onclick="calibrationMove(-20)" style="min-width: 44px; padding: 10px;">-20</button>
           <button onclick="calibrationMove(-5)" style="min-width: 44px; padding: 10px;">-5</button>
           <button onclick="calibrationMove(-1)" style="min-width: 44px; padding: 10px;">-1</button>
@@ -567,6 +591,13 @@
           <button onclick="calibrationMove(1)" style="min-width: 44px; padding: 10px;">+1</button>
           <button onclick="calibrationMove(5)" style="min-width: 44px; padding: 10px;">+5</button>
           <button onclick="calibrationMove(20)" style="min-width: 44px; padding: 10px;">+20</button>
+        </div>
+
+        <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 25px;">
+          <button onclick="calibrationMoveAll(-10)"
+            style="padding: 8px 16px; background: #666; color: white; border-color: #666;">Lower All -10</button>
+          <button onclick="calibrationMoveAll(10)"
+            style="padding: 8px 16px; background: #666; color: white; border-color: #666;">Lift All +10</button>
         </div>
 
         <div style="display: flex; justify-content: space-between; border-top: 1px solid #eee; padding-top: 20px;">

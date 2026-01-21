@@ -399,9 +399,9 @@ button:active {
 
 .timeline {
   background: white;
-  padding: 10px 8px 8px 8px;
+  padding: 14px 8px 10px 8px;
   border-radius: 3px;
-  min-height: 40px;
+  min-height: 60px;
   position: relative;
   border: 1px solid var(--border);
   overflow-x: auto;
@@ -412,8 +412,7 @@ button:active {
 
 .timeline-track {
   position: relative;
-  height: 20px;
-  /* Reduced from 24px */
+  height: 40px;
   background: var(--bg-alt);
   border-radius: 2px;
   border: 1px solid var(--border);

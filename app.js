@@ -666,8 +666,12 @@ function goToKeyframe(index) {
     if (!kf) return;
     document.getElementById('keyframeEditor').style.display = 'block';
     document.getElementById('editTime').value = kf.time.toFixed(2);
-    document.getElementById('editSpeed').value = (kf.speed || state.uiMaxSpeed) / 1000;
-    document.getElementById('editAccel').value = (kf.accel || state.uiAcceleration) / 1000;
+    const speedVal = (kf.speed || state.uiMaxSpeed) / 1000;
+    const accelVal = (kf.accel || state.uiAcceleration) / 1000;
+    document.getElementById('editSpeed').value = speedVal;
+    document.getElementById('editSpeedSlider').value = speedVal;
+    document.getElementById('editAccel').value = accelVal;
+    document.getElementById('editAccelSlider').value = accelVal;
     for (let i = 0; i < 4; i++) document.getElementById(`editM${i}`).value = kf.positions[i];
     const z = kf.boxPose ? kf.boxPose.z + VBOX_CONFIG.maxHeight : 0;
     document.getElementById('editBoxZ').value = z;
@@ -1008,6 +1012,19 @@ document.addEventListener('keydown', (e) => {
             pasteKeyframe();
             e.preventDefault();
         }
+    } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        // Delete selected keyframe
+        if (state.selectedKeyframeIndex >= 0 && state.choreography[state.selectedKeyframeIndex]) {
+            state.choreography.splice(state.selectedKeyframeIndex, 1);
+            Storage.saveChoreographyToLocal();
+            window.closeKeyframeEditor();
+            debugLog('[Keyframe] Deleted keyframe at index ' + state.selectedKeyframeIndex);
+            e.preventDefault();
+        }
+    } else if (e.key === ' ' || e.code === 'Space') {
+        // Spacebar - play/pause toggle
+        e.preventDefault();
+        window.togglePlayback();
     }
 });
 
@@ -1337,6 +1354,11 @@ window.calibrationMove = (dist) => {
     // quickMove(axisName, axisIndex, distanceMm)
     // We don't need axisName for logic, just index
     window.quickMove('CAL', logicalIndex, dist);
+};
+
+window.calibrationMoveAll = (dist) => {
+    // Move all motors at once
+    window.moveAllMotors(dist);
 };
 
 function updateCalibrationUI() {
