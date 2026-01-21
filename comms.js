@@ -1,4 +1,4 @@
-import { UI_CONFIG, AXIS_NAMES } from './config.js';
+import { UI_CONFIG, AXIS_NAMES, VBOX_CONFIG } from './config.js';
 import { state } from './state.js';
 
 let ws = null;
@@ -140,6 +140,12 @@ export function connectWebSocket() {
         onChoreographySync(data);
       } else if (data.type === 'playState') {
         onPlayStateUpdate(data);
+      } else if (data.type === 'restState') {
+        state.isResting = data.isResting;
+        if (data.isResting) {
+            state.restStartTime = data.startTime;
+            state.restTotalDuration = (data.duration || state.restDuration) * 60 * 1000;
+        }
       }
     } catch (error) {
       onLog('Error parsing message');
@@ -166,6 +172,14 @@ export function sendChoreographyUpdate() {
       fileName: state.currentFileName,
       reverseFlags: state.reverseFlags,
       motorMapping: state.motorMapping,
+      loopEnabled: state.loopEnabled,
+      restEnabled: state.restEnabled,
+      restDuration: state.restDuration,
+      frameDimensions: {
+          width: VBOX_CONFIG.frameWidth,
+          length: VBOX_CONFIG.frameLength,
+          height: VBOX_CONFIG.maxHeight
+      },
       settings: {
         speed: state.uiMaxSpeed,
         accel: state.uiAcceleration
@@ -247,6 +261,34 @@ function parseArduinoMessage(message) {
   }
 
   if (message.includes("Inverted:")) {
+    // Expected format: Inverted: X=1 Y=0 Z=1 A=0
+    const parts = message.split('Inverted:')[1].trim().split(' ');
+    const physInverted = {};
+    parts.forEach(part => {
+        const [axis, val] = part.split('=');
+        if (axis && val) {
+            physInverted[axis] = (val === '1');
+        }
+    });
+
+    // Update logical state
+    const uiIds = ['reverseX', 'reverseY', 'reverseZ', 'reverseA'];
+    
+    for (let logicalIndex = 0; logicalIndex < 4; logicalIndex++) {
+        const physicalIndex = state.motorMapping[logicalIndex];
+        const physicalAxisChar = AXIS_NAMES[physicalIndex];
+        
+        if (physInverted[physicalAxisChar] !== undefined) {
+            const isInv = physInverted[physicalAxisChar];
+            state.reverseFlags[logicalIndex] = isInv;
+            
+            // Update UI
+            const checkbox = document.getElementById(uiIds[logicalIndex]);
+            if (checkbox) {
+                checkbox.checked = isInv;
+            }
+        }
+    }
     onLog("Synced inversion status from Arduino");
   }
 

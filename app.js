@@ -86,7 +86,7 @@ function applyMapping(logicalSteps) {
     for (let i = 0; i < 4; i++) {
         const driverIndex = state.motorMapping[i];
         let s = logicalSteps[i];
-        if (state.reverseFlags[i]) s = -s;
+        // if (state.reverseFlags[i]) s = -s; // Removed software inversion
         physicalSteps[driverIndex] = s;
     }
     return physicalSteps;
@@ -99,6 +99,20 @@ function animateDisplay(timestamp) {
     if (!lastFrameTime) lastFrameTime = timestamp;
     const dt = (timestamp - lastFrameTime) / 1000;
     lastFrameTime = timestamp;
+
+    // Update Rest Countdown
+    const restEl = document.getElementById('restCountdown');
+    if (restEl) {
+        if (state.isResting && state.restStartTime) {
+            const elapsed = Date.now() - state.restStartTime;
+            const remaining = Math.max(0, state.restTotalDuration - elapsed);
+            const seconds = Math.ceil(remaining / 1000);
+            restEl.textContent = `Resting: ${seconds}s`;
+            restEl.style.display = 'inline-block';
+        } else {
+            restEl.style.display = 'none';
+        }
+    }
 
     if (state.isPlaying) {
         const now = Date.now();
@@ -176,7 +190,7 @@ window.quickMove = (axisName, axisIndex, distanceMm) => {
     state.currentPositions[axisIndex] += steps;
     const physRel = [0, 0, 0, 0];
     let relSteps = steps;
-    if (state.reverseFlags[axisIndex]) relSteps = -relSteps;
+    // if (state.reverseFlags[axisIndex]) relSteps = -relSteps; // Removed software inversion
     physRel[state.motorMapping[axisIndex]] = relSteps;
     Comms.sendCommand(`R ${physRel.join(' ')}`);
     updatePositionDisplay(axisIndex);
@@ -197,7 +211,7 @@ window.moveAllMotors = (dist) => {
     const physRel = [0, 0, 0, 0];
     for (let i = 0; i < 4; i++) {
         let s = steps;
-        if (state.reverseFlags[i]) s = -s;
+        // if (state.reverseFlags[i]) s = -s; // Removed software inversion
         physRel[state.motorMapping[i]] = s;
     }
     Comms.sendCommand(`R ${physRel.join(' ')}`);
@@ -212,7 +226,8 @@ window.moveAllToZero = () => {
 
 window.toggleReverse = (logicalIndex, checked) => {
     state.reverseFlags[logicalIndex] = checked;
-    localStorage.setItem('reverseFlags', JSON.stringify(state.reverseFlags));
+    const physicalIndex = state.motorMapping[logicalIndex];
+    Comms.sendCommand(`V ${physicalIndex} ${checked ? 1 : 0}`);
 };
 
 window.toggleMotors = (checked) => {
@@ -498,6 +513,7 @@ window.updateFrameDimensions = () => {
     document.getElementById('editBoxZ').max = VBOX_CONFIG.maxHeight;
 
     initVirtualBox();
+    Comms.sendChoreographyUpdate();
 };
 
 function loadFrameDimensions() {
@@ -545,6 +561,13 @@ window.updateRestSettings = () => {
     state.restDuration = parseFloat(document.getElementById('restDuration').value) || 1;
     localStorage.setItem('restEnabled', state.restEnabled);
     localStorage.setItem('restDuration', state.restDuration);
+    Comms.sendChoreographyUpdate();
+};
+
+window.updateLoopSettings = () => {
+    state.loopEnabled = document.getElementById('loopChoreography').checked;
+    localStorage.setItem('loopEnabled', state.loopEnabled);
+    Comms.sendChoreographyUpdate();
 };
 
 window.updateTimelineDuration = () => {
@@ -646,7 +669,14 @@ document.addEventListener('mousemove', (e) => {
 });
 
 document.addEventListener('mouseup', () => {
-    state.isDraggingPlayhead = false;
+    if (state.isDraggingPlayhead) {
+        state.isDraggingPlayhead = false;
+        if (state.isPlaying) {
+            Comms.sendPlayChoreography(state.currentTime, state.playbackSpeed);
+        } else if (state.serverAudioLoaded) {
+            Comms.seekServerAudio(state.currentTime);
+        }
+    }
     if (state.isDraggingKeyframe) {
         state.isDraggingKeyframe = false;
         state.choreography.sort((a, b) => a.time - b.time);
@@ -776,7 +806,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const savedTimelineDuration = localStorage.getItem('timelineDuration');
     if (savedTimelineDuration !== null) state.timelineDuration = parseFloat(savedTimelineDuration);
-    document.getElementById('timelineDuration').value = state.timelineDuration;
+    const elTimelineDuration = document.getElementById('timelineDuration');
+    if (elTimelineDuration) elTimelineDuration.value = state.timelineDuration;
 
     const savedTimelineZoom = localStorage.getItem('timelineZoom');
     if (savedTimelineZoom !== null) state.timelineZoom = parseInt(savedTimelineZoom);
@@ -828,6 +859,23 @@ document.addEventListener('DOMContentLoaded', () => {
             state.choreography = data.choreography || [];
             state.currentFileName = data.fileName || 'Untitled';
             if (data.reverseFlags) state.reverseFlags = data.reverseFlags;
+            
+            if (data.frameDimensions) {
+                const fd = data.frameDimensions;
+                if (fd.width) VBOX_CONFIG.frameWidth = fd.width;
+                if (fd.length) VBOX_CONFIG.frameLength = fd.length;
+                if (fd.height) VBOX_CONFIG.maxHeight = fd.height;
+                
+                const elW = document.getElementById('frameWidth');
+                const elL = document.getElementById('frameLength');
+                const elH = document.getElementById('frameHeight');
+                if (elW) elW.value = VBOX_CONFIG.frameWidth;
+                if (elL) elL.value = VBOX_CONFIG.frameLength;
+                if (elH) elH.value = VBOX_CONFIG.maxHeight;
+                
+                initVirtualBox();
+            }
+
             if (data.settings) {
                 state.uiMaxSpeed = data.settings.speed || state.uiMaxSpeed;
                 state.uiAcceleration = data.settings.accel || state.uiAcceleration;

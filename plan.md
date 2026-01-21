@@ -12,22 +12,20 @@ Web interface for controlling a 4-axis cable robot using an Arduino CNC Shield.
 - **Audio:** Fully integrated audio playback with timeline sync and IndexedDB persistence.
 - **Project Management:** "Quick Save" system for managing multiple choreographies locally.
 
-## Recent Changes (2026-01-11)
-- **Modularization:** Split `app.js` into 7 specialized modules.
-- **UI Overhaul:**
-    - Two-row choreography toolbar.
-    - Compact styles and reduced padding.
-    - Restored granular motor controls (-10/+10 buttons).
-- **Timeline & Playback:**
-    - Draggable Playhead and Keyframes.
-    - Infinite playback for recording (loops only if checked).
-    - **Rest & Loop:** Optional rest period between loops to cool down motors. Configurable duration (persisted to localStorage). Visual indicator (pulsing orange) during rest countdown.
-    - Audio syncs perfectly with scrubbing.
-- **Calibration:**
-    - **Set Floor:** Resets hardware, visual position, and virtual box state to 0.
-    - **Set Ceiling:** Defines max height based on current position.
-    - **STOP:** Added emergency halt (Firmware `Q` command) that decelerates motors immediately.
-- **Persistence:** Audio file and project data persist across reloads.
+## Recent Changes (2026-01-21)
+- **Calibration UI:** Updated to non-sequential "Random Access" mode for easier adjustment.
+- **Motor Configuration:** Frame dimensions (Width/Length/Height) now sync to server and persist across devices.
+- **Playback Logic:**
+    - **Loop & Rest:** Fixed priority logic. Rest Mode now works correctly as a buffer between loops.
+    - **Stop & Reset:** Fixed logic to ensure playhead resets to 0 and audio rewinds.
+    - **Scrubbing:** Dragging playhead now seeks server playback/audio.
+- **Motor Control:**
+    - **Inversion:** "Rev" checkboxes now control hardware inversion (`V` command) directly, removing confusing software double-negation.
+    - **Slack Fix:** Identified and fixed "slack on roll" issue (user advised to correct Frame Width).
+- **UI Tweaks:**
+    - Removed unused "Timeline Duration" input.
+    - Added "Rest Countdown" display.
+    - Keyframe markers thin out when zoomed out.
 
 ## Roadmap
 - [ ] **Advanced Kinematics:** Improve Inverse Kinematics for complex paths.

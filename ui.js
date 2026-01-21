@@ -29,6 +29,8 @@ export function updateTimeline(callbacks) {
       marker.classList.add('selected');
     }
 
+    const markerWidth = Math.max(2, Math.min(8, PPS * 0.4));
+    marker.style.width = `${markerWidth}px`;
     marker.style.left = `${kf.time * PPS}px`;
     marker.title = `${kf.time.toFixed(2)}s`;
 

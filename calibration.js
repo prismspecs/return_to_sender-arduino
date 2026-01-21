@@ -1,7 +1,7 @@
 import { state } from './state.js';
 import * as Comms from './comms.js';
 
-let calibrationStep = 0;
+let calibrationStep = 0; // Effectively "Active Motor Index" now
 
 // Sequence: 0:RL(M0), 1:RR(M1), 2:FR(M2), 3:FL(M3) (Logical Indices)
 const CALIBRATION_SEQUENCE = [
@@ -17,28 +17,12 @@ export function startCalibration() {
     if (toggle) toggle.checked = true;
     Comms.sendCommand('E 1');
 
-    // 2. Initialize State
+    // 2. Initialize State (Default to RL)
     calibrationStep = 0;
     updateCalibrationUI();
 
     // 3. Show Modal
     document.getElementById('calibrationModal').style.display = 'flex';
-}
-
-export function nextCalibrationStep() {
-    calibrationStep++;
-    if (calibrationStep >= 4) {
-        finishCalibration();
-    } else {
-        updateCalibrationUI();
-    }
-}
-
-export function prevCalibrationStep() {
-    if (calibrationStep > 0) {
-        calibrationStep--;
-        updateCalibrationUI();
-    }
 }
 
 export function goToCalibrationStep(step) {
@@ -96,7 +80,7 @@ function updateCalibrationUI() {
     const title = document.getElementById('calStepTitle');
     const name = document.getElementById('calMotorName');
     
-    if (title) title.textContent = `Calibration Step ${calibrationStep + 1} of 4`;
+    if (title) title.textContent = `Manual Calibration`;
     if (name) name.textContent = `Adjust ${stepInfo.name}`;
 
     // Update visual corner indicator position
@@ -109,27 +93,25 @@ function updateCalibrationUI() {
         dot.setAttribute('cy', stepInfo.cy);
     }
 
-    // Update prev button visibility
-    const prevBtn = document.getElementById('calPrevBtn');
-    if (prevBtn) {
-        prevBtn.style.display = calibrationStep === 0 ? 'none' : 'inline-block';
-    }
-
-    // Update next button text for final step
-    const nextBtn = document.getElementById('calNextBtn');
-    if (nextBtn) {
-        if (calibrationStep === 3) {
-            nextBtn.textContent = '✓ Finish Calibration';
-        } else {
-            nextBtn.innerHTML = 'Next Corner &rarr;';
+    // Update Button States
+    for(let i=0; i<4; i++) {
+        const btn = document.getElementById(`btnSel${i}`);
+        if(btn) {
+            if(i === calibrationStep) {
+                btn.style.backgroundColor = 'var(--accent)';
+                btn.style.color = 'white';
+                btn.style.borderColor = 'var(--accent)';
+            } else {
+                btn.style.backgroundColor = '';
+                btn.style.color = '';
+                btn.style.borderColor = '';
+            }
         }
     }
 }
 
 // Attach to window for HTML button clicks
 window.startCalibration = startCalibration;
-window.nextCalibrationStep = nextCalibrationStep;
-window.prevCalibrationStep = prevCalibrationStep;
 window.goToCalibrationStep = goToCalibrationStep;
 window.cancelCalibration = cancelCalibration;
 window.finishCalibration = finishCalibration;

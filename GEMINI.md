@@ -33,17 +33,20 @@ A web-based interface for controlling a 4-axis CNC Shield v3 stepper motor setup
 - [x] **Port Selection:** Select Arduino serial port from UI.
 - [x] **Set Floor:** Sets current position as Zero (Hardware & Software).
 - [x] **Set Ceiling:** Sets Max Height limit based on current position.
-- [x] **STOP:** Immediate deceleration halt (`Q` command).
-- [x] Motor Direction Inversion
-- [x] Motor Enable/Disable (Auto-homes on disable)
+- [x] **STOP & Reset:** Immediate deceleration halt (`Q` command) and return to 0.
+- [x] **Motor Direction Inversion:** Hardware-synced inversion toggle (sends `V` command).
+- [x] **Motor Enable/Disable:** Auto-homes on disable.
+- [x] **Config Sync:** Motor dimensions and limits persist on server and sync across devices.
 
 ### Advanced Features
 - [x] **Choreography:** Record & Playback with Speed/Accel per keyframe.
 - [x] **Audio Sync:** Load audio tracks, sync playback, scrub timeline.
+- [x] **Loop & Rest:** Playback loops with optional Rest/Cool-down buffer (server-side logic).
 - [x] **Project Management:** Quick Save/Load slots in LocalStorage.
 - [x] **Visual Editor:** Drag-and-drop keyframes, virtual box pose editing.
 - [x] **Infinite Recording:** Playback continues past end for extending sequences.
 - [x] **Configuration Export/Import:** Save and load full hardware configuration (Mappings, Limits, Drivers) to JSON.
+- [x] **Calibration Wizard:** Random-access corner adjustment UI.
 
 ## Architecture Notes
 - **Modular JS:** The frontend is now split into ES6 modules to manage complexity.

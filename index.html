@@ -366,6 +366,13 @@
                 <input type="file" id="audioInput" accept="audio/*" style="display: none;"
                   onchange="handleAudioLoad(event)">
                 <audio id="choreoAudio" style="display: none;"></audio>
+                
+                <div style="display: flex; align-items: center; gap: 2px; margin-left: 5px; border-left: 1px solid var(--border); padding-left: 8px;">
+                  <label style="font-size: 12px; font-weight: 600;">🔊</label>
+                  <input type="range" id="volumeSlider" min="0" max="150" step="5" value="100"
+                    oninput="updateVolume(this.value)" style="width: 60px;">
+                  <span id="volumeDisplay" style="font-family: monospace; font-size: 11px; width: 35px;">100%</span>
+                </div>
               </div>
             </div>
 
@@ -386,13 +393,8 @@
                   oninput="updatePlaybackSpeed(this.value)" style="width: 80px;">
                 <span id="speedDisplay" style="font-family: monospace; font-size: 12px; width: 35px;">1.0x</span>
 
-                <label style="font-size: 12px; font-weight: 600; margin-left: 8px;">🔊</label>
-                <input type="range" id="volumeSlider" min="0" max="150" step="5" value="100"
-                  oninput="updateVolume(this.value)" style="width: 60px;">
-                <span id="volumeDisplay" style="font-family: monospace; font-size: 11px; width: 35px;">100%</span>
-
                 <label style="font-size: 12px; margin-left: 10px; display: flex; align-items: center; gap: 4px;">
-                  <input type="checkbox" id="loopChoreography" checked> Loop
+                  <input type="checkbox" id="loopChoreography" checked onchange="updateLoopSettings()"> Loop
                 </label>
                 <div
                   style="display: flex; align-items: center; gap: 4px; margin-left: 10px; border-left: 1px solid var(--border); padding-left: 10px;">
@@ -413,18 +415,25 @@
             <div class="timeline" id="timeline" style="flex-grow: 1; overflow-x: auto; padding-bottom: 8px;">
               <div class="timeline-track" style="margin-bottom: 4px;"></div>
             </div>
+            <!-- 
             <div style="display: flex; align-items: center; gap: 3px;">
               <input type="number" id="timelineDuration" value="0" min="0" step="1"
                 style="width: 45px; font-size: 12px; padding: 2px;" onchange="updateTimelineDuration()"
                 title="Timeline duration (0 = auto)">
               <span style="font-size: 11px; color: var(--text-light);">s</span>
-            </div>
+            </div> 
+            -->
           </div>
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
             <label style="font-size: 11px; color: var(--text-light);">Zoom:</label>
             <input type="range" id="timelineZoom" min="5" max="100" step="5" value="20"
               oninput="updateTimelineZoom(this.value)" style="width: 100px;">
             <span id="zoomDisplay" style="font-size: 11px; color: var(--text-light); width: 45px;">20 px/s</span>
+            
+            <!-- Rest Countdown -->
+            <span id="restCountdown" style="display: none; font-size: 12px; font-weight: bold; color: var(--accent); margin-left: 10px; padding: 2px 6px; background: #e6f2ff; border-radius: 3px;">
+                Resting: 60s
+            </span>
           </div>
           <div style="text-align: center; margin-bottom: 8px;">
             <span id="timeDisplay" class="time-display"
@@ -606,16 +615,19 @@
             style="padding: 8px 16px; background: #666; color: white; border-color: #666;">Lift All +10</button>
         </div>
 
-        <div style="display: flex; justify-content: space-between; border-top: 1px solid #eee; padding-top: 20px;">
-          <button onclick="cancelCalibration()"
-            style="background-color: #f44336; border-color: #f44336; color: white;">Cancel</button>
-          <div style="display: flex; gap: 10px;">
-            <button id="calPrevBtn" onclick="prevCalibrationStep()"
-              style="background-color: #888; border-color: #888; color: white; padding: 8px 16px; font-size: 14px;">&larr;
-              Previous</button>
-            <button id="calNextBtn" onclick="nextCalibrationStep()"
-              style="background-color: var(--success); border-color: var(--success); color: white; padding: 8px 24px; font-weight: bold; font-size: 14px;">Next
-              Corner &rarr;</button>
+        <div style="display: flex; flex-direction: column; gap: 15px; border-top: 1px solid #eee; padding-top: 20px;">
+          
+          <!-- Corner Selection Buttons -->
+          <div style="display: flex; justify-content: center; gap: 10px;">
+            <button onclick="goToCalibrationStep(0)" id="btnSel0" style="width: 50px; font-weight: bold;">RL</button>
+            <button onclick="goToCalibrationStep(1)" id="btnSel1" style="width: 50px; font-weight: bold;">RR</button>
+            <button onclick="goToCalibrationStep(2)" id="btnSel2" style="width: 50px; font-weight: bold;">FR</button>
+            <button onclick="goToCalibrationStep(3)" id="btnSel3" style="width: 50px; font-weight: bold;">FL</button>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+             <button onclick="cancelCalibration()" style="background-color: #f44336; border-color: #f44336; color: white;">Cancel</button>
+             <button onclick="finishCalibration()" style="background-color: var(--success); border-color: var(--success); color: white; padding: 10px 30px; font-weight: bold; font-size: 14px;">✓ Finish & Set Zero</button>
           </div>
         </div>
       </div>

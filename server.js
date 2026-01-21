@@ -60,7 +60,15 @@ function saveChoreography() {
     choreography: choreoEngine.choreography,
     fileName: 'Synced Project',
     reverseFlags: choreoEngine.reverseFlags,
-    motorMapping: choreoEngine.motorMapping
+    motorMapping: choreoEngine.motorMapping,
+    frameDimensions: choreoEngine.frameDimensions,
+    loopEnabled: choreoEngine.loopEnabled,
+    restEnabled: choreoEngine.restEnabled,
+    restDuration: choreoEngine.restDuration,
+    settings: {
+        speed: choreoEngine.maxSpeed,
+        accel: choreoEngine.acceleration
+    }
   };
   fs.writeFileSync(choreoPath, JSON.stringify(data, null, 2));
 }
@@ -183,7 +191,15 @@ wss.on('connection', (ws) => {
     type: 'choreographySync',
     choreography: choreoEngine.choreography,
     reverseFlags: choreoEngine.reverseFlags,
-    motorMapping: choreoEngine.motorMapping
+    motorMapping: choreoEngine.motorMapping,
+    frameDimensions: choreoEngine.frameDimensions,
+    loopEnabled: choreoEngine.loopEnabled,
+    restEnabled: choreoEngine.restEnabled,
+    restDuration: choreoEngine.restDuration,
+    settings: {
+        speed: choreoEngine.maxSpeed,
+        accel: choreoEngine.acceleration
+    }
   }));
   ws.send(JSON.stringify(choreoEngine.getStatus()));
 
@@ -206,7 +222,15 @@ wss.on('connection', (ws) => {
            type: 'choreographySync',
            choreography: choreoEngine.choreography,
            reverseFlags: choreoEngine.reverseFlags,
-           motorMapping: choreoEngine.motorMapping
+           motorMapping: choreoEngine.motorMapping,
+           frameDimensions: choreoEngine.frameDimensions,
+           loopEnabled: choreoEngine.loopEnabled,
+           restEnabled: choreoEngine.restEnabled,
+           restDuration: choreoEngine.restDuration,
+           settings: {
+               speed: choreoEngine.maxSpeed,
+               accel: choreoEngine.acceleration
+           }
         }));
       }
       else if (data.type === 'audio') {

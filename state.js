@@ -22,10 +22,12 @@ export const state = {
     timelineZoom: 20, // Pixels per second
 
     // Loop & Rest
+    loopEnabled: true,
     restEnabled: false,
     restDuration: 1, // Minutes
     isResting: false,
     restStartTime: 0,
+    restTotalDuration: 0, // ms
 
     // Settings
     uiMaxSpeed: 24000,
