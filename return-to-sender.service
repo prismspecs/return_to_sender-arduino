@@ -1,0 +1,14 @@
+[Unit]
+Description=Return to Sender Node.js Server
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/return_to_sender
+Environment=XDG_RUNTIME_DIR=/run/user/1001
+ExecStart=/usr/bin/npm start
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
