@@ -397,7 +397,19 @@ window.recordKeyframe = () => {
 };
 
 window.playChoreography = () => Choreo.playChoreography(choreoCallbacks);
-window.stopChoreography = () => Choreo.stopChoreography(choreoCallbacks);
+window.stopChoreography = () => {
+    Choreo.stopChoreography(choreoCallbacks);
+    // Reset to beginning
+    state.currentTime = 0;
+    UI.updatePlayhead(0);
+};
+window.togglePlayback = () => {
+    if (state.isPlaying) {
+        Choreo.stopChoreography(choreoCallbacks);
+    } else {
+        Choreo.playChoreography(choreoCallbacks);
+    }
+};
 window.clearChoreography = () => {
     state.choreography = [];
     Storage.saveChoreographyToLocal();
@@ -923,6 +935,13 @@ window.updateTimelineDuration = () => {
     refreshUI();
 };
 
+window.updateTimelineZoom = (value) => {
+    state.timelineZoom = parseInt(value) || 20;
+    document.getElementById('zoomDisplay').textContent = state.timelineZoom + ' px/s';
+    localStorage.setItem('timelineZoom', state.timelineZoom);
+    refreshUI();
+};
+
 window.clearConsole = () => document.getElementById('console').innerHTML = '';
 
 function loadMapping() {
@@ -981,7 +1000,7 @@ document.addEventListener('mousedown', (e) => {
             state.isDraggingPlayhead = true;
 
             const rect = track.getBoundingClientRect();
-            const PPS = 20;
+            const PPS = state.timelineZoom || 20;
             let t = (e.clientX - rect.left) / PPS;
             if (t < 0) t = 0;
             state.currentTime = t;
@@ -1032,7 +1051,7 @@ document.addEventListener('mousemove', (e) => {
     const track = document.querySelector('.timeline-track');
     if (!track) return;
     const rect = track.getBoundingClientRect();
-    const PPS = 20;
+    const PPS = state.timelineZoom || 20;
     if (state.isDraggingPlayhead) {
         let t = (e.clientX - rect.left) / PPS;
         if (t < 0) t = 0;
@@ -1191,6 +1210,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedTimelineDuration = localStorage.getItem('timelineDuration');
     if (savedTimelineDuration !== null) state.timelineDuration = parseFloat(savedTimelineDuration);
     document.getElementById('timelineDuration').value = state.timelineDuration;
+
+    // Load timeline zoom from localStorage
+    const savedTimelineZoom = localStorage.getItem('timelineZoom');
+    if (savedTimelineZoom !== null) state.timelineZoom = parseInt(savedTimelineZoom);
+    document.getElementById('timelineZoom').value = state.timelineZoom;
+    document.getElementById('zoomDisplay').textContent = state.timelineZoom + ' px/s';
 
     // Load volume from localStorage and sync with server
     const savedVolume = localStorage.getItem('audioVolume');

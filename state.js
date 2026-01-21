@@ -19,6 +19,7 @@ export const state = {
     currentTime: 0,
     selectedKeyframeIndex: -1,
     timelineDuration: 0, // 0 = auto (based on keyframes)
+    timelineZoom: 20, // Pixels per second
 
     // Loop & Rest
     restEnabled: false,

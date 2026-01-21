@@ -375,7 +375,7 @@
                 <button onclick="recordKeyframe()" class="btn-record">Record Keyframe</button>
                 <button onclick="playChoreography()" id="btnPlay"
                   style="background-color: green; color: white; border-color: green;">Play</button>
-                <button onclick="stopChoreography()" id="btnStop">Stop</button>
+                <button onclick="stopChoreography()" id="btnStop">Stop & Reset</button>
                 <button onclick="clearChoreography()">Clear Keyframes</button>
               </div>
 
@@ -410,8 +410,8 @@
           <div style="display: flex; align-items: stretch; gap: 5px; margin-bottom: 4px;">
             <button onclick="returnToStart()" title="Return to Start"
               style="padding: 0 10px; font-size: 16px;">⏮</button>
-            <div class="timeline" id="timeline" style="flex-grow: 1; overflow-x: auto;">
-              <div class="timeline-track"></div>
+            <div class="timeline" id="timeline" style="flex-grow: 1; overflow-x: auto; padding-bottom: 8px;">
+              <div class="timeline-track" style="margin-bottom: 4px;"></div>
             </div>
             <div style="display: flex; align-items: center; gap: 3px;">
               <input type="number" id="timelineDuration" value="0" min="0" step="1"
@@ -419,6 +419,12 @@
                 title="Timeline duration (0 = auto)">
               <span style="font-size: 11px; color: var(--text-light);">s</span>
             </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+            <label style="font-size: 11px; color: var(--text-light);">Zoom:</label>
+            <input type="range" id="timelineZoom" min="5" max="100" step="5" value="20"
+              oninput="updateTimelineZoom(this.value)" style="width: 100px;">
+            <span id="zoomDisplay" style="font-size: 11px; color: var(--text-light); width: 45px;">20 px/s</span>
           </div>
           <div style="text-align: center; margin-bottom: 8px;">
             <span id="timeDisplay" class="time-display"

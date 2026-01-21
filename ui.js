@@ -9,7 +9,7 @@ export function updateTimeline(callbacks) {
   const markers = track.querySelectorAll('.keyframe-marker:not(.playhead)');
   markers.forEach(m => m.remove());
 
-  const PPS = 20;
+  const PPS = state.timelineZoom || 20;
   const maxKeyframeTime = state.choreography.length > 0 ? Math.max(...state.choreography.map(kf => kf.time)) : 0;
   const setDuration = state.timelineDuration || 0;
 
@@ -56,7 +56,7 @@ export function updatePlayhead(time) {
     track.appendChild(playhead);
   }
 
-  const PPS = 20;
+  const PPS = state.timelineZoom || 20;
   playhead.style.left = `${time * PPS}px`;
 
   const timeDisp = document.getElementById('timeDisplay');
