@@ -936,10 +936,26 @@ window.updateTimelineDuration = () => {
 };
 
 window.updateTimelineZoom = (value) => {
-    state.timelineZoom = parseInt(value) || 20;
+    const timeline = document.getElementById('timeline');
+    const oldZoom = state.timelineZoom || 20;
+    const newZoom = parseInt(value) || 20;
+
+    // Calculate playhead position relative to viewport before zoom
+    const playheadPixelPos = state.currentTime * oldZoom;
+    const scrollLeft = timeline.scrollLeft;
+    const viewportOffset = playheadPixelPos - scrollLeft; // How far from left edge of viewport
+
+    // Update zoom
+    state.timelineZoom = newZoom;
     document.getElementById('zoomDisplay').textContent = state.timelineZoom + ' px/s';
     localStorage.setItem('timelineZoom', state.timelineZoom);
+
+    // Refresh UI first so track width updates
     refreshUI();
+
+    // Calculate new scroll position to keep playhead in same viewport position
+    const newPlayheadPixelPos = state.currentTime * newZoom;
+    timeline.scrollLeft = newPlayheadPixelPos - viewportOffset;
 };
 
 window.clearConsole = () => document.getElementById('console').innerHTML = '';
