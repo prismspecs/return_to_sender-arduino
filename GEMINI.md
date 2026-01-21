@@ -47,7 +47,12 @@ A web-based interface for controlling a 4-axis CNC Shield v3 stepper motor setup
 
 ## Architecture Notes
 - **Modular JS:** The frontend is now split into ES6 modules to manage complexity.
-- **State Management:** `state.js` acts as the single source of truth.
+- **Server-Side Choreography:**
+    - The Raspberry Pi (`server.js` + `server-choreography.js`) is the master conductor.
+    - It maintains the playback loop, executes keyframes, and sends serial commands.
+    - Clients are purely visual/control interfaces that sync via WebSocket.
+    - Closing the browser does NOT stop playback.
+- **State Management:** `state.js` acts as the single source of truth for the Frontend. `ServerChoreography` holds the truth for the Backend.
 - **Firmware Protocol:**
     - `M x y z a`: Move Absolute
     - `R x y z a`: Move Relative

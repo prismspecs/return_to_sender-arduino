@@ -186,6 +186,15 @@ function animateDisplay(timestamp) {
     const dt = (timestamp - lastFrameTime) / 1000;
     lastFrameTime = timestamp;
 
+    // Handle Playback Time Interpolation
+    if (state.isPlaying) {
+        const now = Date.now();
+        // Calculate expected time based on start time and speed
+        const expectedTime = ((now - state.playbackStartTime) / 1000) * state.playbackSpeed;
+        state.currentTime = expectedTime;
+        choreoCallbacks.onTimeUpdate(state.currentTime);
+    }
+
     const isSmooth = document.getElementById('smoothAnimation')?.checked;
 
     if (!isSmooth) {
@@ -1100,6 +1109,9 @@ document.addEventListener('mouseup', () => {
 window.updateMapping = () => {
     for (let i = 0; i < 4; i++) state.motorMapping[i] = parseInt(document.getElementById(`mapM${i}`).value);
     localStorage.setItem('motorMapping', JSON.stringify(state.motorMapping));
+    
+    // Sync with server
+    Comms.sendChoreographyUpdate();
 
     // Check for duplicate mappings
     const uniqueDrivers = new Set(state.motorMapping);
@@ -1270,6 +1282,20 @@ document.addEventListener('DOMContentLoaded', () => {
             if (audioState.isPlaying) {
                 state.serverAudioTime = audioState.currentTime;
             }
+        },
+        onPlayStateUpdate: (data) => {
+            debugLog('[App] PlayState Update:', data);
+            state.isPlaying = data.isPlaying;
+            state.playbackSpeed = data.speed;
+            
+            if (data.currentTime !== undefined) {
+                state.currentTime = data.currentTime;
+                // Resync local start time for smooth interpolation
+                state.playbackStartTime = Date.now() - (data.currentTime * 1000 / state.playbackSpeed);
+                choreoCallbacks.onTimeUpdate(state.currentTime);
+            }
+            
+            choreoCallbacks.onPlayStateChange(state.isPlaying);
         },
         onChoreographySync: (data) => {
             // Received choreography update from another client

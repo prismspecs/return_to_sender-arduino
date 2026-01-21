@@ -12,6 +12,7 @@ let onStatus = (connected, msg) => { };
 let onPositionUpdate = () => { };
 let onAudioStateUpdate = (audioState) => { };
 let onChoreographySync = (data) => { };
+let onPlayStateUpdate = (data) => { };
 
 export function setupComms(callbacks) {
   if (callbacks.onLog) onLog = callbacks.onLog;
@@ -19,6 +20,7 @@ export function setupComms(callbacks) {
   if (callbacks.onPositionUpdate) onPositionUpdate = callbacks.onPositionUpdate;
   if (callbacks.onAudioStateUpdate) onAudioStateUpdate = callbacks.onAudioStateUpdate;
   if (callbacks.onChoreographySync) onChoreographySync = callbacks.onChoreographySync;
+  if (callbacks.onPlayStateUpdate) onPlayStateUpdate = callbacks.onPlayStateUpdate;
 }
 
 // Audio control commands (play on server/Pi)
@@ -136,6 +138,8 @@ export function connectWebSocket() {
         // Received choreography update from another client
         debugLog('[Comms] Choreography sync received:', data.fileName, data.choreography?.length, 'keyframes');
         onChoreographySync(data);
+      } else if (data.type === 'playState') {
+        onPlayStateUpdate(data);
       }
     } catch (error) {
       onLog('Error parsing message');
@@ -161,12 +165,31 @@ export function sendChoreographyUpdate() {
       choreography: state.choreography,
       fileName: state.currentFileName,
       reverseFlags: state.reverseFlags,
+      motorMapping: state.motorMapping,
       settings: {
         speed: state.uiMaxSpeed,
         accel: state.uiAcceleration
       }
     }));
     debugLog('[Comms] Sent choreography update to server');
+  }
+}
+
+export function sendPlayChoreography(time, speed) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
+      type: 'playChoreography',
+      startTime: time,
+      speed: speed
+    }));
+  }
+}
+
+export function sendStopChoreography() {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
+      type: 'stopChoreography'
+    }));
   }
 }
 

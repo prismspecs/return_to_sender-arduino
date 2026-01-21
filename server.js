@@ -8,6 +8,7 @@ import { spawn } from 'child_process';
 import fs from 'fs';
 import net from 'net';
 import multer from 'multer';
+import { ServerChoreography } from './server-choreography.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -29,48 +30,65 @@ let audioState = {
 let audioStartTime = 0;
 let audioStartOffset = 0;
 
-// Shared choreography state (synced between all clients)
-let sharedChoreography = {
-  choreography: [],
-  fileName: 'Untitled',
-  reverseFlags: [false, false, false, false],
-  settings: {
-    speed: 24000,
-    accel: 24000
-  }
-};
+// Serial Port State
+let currentSerialPort = null;
+const BAUD_RATE = 115200;
+let serialPort = null;
+let parser = null;
+let wsClients = new Set();
+let isSerialConnected = false;
+
+// Ensure uploads directory exists at startup
+const uploadsDir = join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Persisted Choreography Path
+const choreoPath = join(__dirname, 'uploads', 'choreography.json');
+
+// Initialize Choreography Engine
+const choreoEngine = new ServerChoreography({
+  sendCommand: (cmd) => {
+    if (serialPort && serialPort.isOpen) {
+      serialPort.write(cmd + '\n', (err) => {
+        if (err) console.error('Serial write error:', err.message);
+      });
+    }
+  },
+  broadcast: (msg) => {
+    const str = JSON.stringify(msg);
+    wsClients.forEach(client => {
+      if (client.readyState === 1) client.send(str);
+    });
+  },
+  playAudio: (t, s) => playAudio(t, s),
+  pauseAudio: () => pauseAudio(),
+  seekAudio: (t) => seekAudio(t),
+  hasAudio: () => !!audioFilePath && fs.existsSync(audioFilePath),
+  isAudioPlaying: () => audioState.isPlaying,
+  getAudioTime: () => getCurrentAudioTime()
+});
 
 // Load choreography from file on startup
-const choreoPath = join(__dirname, 'uploads', 'choreography.json');
 if (fs.existsSync(choreoPath)) {
   try {
-    sharedChoreography = JSON.parse(fs.readFileSync(choreoPath, 'utf8'));
-    console.log(`✓ Loaded shared choreography: ${sharedChoreography.fileName}`);
+    const savedData = JSON.parse(fs.readFileSync(choreoPath, 'utf8'));
+    choreoEngine.updateConfig(savedData);
+    console.log(`✓ Loaded shared choreography: ${savedData.fileName || 'Untitled'}`);
   } catch (e) {
     console.log('No saved choreography found, starting fresh');
   }
 }
 
 function saveSharedChoreography() {
-  fs.writeFileSync(choreoPath, JSON.stringify(sharedChoreography, null, 2));
-}
-
-function broadcastChoreography(excludeClient = null) {
-  const msg = JSON.stringify({
-    type: 'choreographySync',
-    ...sharedChoreography
-  });
-  wsClients.forEach(client => {
-    if (client.readyState === 1 && client !== excludeClient) {
-      client.send(msg);
-    }
-  });
-}
-
-// Ensure uploads directory exists at startup
-const uploadsDir = join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+  const data = {
+    choreography: choreoEngine.choreography,
+    fileName: 'Synced Project', // We might want to persist the name
+    reverseFlags: choreoEngine.reverseFlags,
+    motorMapping: choreoEngine.motorMapping
+  };
+  fs.writeFileSync(choreoPath, JSON.stringify(data, null, 2));
 }
 
 // Configure multer for audio uploads
@@ -183,7 +201,6 @@ function playAudio(startTime = 0, speed = 1.0) {
   audioStartTime = Date.now();
 
   // Try mpv first (common on Pi), fallback to ffplay
-  // User service has access to PulseAudio/PipeWire for Bluetooth audio
   // Clean up old socket if exists
   if (fs.existsSync(MPV_SOCKET)) {
     try { fs.unlinkSync(MPV_SOCKET); } catch (e) { }
@@ -201,17 +218,15 @@ function playAudio(startTime = 0, speed = 1.0) {
 
   console.log('[Audio] Spawning mpv with args:', mpvArgs);
 
-  // Try mpv first - use pipe to capture any errors
+  // Try mpv first
   audioProcess = spawn('mpv', mpvArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
 
-  // Capture stdout for debugging
   if (audioProcess.stdout) {
     audioProcess.stdout.on('data', (data) => {
       console.log('[Audio] mpv stdout:', data.toString().trim());
     });
   }
 
-  // Capture stderr for debugging
   if (audioProcess.stderr) {
     audioProcess.stderr.on('data', (data) => {
       const msg = data.toString().trim();
@@ -244,9 +259,6 @@ function playAudio(startTime = 0, speed = 1.0) {
 
       audioProcess.on('error', (err2) => {
         console.error('[Audio] ffplay error:', err2.message);
-        if (err2.code === 'ENOENT') {
-          console.error('[Audio] Neither mpv nor ffplay found. Install: sudo apt install mpv');
-        }
         audioState.isPlaying = false;
         broadcastAudioState();
       });
@@ -322,22 +334,11 @@ function broadcastAudioState() {
 const app = express();
 const PORT = 3000;
 
-// Configure serial port - adjust to your device
-let currentSerialPort = null;
-const BAUD_RATE = 115200;
-
-let serialPort = null;
-let parser = null;
-let wsClients = new Set();
-let isSerialConnected = false;
-
 // Initialize serial connection
 function initSerial(portPath) {
   if (!portPath) return;
 
-  // Cleanup previous instance
   if (serialPort) {
-    // If we are already connected to this port, do nothing
     if (serialPort.path === portPath && serialPort.isOpen) {
       console.log(`Already connected to ${portPath}`);
       return;
@@ -377,13 +378,10 @@ function initSerial(portPath) {
       broadcastStatus(true);
     });
 
-    // Forward Arduino responses to all connected WebSocket clients
     parser.on('data', (data) => {
       const message = data.trim();
-      // console.log('Arduino:', message);
-
       wsClients.forEach(client => {
-        if (client.readyState === 1) { // WebSocket.OPEN
+        if (client.readyState === 1) {
           client.send(JSON.stringify({
             type: 'arduino',
             message: message
@@ -426,7 +424,7 @@ function broadcastStatus(connected) {
 app.use(express.static(__dirname));
 app.use(express.json());
 
-// API endpoint to list ports
+// API Endpoints
 app.get('/api/ports', async (req, res) => {
   try {
     const ports = await SerialPort.list();
@@ -436,47 +434,30 @@ app.get('/api/ports', async (req, res) => {
   }
 });
 
-// API endpoint to connect to a port
 app.post('/api/connect', (req, res) => {
   const { port } = req.body;
-  if (!port) {
-    return res.status(400).json({ error: 'Port is required' });
-  }
+  if (!port) return res.status(400).json({ error: 'Port is required' });
   initSerial(port);
   res.json({ success: true, message: `Connecting to ${port}...` });
 });
 
-// API endpoint to send commands
 app.post('/api/command', (req, res) => {
   const { command } = req.body;
-
   if (!serialPort || !serialPort.isOpen) {
     return res.status(503).json({ error: 'Serial port not connected' });
   }
-
   serialPort.write(command + '\n', (err) => {
-    if (err) {
-      console.error('Error writing to serial:', err.message);
-      return res.status(500).json({ error: err.message });
-    }
+    if (err) return res.status(500).json({ error: err.message });
     res.json({ success: true });
   });
 });
 
-// Audio upload endpoint
 app.post('/api/audio/upload', (req, res, next) => {
   upload.single('audio')(req, res, (err) => {
-    if (err) {
-      console.error('Multer error:', err);
-      return res.status(500).json({ error: 'Upload failed: ' + err.message });
-    }
-
-    if (!req.file) {
-      return res.status(400).json({ error: 'No audio file provided' });
-    }
+    if (err) return res.status(500).json({ error: 'Upload failed: ' + err.message });
+    if (!req.file) return res.status(400).json({ error: 'No audio file provided' });
 
     try {
-      // Clean up old audio files with different extensions
       const files = fs.readdirSync(uploadsDir);
       files.forEach(f => {
         if (f.startsWith('current-audio') && f !== req.file.filename) {
@@ -488,23 +469,17 @@ app.post('/api/audio/upload', (req, res, next) => {
       audioState.fileName = req.file.originalname;
       audioState.currentTime = 0;
       audioState.isPlaying = false;
-
-      // Save config for persistence
       saveAudioConfig();
-
-      // Broadcast to all clients
       broadcastAudioState();
 
       console.log(`✓ Audio uploaded: ${req.file.originalname}`);
       res.json({ success: true, fileName: req.file.originalname });
     } catch (e) {
-      console.error('Error processing upload:', e);
       res.status(500).json({ error: 'Error processing upload: ' + e.message });
     }
   });
 });
 
-// Audio status endpoint
 app.get('/api/audio/status', (req, res) => {
   res.json({
     fileName: audioState.fileName,
@@ -515,44 +490,28 @@ app.get('/api/audio/status', (req, res) => {
   });
 });
 
-// List available ports on startup
+// List ports
 SerialPort.list().then(ports => {
   console.log('\n=== Available Serial Ports ===');
-  if (ports.length === 0) {
-    console.log('No serial ports found!');
-  } else {
-    ports.forEach(port => {
-      console.log(`  ${port.path}`);
-    });
-  }
+  if (ports.length === 0) console.log('No serial ports found!');
+  else ports.forEach(port => console.log(`  ${port.path}`));
   console.log('==============================\n');
-}).catch(err => {
-  console.error('Error listing ports:', err.message);
-});
+}).catch(err => console.error('Error listing ports:', err.message));
 
-// Load persisted audio config
 loadAudioConfig();
 
-// Start HTTP server
 const server = app.listen(PORT, () => {
   console.log(`\n✓ Server running at http://localhost:${PORT}`);
-  console.log('✓ Open this URL in your browser to control the motors\n');
 });
 
-// Setup WebSocket server
 const wss = new WebSocketServer({ server });
 
 wss.on('connection', (ws) => {
   console.log('WebSocket client connected');
   wsClients.add(ws);
 
-  // Send initial connection status
-  ws.send(JSON.stringify({
-    type: 'status',
-    connected: isSerialConnected
-  }));
-
-  // Send current audio state
+  // Send initial status
+  ws.send(JSON.stringify({ type: 'status', connected: isSerialConnected }));
   ws.send(JSON.stringify({
     type: 'audioState',
     isPlaying: audioState.isPlaying,
@@ -562,22 +521,60 @@ wss.on('connection', (ws) => {
     playbackSpeed: audioState.playbackSpeed,
     hasAudio: !!audioFilePath && fs.existsSync(audioFilePath)
   }));
+  
+  // Send shared choreography
+  ws.send(JSON.stringify({
+    type: 'choreographySync',
+    choreography: choreoEngine.choreography,
+    reverseFlags: choreoEngine.reverseFlags,
+    motorMapping: choreoEngine.motorMapping
+  }));
 
   ws.on('message', (message) => {
     try {
       const data = JSON.parse(message);
-      // Only log non-audio-sync messages to reduce noise
-      // Log all messages except spammy ones
+      
+      // Filter spam
       if (data.type !== 'audioSync' && !(data.type === 'audio' && data.action === 'setSpeed')) {
-        console.log('WebSocket received:', data);
+        // console.log('WebSocket received:', data);
       }
 
-      // Audio control commands
+      // -- Commands --
+      
+      if (data.type === 'playChoreography') {
+          console.log('[Server] Play Choreography');
+          choreoEngine.play(data.startTime || 0, data.speed || 1.0);
+      }
+      
+      if (data.type === 'stopChoreography') {
+          console.log('[Server] Stop Choreography');
+          choreoEngine.stop();
+      }
+
+      if (data.type === 'choreographyUpdate') {
+          // Update engine
+          choreoEngine.updateConfig(data);
+          // Persist
+          saveSharedChoreography();
+      }
+      
+      if (data.type === 'getChoreography') {
+          ws.send(JSON.stringify({
+            type: 'choreographySync',
+            choreography: choreoEngine.choreography,
+            reverseFlags: choreoEngine.reverseFlags,
+            motorMapping: choreoEngine.motorMapping
+          }));
+      }
+
       if (data.type === 'audio') {
-        console.log(`[Audio] Command received: ${data.action}`, data);
+        // Legacy/Direct Audio Control
         switch (data.action) {
           case 'play':
-            console.log('[Audio] >>> PLAY command, calling playAudio()');
+            // If just 'audio' play is requested, do we run choreography?
+            // For now, let's assume 'audio play' triggers choreography play if in that context
+            // But to avoid confusion, let's keep it direct for now.
+            // If the user uses the audio controls directly?
             playAudio(data.time || 0, data.speed || 1.0);
             break;
           case 'pause':
@@ -588,71 +585,24 @@ wss.on('connection', (ws) => {
             break;
           case 'setSpeed':
             audioState.playbackSpeed = data.speed || 1.0;
-            if (audioState.isPlaying) {
-              playAudio(getCurrentAudioTime(), audioState.playbackSpeed);
-            }
+            if (audioState.isPlaying) playAudio(getCurrentAudioTime(), audioState.playbackSpeed);
             break;
           case 'setVolume':
             audioState.volume = Math.max(0, Math.min(150, data.volume || 100));
-            if (audioState.isPlaying) {
-              // Use IPC for live volume control
-              setMpvVolume(audioState.volume);
-            }
+            if (audioState.isPlaying) setMpvVolume(audioState.volume);
             broadcastAudioState();
             break;
-          case 'getStatus':
-            ws.send(JSON.stringify({
-              type: 'audioState',
-              isPlaying: audioState.isPlaying,
-              currentTime: getCurrentAudioTime(),
-              fileName: audioState.fileName,
-              duration: audioState.duration,
-              playbackSpeed: audioState.playbackSpeed,
-              hasAudio: !!audioFilePath && fs.existsSync(audioFilePath)
-            }));
-            break;
         }
-        return;
       }
 
       if (data.type === 'command') {
-        if (!serialPort) {
-          console.error('Serial port is null!');
-          return;
+        if (serialPort && serialPort.isOpen) {
+          serialPort.write(data.command + '\n', (err) => {
+            if (err) console.error('Serial write error:', err);
+          });
         }
-        if (!serialPort.isOpen) {
-          console.error('Serial port is not open!');
-          return;
-        }
-
-        console.log(`Writing to serial: "${data.command}"`);
-        serialPort.write(data.command + '\n', (err) => {
-          if (err) {
-            console.error('Serial write error:', err);
-          } else {
-            console.log('Serial write successful');
-          }
-        });
       }
 
-      // Choreography sync from client
-      if (data.type === 'choreographyUpdate') {
-        if (data.choreography !== undefined) sharedChoreography.choreography = data.choreography;
-        if (data.fileName !== undefined) sharedChoreography.fileName = data.fileName;
-        if (data.reverseFlags !== undefined) sharedChoreography.reverseFlags = data.reverseFlags;
-        if (data.settings !== undefined) sharedChoreography.settings = data.settings;
-        saveSharedChoreography();
-        // Broadcast to other clients (exclude sender)
-        broadcastChoreography(ws);
-      }
-
-      // Request current choreography
-      if (data.type === 'getChoreography') {
-        ws.send(JSON.stringify({
-          type: 'choreographySync',
-          ...sharedChoreography
-        }));
-      }
     } catch (error) {
       console.error('Error processing WebSocket message:', error.message);
     }
@@ -664,37 +614,22 @@ wss.on('connection', (ws) => {
   });
 });
 
-// Initialize serial connection
-
-// initSerial(); 
-
-
-
-// Heartbeat to keep Arduino alive
+// Heartbeat
 setInterval(() => {
   if (isSerialConnected && serialPort && serialPort.isOpen) {
-    serialPort.write('P\n', (err) => {
-      if (err) {
-        // console.error('Heartbeat error:', err.message);
-      }
-    });
+    serialPort.write('P\n', (err) => {});
   }
 }, 1000);
 
-// Periodic audio state broadcast (every 500ms when playing)
+// Audio Broadcast
 setInterval(() => {
-  if (audioState.isPlaying) {
-    broadcastAudioState();
-  }
+  if (audioState.isPlaying) broadcastAudioState();
 }, 500);
 
 // Graceful shutdown
 process.on('SIGINT', () => {
   console.log('Shutting down...');
   stopAudioProcess();
-  if (serialPort && serialPort.isOpen) {
-    serialPort.close();
-  }
+  if (serialPort && serialPort.isOpen) serialPort.close();
   process.exit(0);
 });
-
