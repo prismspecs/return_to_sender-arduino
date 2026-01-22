@@ -273,7 +273,7 @@
                   onchange="updateBoxFromInput('roll')">
               </div>
               <div style="display: flex; align-items: center;">
-                <input type="range" id="boxRoll" min="-45" max="45" value="0" step="1" oninput="updateBoxDisplay()"
+                <input type="range" id="boxRoll" min="-80" max="80" value="0" step="1" oninput="updateBoxDisplay()"
                   onchange="updateBox()" style="flex-grow: 1;">
                 <button onclick="resetBoxRoll()" style="padding: 2px 6px; font-size: 10px;">0</button>
               </div>
@@ -289,7 +289,7 @@
                   onchange="updateBoxFromInput('pitch')">
               </div>
               <div style="display: flex; align-items: center;">
-                <input type="range" id="boxPitch" min="-45" max="45" value="0" step="1" oninput="updateBoxDisplay()"
+                <input type="range" id="boxPitch" min="-80" max="80" value="0" step="1" oninput="updateBoxDisplay()"
                   onchange="updateBox()" style="flex-grow: 1;">
                 <button onclick="resetBoxPitch()" style="padding: 2px 6px; font-size: 10px;">0</button>
               </div>
@@ -465,7 +465,7 @@
                     id="dispEditBoxZ" style="font-size: 10px;">0</span></div>
                 <div><label style="display: block; font-size: 11px;">Roll</label>
                   <div style="display: flex; align-items: center; gap: 4px;">
-                    <input type="range" id="editBoxRoll" min="-45" max="45" step="1" oninput="updateEditorFromBox()"
+                    <input type="range" id="editBoxRoll" min="-80" max="80" step="1" oninput="updateEditorFromBox()"
                       style="flex: 1;">
                     <button onclick="document.getElementById('editBoxRoll').value=0; updateEditorFromBox()"
                       style="padding: 2px 6px; font-size: 10px;">0</button>
@@ -474,7 +474,7 @@
                 </div>
                 <div><label style="display: block; font-size: 11px;">Pitch</label>
                   <div style="display: flex; align-items: center; gap: 4px;">
-                    <input type="range" id="editBoxPitch" min="-45" max="45" step="1" oninput="updateEditorFromBox()"
+                    <input type="range" id="editBoxPitch" min="-80" max="80" step="1" oninput="updateEditorFromBox()"
                       style="flex: 1;">
                     <button onclick="document.getElementById('editBoxPitch').value=0; updateEditorFromBox()"
                       style="padding: 2px 6px; font-size: 10px;">0</button>
