@@ -72,6 +72,8 @@ export function calibrationMove(dist) {
 export function calibrationMoveAll(dist) {
     if (window.moveAllMotors) {
         window.moveAllMotors(dist);
+    } else {
+        console.error("moveAllMotors not found on window");
     }
 }
 

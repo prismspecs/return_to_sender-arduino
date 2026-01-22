@@ -1,15 +1,19 @@
 import { state } from './state.js';
-import { sendPlayChoreography, sendStopChoreography } from './comms.js';
+import { sendPlayChoreography, sendStopChoreography, sendPauseChoreography } from './comms.js';
 
 export function playChoreography(callbacks) {
-  // If already playing, stop
+  // If already playing, pause (don't stop/reset)
   if (state.isPlaying) {
-    stopChoreography(callbacks);
+    pauseChoreography(callbacks);
     return;
   }
   
   // Otherwise send play command to server
   sendPlayChoreography(state.currentTime, state.playbackSpeed);
+}
+
+export function pauseChoreography(callbacks) {
+    sendPauseChoreography();
 }
 
 export function stopChoreography(callbacks) {

@@ -213,6 +213,9 @@ wss.on('connection', (ws) => {
       else if (data.type === 'stopChoreography') {
         choreoEngine.stop();
       }
+      else if (data.type === 'pauseChoreography') {
+        choreoEngine.pause();
+      }
       else if (data.type === 'choreographyUpdate') {
         choreoEngine.updateConfig(data);
         saveChoreography();

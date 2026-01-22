@@ -199,6 +199,14 @@ export function sendPlayChoreography(time, speed) {
   }
 }
 
+export function sendPauseChoreography() {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
+      type: 'pauseChoreography'
+    }));
+  }
+}
+
 export function sendStopChoreography() {
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({

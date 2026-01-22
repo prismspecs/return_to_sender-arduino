@@ -335,8 +335,7 @@ window.stopChoreography = () => {
     UI.updatePlayhead(0);
 };
 window.togglePlayback = () => {
-    if (state.isPlaying) Choreo.stopChoreography(choreoCallbacks);
-    else Choreo.playChoreography(choreoCallbacks);
+    Choreo.playChoreography(choreoCallbacks);
 };
 window.clearChoreography = () => {
     state.choreography = [];
@@ -803,6 +802,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (savedRestDuration !== null) state.restDuration = parseFloat(savedRestDuration);
     document.getElementById('restEnabled').checked = state.restEnabled;
     document.getElementById('restDuration').value = state.restDuration;
+    // Sync with server immediately
+    window.updateRestSettings();
 
     const savedTimelineDuration = localStorage.getItem('timelineDuration');
     if (savedTimelineDuration !== null) state.timelineDuration = parseFloat(savedTimelineDuration);

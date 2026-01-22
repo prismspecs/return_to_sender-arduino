@@ -74,17 +74,22 @@ export class ServerChoreography {
     }
 
     play(startTime = 0, speed = 1.0) {
-        if (this.isPlaying) this.stop();
+        // If resuming (startTime is roughly equal to current time), don't reset index
+        const isResuming = Math.abs(startTime - this.currentTime) < 0.1;
+        
+        if (this.isPlaying) this.pause();
         
         this.isPlaying = true;
         this.playbackSpeed = speed;
         this.currentTime = startTime;
         this.playbackStartTime = Date.now() - (startTime * 1000 / speed);
-        this.keyframeIndex = 0;
-
-        // Advance index to current time
-        while(this.keyframeIndex < this.choreography.length && this.choreography[this.keyframeIndex].time <= this.currentTime) {
-            this.keyframeIndex++;
+        
+        if (!isResuming) {
+             this.keyframeIndex = 0;
+             // Advance index to current time
+             while(this.keyframeIndex < this.choreography.length && this.choreography[this.keyframeIndex].time <= this.currentTime) {
+                 this.keyframeIndex++;
+             }
         }
         
         // Start Audio if available
@@ -102,6 +107,25 @@ export class ServerChoreography {
         });
 
         this.timer = setInterval(() => this.tick(), 20);
+    }
+
+    pause() {
+        this.isPlaying = false;
+        if (this.timer) clearInterval(this.timer);
+        this.timer = null;
+        this.isResting = false;
+        
+        if (this.callbacks.isAudioPlaying() || this.callbacks.hasAudio()) {
+            this.callbacks.pauseAudio();
+        }
+
+        this.callbacks.sendCommand('Q'); // Quick stop motors
+
+        this.callbacks.broadcast({
+            type: 'playState',
+            isPlaying: false,
+            currentTime: this.currentTime
+        });
     }
 
     stop() {

@@ -97,8 +97,11 @@ export class ServerAudio {
 
         this.stopProcess();
 
+        // Ensure float
+        const startSec = parseFloat(startTime) || 0;
+        
         this.state.playbackSpeed = speed;
-        this.startOffset = startTime;
+        this.startOffset = startSec;
         this.startTime = Date.now();
 
         // Cleanup socket
@@ -110,7 +113,7 @@ export class ServerAudio {
             '--no-video',
             '--no-terminal',
             `--input-ipc-server=${MPV_SOCKET}`,
-            `--start=${startTime}`,
+            `--start=${startSec.toFixed(3)}`,
             `--speed=${speed}`,
             `--volume=${this.state.volume}`,
             this.filePath
@@ -171,8 +174,9 @@ export class ServerAudio {
         if (this.state.isPlaying) {
             const elapsed = (Date.now() - this.startTime) / 1000 * this.state.playbackSpeed;
             this.state.currentTime = this.startOffset + elapsed;
-            this.stopProcess();
         }
+        // Always attempt to stop process if it exists
+        this.stopProcess();
     }
 
     seek(time) {
@@ -193,7 +197,8 @@ export class ServerAudio {
 
     stopProcess() {
         if (this.audioProcess) {
-            this.audioProcess.kill('SIGTERM');
+            console.log('[Audio] Killing audio process (SIGKILL)...');
+            this.audioProcess.kill('SIGKILL'); // Force kill
             this.audioProcess = null;
         }
         this.state.isPlaying = false;
