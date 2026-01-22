@@ -12,18 +12,18 @@
 <body>
   <div class="container">
     <header>
-      <h1>Return to Sender interface</h1>
+      <h1 class="mobile-hide">Return to Sender interface</h1>
       <div class="header-controls">
-        <label
+        <label class="mobile-hide"
           style="display: flex; align-items: center; gap: 4px; font-size: 10px; color: #888; margin-right: 10px; cursor: pointer;">
           <input type="checkbox" id="debugToggle" onchange="toggleDebug(this.checked)" style="cursor: pointer;" checked>
           Debug
         </label>
-        <div class="connection-status" id="status">
+        <div class="connection-status mobile-hide" id="status">
           <span class="status-indicator" id="statusIndicator"></span>
           <span id="statusText">Connecting...</span>
         </div>
-        <div class="port-controls" style="display: flex; gap: 5px;">
+        <div class="port-controls mobile-hide" style="display: flex; gap: 5px;">
           <select id="portSelector" style="max-width: 150px; font-size: 11px; padding: 2px;"></select>
           <button onclick="connectSerial()" id="btnConnect" class="btn-home"
             style="background-color: #555; border-color: #555; padding: 2px 8px;">Connect</button>
@@ -43,7 +43,7 @@
       <div class="left-column">
 
         <!-- Motor Mapping -->
-        <div class="mapping-section"
+        <div class="mapping-section mobile-hide"
           style="padding: 10px; background: var(--bg-alt); border: 1px solid var(--border); border-radius: 4px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <h3 style="margin: 0;">Motor Configuration</h3>
@@ -144,7 +144,7 @@
           <button onclick="startCalibration()" class="btn-home"
             style="background-color: var(--accent); color: white; border-color: var(--accent); font-weight: bold; padding: 6px;">Begin
             Calibration Sequence</button>
-          <div style="display: flex; gap: 5px; align-items: center;">
+          <div class="mobile-hide" style="display: flex; gap: 5px; align-items: center;">
             <button onclick="setFloor()" class="btn-home"
               style="background-color: #eee; border-color: #ccc; color: #333; flex-grow: 1; font-size: 11px; padding: 4px;">Set
               Zero (Floor)</button>
@@ -157,7 +157,7 @@
         </div>
 
         <!-- Settings (Speed/Accel) -->
-        <div class="settings-section"
+        <div class="settings-section mobile-hide"
           style="padding: 10px; background: var(--bg-alt); border: 1px solid var(--border); border-radius: 4px;">
           <div style="display: flex; flex-direction: column; gap: 10px;">
             <div style="display: flex; flex-direction: column; gap: 2px;">
@@ -181,7 +181,7 @@
         </div>
 
         <!-- Motor Controls -->
-        <div class="motor-controls">
+        <div class="motor-controls mobile-hide">
           <div class="motor-strip" id="motorX">
             <div class="motor-header"><span class="axis-label">1 (RL)</span><label class="reverse-toggle"><input
                   type="checkbox" id="reverseX" onchange="toggleReverse(0, this.checked)">Rev</label></div>
@@ -236,7 +236,7 @@
           </div>
         </div>
 
-        <div class="global-controls">
+        <div class="global-controls mobile-hide">
           <h3>All Motors</h3>
           <div class="global-buttons">
             <button onclick="moveAllMotors(-1000)">-1000</button>
@@ -249,7 +249,7 @@
           </div>
         </div>
 
-        <div class="console-section">
+        <div class="console-section mobile-hide">
           <div class="console-header"
             style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
             <h3 style="margin: 0;">Console</h3>
@@ -261,7 +261,7 @@
 
       <!-- RIGHT COLUMN -->
       <div class="right-column">
-        <div class="virtual-box-controls">
+        <div class="virtual-box-controls mobile-hide">
           <h2>Virtual Box Control</h2>
           <div class="box-sliders">
             <div class="control-group"><label>Height (Z)</label><input type="range" id="boxZ" min="0" max="2050"
@@ -303,7 +303,7 @@
           </div>
         </div>
 
-        <div class="altitude-display">
+        <div class="altitude-display mobile-hide">
           <div class="altitude-strip">
             <div class="altitude-title">M1 (RL)</div>
             <div class="altitude-meter-container">
@@ -335,13 +335,13 @@
         </div>
 
         <div class="choreography-section">
-          <h3>Choreography</h3>
+          <h3 class="mobile-hide">Choreography</h3>
           <div class="choreo-controls-wrapper"
             style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;">
             <!-- Top Row: Project, File, Audio -->
             <div class="choreo-row"
               style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 6px;">
-              <div
+              <div class="mobile-hide"
                 style="display: inline-flex; gap: 5px; align-items: center; border-right: 1px solid var(--border); padding-right: 10px;">
                 <select id="quickSaveSelect" style="width: 100px; padding: 2px; font-size: 11px;"></select>
                 <button onclick="quickLoad()">Load</button>
@@ -350,7 +350,7 @@
                   title="Delete">X</button>
               </div>
 
-              <div
+              <div class="mobile-hide"
                 style="display: inline-flex; gap: 5px; align-items: center; border-right: 1px solid var(--border); padding-right: 10px;">
                 <button onclick="openSaveDialog()">Export</button>
                 <button onclick="loadChoreography()">Import</button>
@@ -358,16 +358,16 @@
               </div>
 
               <div style="display: flex; align-items: center; gap: 5px;">
-                <button onclick="document.getElementById('audioInput').click()" title="Load Music"
+                <button class="mobile-hide" onclick="document.getElementById('audioInput').click()" title="Load Music"
                   style="background: #eee;">🎵 Load Audio</button>
-                <span id="audioStatus"
+                <span id="audioStatus" class="mobile-hide"
                   style="font-size: 11px; color: var(--text-light); max-width: 100px; overflow: hidden; text-overflow: ellipsis;">No
                   Audio</span>
                 <input type="file" id="audioInput" accept="audio/*" style="display: none;"
                   onchange="handleAudioLoad(event)">
                 <audio id="choreoAudio" style="display: none;"></audio>
                 
-                <div style="display: flex; align-items: center; gap: 2px; margin-left: 5px; border-left: 1px solid var(--border); padding-left: 8px;">
+                <div class="volume-controls" style="display: flex; align-items: center; gap: 2px; margin-left: 5px; border-left: 1px solid var(--border); padding-left: 8px;">
                   <label style="font-size: 12px; font-weight: 600;">🔊</label>
                   <input type="range" id="volumeSlider" min="0" max="150" step="5" value="100"
                     oninput="updateVolume(this.value)" style="width: 60px;">
@@ -378,15 +378,15 @@
 
             <!-- Bottom Row: Playback & Speed & Time -->
             <div class="choreo-row" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-              <div style="display: inline-flex; gap: 5px; align-items: center;">
-                <button onclick="recordKeyframe()" class="btn-record">Record Keyframe</button>
+              <div class="play-stop-controls" style="display: inline-flex; gap: 5px; align-items: center;">
+                <button onclick="recordKeyframe()" class="btn-record mobile-hide">Record Keyframe</button>
                 <button onclick="playChoreography()" id="btnPlay"
                   style="background-color: green; color: white; border-color: green;">Play</button>
                 <button onclick="stopChoreography()" id="btnStop">Stop & Reset</button>
-                <button onclick="clearChoreography()">Clear Keyframes</button>
+                <button onclick="clearChoreography()" class="mobile-hide">Clear Keyframes</button>
               </div>
 
-              <div
+              <div class="mobile-hide"
                 style="display: flex; align-items: center; gap: 8px; border-left: 1px solid var(--border); padding-left: 10px;">
                 <label style="font-size: 12px; font-weight: 600;">Speed:</label>
                 <input type="range" id="choreoSpeed" min="0.1" max="2" step="0.1" value="1"
@@ -409,22 +409,14 @@
             </div>
           </div>
 
-          <div style="display: flex; align-items: stretch; gap: 5px; margin-bottom: 4px;">
+          <div class="mobile-hide" style="display: flex; align-items: stretch; gap: 5px; margin-bottom: 4px;">
             <button onclick="returnToStart()" title="Return to Start"
               style="padding: 0 10px; font-size: 16px;">⏮</button>
             <div class="timeline" id="timeline" style="flex-grow: 1; overflow-x: auto; padding-bottom: 8px;">
               <div class="timeline-track" style="margin-bottom: 4px;"></div>
             </div>
-            <!-- 
-            <div style="display: flex; align-items: center; gap: 3px;">
-              <input type="number" id="timelineDuration" value="0" min="0" step="1"
-                style="width: 45px; font-size: 12px; padding: 2px;" onchange="updateTimelineDuration()"
-                title="Timeline duration (0 = auto)">
-              <span style="font-size: 11px; color: var(--text-light);">s</span>
-            </div> 
-            -->
           </div>
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+          <div class="mobile-hide" style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
             <label style="font-size: 11px; color: var(--text-light);">Zoom:</label>
             <input type="range" id="timelineZoom" min="5" max="100" step="5" value="20"
               oninput="updateTimelineZoom(this.value)" style="width: 100px;">
@@ -435,13 +427,13 @@
                 Resting: 60s
             </span>
           </div>
-          <div style="text-align: center; margin-bottom: 8px;">
+          <div class="mobile-hide" style="text-align: center; margin-bottom: 8px;">
             <span id="timeDisplay" class="time-display"
               style="font-size: 11px; color: #999; font-family: monospace;">0.00s</span>
           </div>
-          <div class="keyframes-list" id="keyframesList"></div>
+          <div class="keyframes-list mobile-hide" id="keyframesList"></div>
 
-          <div id="keyframeEditor"
+          <div id="keyframeEditor" class="mobile-hide"
             style="display: none; background: white; padding: 10px; border: 1px solid var(--border); border-radius: 3px; margin-top: 10px;">
             <h4 style="margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 5px;">Edit Keyframe
             </h4>

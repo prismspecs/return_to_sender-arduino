@@ -140,43 +140,70 @@ h3 {
     min-height: 44px;
   }
 
-  /* Motor controls - single row on mobile */
-  .motor-controls {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  .motor-strip {
-    padding: 10px;
-  }
-
-  .motor-buttons {
-    grid-template-columns: repeat(6, 1fr);
-    gap: 4px;
-  }
-
-  .motor-buttons button {
-    padding: 8px 4px;
-    font-size: 12px;
-    min-height: 44px;
-  }
-
-  /* Global controls - maintain single row */
-  .global-buttons {
-    grid-template-columns: repeat(7, 1fr);
-    gap: 3px;
-  }
-
-  .global-buttons button {
-    padding: 8px 2px;
-    font-size: 11px;
-    min-height: 44px;
-  }
-
   /* Larger touch targets for toggles and labels */
   .reverse-toggle {
     font-size: 13px;
     padding: 4px 8px;
+  }
+
+  .mobile-hide {
+    display: none !important;
+  }
+
+  .main-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 10px;
+  }
+
+  .left-column, .right-column {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .limit-controls, .choreography-section {
+    background: none;
+    border: none;
+    padding: 0;
+  }
+
+  .play-stop-controls, .volume-controls {
+    justify-content: center;
+    width: 100%;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .play-stop-controls button {
+    flex-grow: 1;
+    min-height: 60px;
+    font-size: 18px;
+  }
+
+  .volume-controls {
+    gap: 10px;
+  }
+
+  .volume-controls input[type="range"] {
+    flex-grow: 1;
+    width: auto !important;
+  }
+
+  .toggle-switch-container {
+    justify-content: center;
+    width: 100%;
+    padding: 10px;
+    background: var(--bg-alt);
+    border-radius: 8px;
+  }
+
+  .btn-home[onclick="startCalibration()"] {
+    min-height: 60px;
+    font-size: 18px;
   }
 
   .reverse-toggle input[type="checkbox"] {
@@ -204,43 +231,6 @@ h3 {
     width: 100px !important;
     height: 32px;
   }
-
-  .timeline {
-    min-height: 50px;
-  }
-
-  .motor-sliders {
-    grid-template-columns: 1fr !important;
-  }
-
-  .keyframes-list {
-    max-height: 150px;
-  }
-
-  #console {
-    max-height: 100px;
-  }
-
-  /* Larger axis labels */
-  .axis-label {
-    font-size: 18px;
-  }
-
-  .position-value {
-    font-size: 18px;
-  }
-
-  /* Expand toggle button - larger for mobile */
-  #btnToggleMapping {
-    padding: 8px 16px !important;
-    font-size: 20px !important;
-    min-width: 44px;
-    min-height: 44px;
-  }
-
-  border-radius: 3px;
-  font-size: 13px;
-  border: 1px solid var(--border);
 }
 
 .status-indicator {
