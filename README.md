@@ -87,20 +87,6 @@ The web interface provides:
 
 All controls update motor positions immediately without typing commands.
 
-
-
-## Testing
-
-### Python Test Script
-
-Run `stepper_test.py` to execute a movement sequence on Y-axis:
-
-```bash
-python3 stepper_test.py
-```
-
-Update `SERIAL_PORT` in the script to match your device.
-
 ## Troubleshooting A-Axis
 
 If the A-axis motor is not working:
