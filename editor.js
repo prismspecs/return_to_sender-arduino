@@ -66,8 +66,15 @@ export function saveKeyframeChanges() {
     const kf = state.choreography[state.selectedKeyframeIndex];
     if (!kf) return;
     kf.time = parseFloat(document.getElementById('editTime').value);
-    kf.speed = parseFloat(document.getElementById('editSpeed').value) * 1000;
-    kf.accel = parseFloat(document.getElementById('editAccel').value) * 1000;
+    
+    let s = parseFloat(document.getElementById('editSpeed').value);
+    if (isNaN(s)) s = state.uiMaxSpeed / 1000;
+    kf.speed = s * 1000;
+    
+    let a = parseFloat(document.getElementById('editAccel').value);
+    if (isNaN(a)) a = state.uiAcceleration / 1000;
+    kf.accel = a * 1000;
+    
     kf.positions = [parseInt(document.getElementById('editM0').value), parseInt(document.getElementById('editM1').value), parseInt(document.getElementById('editM2').value), parseInt(document.getElementById('editM3').value)];
     kf.boxPose = { z: parseInt(document.getElementById('editBoxZ').value) - VBOX_CONFIG.maxHeight, roll: parseInt(document.getElementById('editBoxRoll').value), pitch: parseInt(document.getElementById('editBoxPitch').value) };
     state.choreography.sort((a, b) => a.time - b.time);

@@ -72,12 +72,22 @@ export function updateKeyframesList(callbacks) {
   state.choreography.forEach((kf, index) => {
     const item = document.createElement('div');
     item.className = 'keyframe-item';
-    const spd = kf.speed !== undefined ? (kf.speed / 1000) + 'k' : 'def';
-    const acc = kf.accel !== undefined ? (kf.accel / 1000) + 'k' : 'def';
+    
+    // Validation check for Speed/Accel
+    const isInvalid = (val) => val === null || val === undefined || isNaN(val);
+    const speedInvalid = isInvalid(kf.speed);
+    const accelInvalid = isInvalid(kf.accel);
+    const hasError = speedInvalid || accelInvalid;
+    
+    const spd = !speedInvalid ? (kf.speed / 1000) + 'k' : 'NULL';
+    const acc = !accelInvalid ? (kf.accel / 1000) + 'k' : 'NULL';
 
     if (index === state.selectedKeyframeIndex) {
       item.style.border = '2px solid var(--accent)';
       item.style.backgroundColor = '#e6f2ff';
+    } else if (hasError) {
+      item.style.border = '1px solid #ffcc00';
+      item.style.backgroundColor = '#fff9e6'; // Light yellow warning
     } else {
       item.style.border = 'none';
       item.style.backgroundColor = 'var(--bg-alt)';
@@ -85,6 +95,7 @@ export function updateKeyframesList(callbacks) {
 
     item.innerHTML = `
       <button class="btn-delete" style="margin-right: 10px;">Del</button>
+      ${hasError ? '<span title="Invalid Speed or Accel" style="margin-right:5px; cursor:help;">⚠️</span>' : ''}
       <span class="kf-label" style="cursor: pointer; flex-grow: 1;">${kf.time.toFixed(2)}s: [${kf.positions.join(', ')}] <small>(S:${spd} A:${acc})</small></span>
     `;
 
