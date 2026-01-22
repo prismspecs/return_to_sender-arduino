@@ -388,6 +388,7 @@ window.handleFileLoad = (e) => {
             state.currentFileName = file.name.replace('.json', '');
             Storage.saveChoreographyToLocal();
             window.refreshUI();
+            Comms.sendChoreographyUpdate();
         } catch (e) { console.error(e); }
     };
     reader.readAsText(file);

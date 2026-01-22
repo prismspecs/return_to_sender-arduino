@@ -13,6 +13,8 @@ export class ServerChoreography {
         
         this.timer = null;
         this.keyframeIndex = 0;
+        
+        this.fileName = 'Untitled';
 
         // Settings
         this.maxSpeed = 24000;
@@ -28,6 +30,7 @@ export class ServerChoreography {
     }
 
     updateConfig(config) {
+        if (config.fileName) this.fileName = config.fileName;
         if (config.motorMapping) this.motorMapping = config.motorMapping;
         if (config.reverseFlags) this.reverseFlags = config.reverseFlags;
         if (config.restEnabled !== undefined) {
@@ -62,6 +65,7 @@ export class ServerChoreography {
         this.callbacks.broadcast({
             type: 'choreographySync',
             choreography: this.choreography,
+            fileName: this.fileName,
             reverseFlags: this.reverseFlags,
             motorMapping: this.motorMapping,
             loopEnabled: this.loopEnabled,
