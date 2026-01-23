@@ -81,6 +81,12 @@ export class ServerChoreography {
         // If resuming (startTime is roughly equal to current time), don't reset index
         const isResuming = Math.abs(startTime - this.currentTime) < 0.1;
         
+        if (this.isResting) {
+            this.isResting = false;
+            this.callbacks.sendCommand('E 1'); // Re-enable motors
+            this.callbacks.broadcast({ type: 'restState', isResting: false });
+        }
+
         if (this.isPlaying) this.pause();
         
         this.isPlaying = true;
@@ -114,11 +120,16 @@ export class ServerChoreography {
     }
 
     pause() {
+        const wasResting = this.isResting;
         this.isPlaying = false;
         if (this.timer) clearInterval(this.timer);
         this.timer = null;
         this.isResting = false;
         
+        if (wasResting) {
+            this.callbacks.broadcast({ type: 'restState', isResting: false });
+        }
+
         if (this.callbacks.isAudioPlaying() || this.callbacks.hasAudio()) {
             this.callbacks.pauseAudio();
         }
@@ -133,11 +144,16 @@ export class ServerChoreography {
     }
 
     stop() {
+        const wasResting = this.isResting;
         this.isPlaying = false;
         if (this.timer) clearInterval(this.timer);
         this.timer = null;
         this.isResting = false;
         
+        if (wasResting) {
+            this.callbacks.broadcast({ type: 'restState', isResting: false });
+        }
+
         // Stop Audio and Reset
         if (this.callbacks.isAudioPlaying() || this.callbacks.hasAudio()) {
             this.callbacks.pauseAudio();
