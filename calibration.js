@@ -37,6 +37,10 @@ export function cancelCalibration() {
 }
 
 export function finishCalibration() {
+    // Set Zero (Floor)
+    if (window.setFloor) window.setFloor();
+    else console.warn("window.setFloor not available");
+
     document.getElementById('calibrationModal').style.display = 'none';
     
     // Show brief success message in the UI instead of alert
