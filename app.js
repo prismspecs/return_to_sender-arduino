@@ -853,6 +853,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.currentTime = data.currentTime;
                 state.playbackStartTime = Date.now() - (data.currentTime * 1000 / state.playbackSpeed);
                 choreoCallbacks.onTimeUpdate(state.currentTime);
+
+                // Auto-scroll to start on Loop/Reset
+                if (data.currentTime === 0) {
+                    const timeline = document.getElementById('timeline');
+                    if (timeline) timeline.scrollLeft = 0;
+                }
             }
             choreoCallbacks.onPlayStateChange(state.isPlaying);
         },
