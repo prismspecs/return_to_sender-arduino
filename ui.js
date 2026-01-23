@@ -62,7 +62,11 @@ export function updatePlayhead(time) {
   playhead.style.left = `${time * PPS}px`;
 
   const timeDisp = document.getElementById('timeDisplay');
-  if (timeDisp) timeDisp.textContent = `${time.toFixed(2)}s`;
+  if (timeDisp) {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60).toString().padStart(2, '0');
+    timeDisp.textContent = `${minutes}:${seconds} (${time.toFixed(2)}s)`;
+  }
 }
 
 export function updateKeyframesList(callbacks) {
