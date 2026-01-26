@@ -868,6 +868,24 @@ document.addEventListener('DOMContentLoaded', () => {
             state.currentFileName = data.fileName || 'Untitled';
             if (data.reverseFlags) state.reverseFlags = data.reverseFlags;
             
+            if (data.loopEnabled !== undefined) {
+                state.loopEnabled = data.loopEnabled;
+                const elLoop = document.getElementById('loopChoreography');
+                if (elLoop) elLoop.checked = state.loopEnabled;
+            }
+
+            if (data.restEnabled !== undefined) {
+                state.restEnabled = data.restEnabled;
+                const elRest = document.getElementById('restEnabled');
+                if (elRest) elRest.checked = state.restEnabled;
+            }
+
+            if (data.restDuration !== undefined) {
+                state.restDuration = data.restDuration;
+                const elRestDur = document.getElementById('restDuration');
+                if (elRestDur) elRestDur.value = state.restDuration;
+            }
+
             if (data.frameDimensions) {
                 const fd = data.frameDimensions;
                 if (fd.width) VBOX_CONFIG.frameWidth = fd.width;

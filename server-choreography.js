@@ -69,6 +69,8 @@ export class ServerChoreography {
             reverseFlags: this.reverseFlags,
             motorMapping: this.motorMapping,
             loopEnabled: this.loopEnabled,
+            restEnabled: this.restEnabled,
+            restDuration: this.restDuration,
             frameDimensions: this.frameDimensions,
             settings: {
                 speed: this.maxSpeed,
