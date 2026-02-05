@@ -235,7 +235,8 @@ export class ServerChoreography {
         
         if (this.currentTime > lastTime + 0.5) { // 0.5s buffer after end
             console.log(`[Choreo] End reached. Loop: ${this.loopEnabled}, Rest: ${this.restEnabled}`);
-            if (this.restEnabled) {
+            
+            if (this.loopEnabled && this.restEnabled) {
                 // Priority: Rest Mode (Loop with Pause)
                 console.log('Entering Rest Mode logic...');
                 this.isResting = true;

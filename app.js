@@ -803,8 +803,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (savedRestDuration !== null) state.restDuration = parseFloat(savedRestDuration);
     document.getElementById('restEnabled').checked = state.restEnabled;
     document.getElementById('restDuration').value = state.restDuration;
-    // Sync with server immediately
-    window.updateRestSettings();
 
     const savedTimelineDuration = localStorage.getItem('timelineDuration');
     if (savedTimelineDuration !== null) state.timelineDuration = parseFloat(savedTimelineDuration);
@@ -821,7 +819,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const vol = parseInt(savedVolume);
         document.getElementById('volumeSlider').value = vol;
         document.getElementById('volumeDisplay').textContent = vol + '%';
-        setTimeout(() => Comms.sendAudioCommand('setVolume', { volume: vol }), 1000);
     }
 
     Comms.setupComms({
@@ -835,7 +832,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 ind.classList.add('connected');
                 ind.classList.remove('connecting');
                 txt.textContent = 'Connected to Arduino';
-                window.syncHardware();
             }
             else {
                 ind.classList.remove('connected');

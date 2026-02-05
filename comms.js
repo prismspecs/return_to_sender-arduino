@@ -153,6 +153,22 @@ export function connectWebSocket() {
   };
 }
 
+// Handle visibility changes to prevent background interference
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+        if (ws) {
+            console.log('[Comms] App backgrounded, closing WebSocket');
+            ws.onclose = null; // Prevent automatic reconnection loop
+            ws.close();
+            ws = null;
+            onStatus(false, 'Backgrounded');
+        }
+    } else if (document.visibilityState === 'visible') {
+        console.log('[Comms] App foregrounded, reconnecting...');
+        connectWebSocket();
+    }
+});
+
 export function sendCommand(command) {
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({

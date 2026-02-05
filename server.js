@@ -97,6 +97,15 @@ function initSerial(portPath) {
       console.log(`\n✓ Connected to Arduino on ${portPath}`);
       isSerialConnected = true;
       broadcast({ type: 'status', connected: true });
+
+      // Sync hardware settings after a short delay for bootloader/init
+      setTimeout(() => {
+        if (serialPort && serialPort.isOpen) {
+          serialPort.write(`S ${choreoEngine.maxSpeed}\n`);
+          serialPort.write(`A ${choreoEngine.acceleration}\n`);
+          console.log(`[Serial] Synced hardware: Speed=${choreoEngine.maxSpeed}, Accel=${choreoEngine.acceleration}`);
+        }
+      }, 2000);
     });
 
     parser.on('data', (data) => {
@@ -181,8 +190,19 @@ const server = app.listen(PORT, () => {
 const wss = new WebSocketServer({ server });
 
 wss.on('connection', (ws) => {
+  // Kick off all other users to ensure "most recent one" has exclusive control
+  if (wsClients.size > 0) {
+    console.log(`Kicking off ${wsClients.size} existing clients for new connection.`);
+    wsClients.forEach(client => {
+      if (client.readyState === 1) { // WebSocket.OPEN
+        client.close(1000, "New user connected - exclusive control transferred");
+      }
+    });
+    wsClients.clear();
+  }
+
   wsClients.add(ws);
-  console.log('Client connected');
+  console.log('Client connected (exclusive)');
 
   // Initial Sync
   ws.send(JSON.stringify({ type: 'status', connected: isSerialConnected }));
