@@ -19,7 +19,7 @@ export class ServerAudio {
             duration: 0,
             fileName: null,
             playbackSpeed: 1.0,
-            volume: 100
+            volume: 65
         };
         
         this.startTime = 0;
