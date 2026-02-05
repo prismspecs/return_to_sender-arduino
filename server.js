@@ -24,6 +24,7 @@ const choreoPath = join(uploadsDir, 'choreography.json');
 // --- Serial Port State ---
 let serialPort = null;
 let isSerialConnected = false;
+let isOpening = false;
 let wsClients = new Set();
 
 // --- Sub-Systems ---
@@ -72,22 +73,27 @@ function saveChoreography() {
   };
   fs.writeFileSync(choreoPath, JSON.stringify(data, null, 2));
 }
-
-// --- Serial Port Functions ---
 function initSerial(portPath) {
   if (!portPath) return;
+  if (isOpening) {
+    console.log('[Serial] Connection already in progress, skipping.');
+    return;
+  }
+
   if (serialPort) {
-    if (serialPort.path === portPath && serialPort.isOpen) return;
+    if (serialPort.path === portPath && (serialPort.isOpen || isOpening)) return;
     if (serialPort.isOpen) serialPort.close();
     serialPort.removeAllListeners();
     serialPort = null;
   }
 
+  isOpening = true;
   try {
     serialPort = new SerialPort({ path: portPath, baudRate: BAUD_RATE, autoOpen: false });
     const parser = serialPort.pipe(new ReadlineParser({ delimiter: '\n' }));
 
     serialPort.open((err) => {
+      isOpening = false;
       if (err) {
         console.error(`Error opening ${portPath}:`, err.message);
         isSerialConnected = false;
@@ -118,15 +124,18 @@ function initSerial(portPath) {
     serialPort.on('close', () => {
       console.log('\nSerial port closed.');
       isSerialConnected = false;
+      isOpening = false;
       broadcast({ type: 'status', connected: false });
     });
 
     serialPort.on('error', (err) => {
       console.error('Serial error:', err.message);
       isSerialConnected = false;
+      isOpening = false;
       broadcast({ type: 'status', connected: false });
     });
   } catch (e) {
+    isOpening = false;
     console.error('Serial Init Failed:', e.message);
   }
 }
@@ -193,19 +202,8 @@ const server = app.listen(PORT, () => {
 const wss = new WebSocketServer({ server });
 
 wss.on('connection', (ws) => {
-  // Kick off all other users to ensure "most recent one" has exclusive control
-  if (wsClients.size > 0) {
-    console.log(`Kicking off ${wsClients.size} existing clients for new connection.`);
-    wsClients.forEach(client => {
-      if (client.readyState === 1) { // WebSocket.OPEN
-        client.close(1000, "New user connected - exclusive control transferred");
-      }
-    });
-    wsClients.clear();
-  }
-
   wsClients.add(ws);
-  console.log('Client connected (exclusive)');
+  console.log(`Client connected. Total clients: ${wsClients.size}`);
 
   // Initial Sync
   ws.send(JSON.stringify({ type: 'status', connected: isSerialConnected }));

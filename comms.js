@@ -153,6 +153,7 @@ export function connectWebSocket() {
   };
 }
 
+/* 
 // Handle visibility changes to prevent background interference
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
@@ -168,6 +169,7 @@ document.addEventListener('visibilitychange', () => {
         connectWebSocket();
     }
 });
+*/
 
 export function sendCommand(command) {
   if (ws && ws.readyState === WebSocket.OPEN) {
