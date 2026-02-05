@@ -8,7 +8,7 @@ const debugLog = (...args) => { if (state.debugMode) console.log(...args); };
 
 // Callbacks to update UI
 let onLog = (msg) => console.log(msg);
-let onStatus = (connected, msg) => { };
+let onStatus = (connected, msg, motorsEnabled) => { };
 let onPositionUpdate = () => { };
 let onAudioStateUpdate = (audioState) => { };
 let onChoreographySync = (data) => { };
@@ -103,7 +103,7 @@ export function connectWebSocket() {
         parseArduinoMessage(data.message);
       } else if (data.type === 'status') {
         if (data.connected) {
-          onStatus(true, 'Connected to Arduino');
+          onStatus(true, 'Connected to Arduino', data.motorsEnabled);
           onLog('Arduino connected');
           setTimeout(() => sendCommand('I'), 500);
         } else {

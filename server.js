@@ -25,6 +25,7 @@ const choreoPath = join(uploadsDir, 'choreography.json');
 let serialPort = null;
 let isSerialConnected = false;
 let isOpening = false;
+let motorsEnabled = false; 
 let wsClients = new Set();
 
 // --- Sub-Systems ---
@@ -118,7 +119,11 @@ function initSerial(portPath) {
     });
 
     parser.on('data', (data) => {
-      broadcast({ type: 'arduino', message: data.trim() });
+      const msg = data.trim();
+      if (msg.includes("Motors: ENABLED")) motorsEnabled = true;
+      if (msg.includes("Motors: DISABLED")) motorsEnabled = false;
+      if (msg.includes("Timeout: Motors DISABLED")) motorsEnabled = false;
+      broadcast({ type: 'arduino', message: msg });
     });
 
     serialPort.on('close', () => {
@@ -206,8 +211,14 @@ wss.on('connection', (ws) => {
   console.log(`Client connected. Total clients: ${wsClients.size}`);
 
   // Initial Sync
-  ws.send(JSON.stringify({ type: 'status', connected: isSerialConnected }));
+  ws.send(JSON.stringify({ type: 'status', connected: isSerialConnected, motorsEnabled }));
   ws.send(JSON.stringify(audioManager.getStatus()));
+  
+  // Request fresh status from hardware for all clients
+  if (serialPort && serialPort.isOpen) {
+    serialPort.write('I\n');
+  }
+
   ws.send(JSON.stringify({
     type: 'choreographySync',
     choreography: choreoEngine.choreography,

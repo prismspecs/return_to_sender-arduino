@@ -826,13 +826,21 @@ document.addEventListener('DOMContentLoaded', () => {
         onLog: (msg) => {
             const c = document.getElementById('console');
             if (c) { const d = document.createElement('div'); d.textContent = msg; c.appendChild(d); c.scrollTop = c.scrollHeight; }
-        }, onStatus: (conn, msg) => {
+        }, onStatus: (conn, msg, motorsEnabled) => {
             const ind = document.getElementById('statusIndicator');
             const txt = document.getElementById('statusText');
             if (conn) {
                 ind.classList.add('connected');
                 ind.classList.remove('connecting');
                 txt.textContent = 'Connected to Arduino';
+                
+                // Sync motor toggle
+                const toggle = document.getElementById('motorToggle');
+                if (toggle && motorsEnabled !== undefined) {
+                    toggle._updatingFromArduino = true;
+                    toggle.checked = !!motorsEnabled;
+                    toggle._updatingFromArduino = false;
+                }
             }
             else {
                 ind.classList.remove('connected');
