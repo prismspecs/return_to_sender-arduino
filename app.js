@@ -237,6 +237,7 @@ window.toggleMotors = (checked) => {
     state.isTogglingMotors = true;
 
     if (checked) {
+        Comms.sendCommand('P');
         Comms.sendCommand('E 1');
         setTimeout(() => { state.isTogglingMotors = false; }, 1000);
     } else {

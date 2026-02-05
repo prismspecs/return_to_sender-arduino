@@ -98,6 +98,9 @@ function initSerial(portPath) {
       isSerialConnected = true;
       broadcast({ type: 'status', connected: true });
 
+      // Immediate ping to reset watchdog
+      serialPort.write('P\n');
+
       // Sync hardware settings after a short delay for bootloader/init
       setTimeout(() => {
         if (serialPort && serialPort.isOpen) {
@@ -279,7 +282,7 @@ wss.on('connection', (ws) => {
 // --- Heartbeats ---
 setInterval(() => {
   if (isSerialConnected && serialPort && serialPort.isOpen) serialPort.write('P\n', () => {});
-}, 1000);
+}, 400);
 
 setInterval(() => {
   if (audioManager.state.isPlaying) broadcast(audioManager.getStatus());
